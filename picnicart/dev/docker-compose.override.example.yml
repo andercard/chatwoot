@@ -1,0 +1,22 @@
+# Local dev overrides. Copy to the repo root as docker-compose.override.yml (excluded from git).
+services:
+  # vite_ruby reads VITE_RUBY_HOST; the base file's VITE_DEV_SERVER_HOST is unused,
+  # so Rails can't find the dev server and falls back to a full (OOM-prone) build.
+  rails:
+    # App on host port 3005 instead of 3000 (container still listens on 3000).
+    ports: !override
+      - "3005:3000"
+    environment:
+      - VITE_RUBY_HOST=vite
+  vite:
+    environment:
+      - VITE_RUBY_HOST=0.0.0.0
+      # Rails proxies with Host "vite"; Vite 6 rejects unknown hosts with 403.
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=vite
+  postgres:
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      # pgvector:pg16 stores data in /var/lib/postgresql/data; the base file mounts
+      # the named volume at /data/postgres, so data would not survive `down`.
+      - postgres:/var/lib/postgresql/data
