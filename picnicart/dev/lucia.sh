@@ -6,6 +6,7 @@
 #   picnicart/dev/lucia.sh status       # show the state of every piece
 #   picnicart/dev/lucia.sh down         # give the test number back to staging, close the public webhook path
 #   picnicart/dev/lucia.sh down --stop-docker
+#   picnicart/dev/lucia.sh whatsapp-inbox   # one-time: create the WhatsApp Cloud inbox locally (token from the Keychain)
 #   picnicart/dev/lucia.sh bot-token [--from-server]   # one-time: store the bot token in the local DB (clipboard, or fetched over ssh)
 #
 # Options: --dir <path> (Chatwoot checkout to run; default: git toplevel of the current dir)
@@ -57,6 +58,8 @@ ts_host() { tailscale status --json 2>/dev/null | python3 -c 'import json,sys; p
 public_url() { local h; h="$(ts_host)"; [ -n "$h" ] && echo "https://$h"; }
 http_code() { curl -s -o /dev/null -m "${2:-10}" -w '%{http_code}' "$1"; }
 wa_token() { security find-generic-password -s "$PICNIC_KEYCHAIN_SERVICE" -w 2>/dev/null; }
+# curl to the Meta Graph API with the token passed through a stdin config (a printf builtin), never as a process argument
+meta() { local t; t="$(wa_token)"; [ -n "$t" ] || return 9; printf 'header = "Authorization: Bearer %s"\n' "$t" | curl -s -K - "$@"; }
 env_value() { grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-; }
 rails_run() { docker compose exec -T rails bundle exec rails runner "$1" 2>/dev/null | grep -v -e 'warning' -e 'called from' -e 'DEPRECATION'; }
 # Everything published through Tailscale Funnel is reachable from the whole Internet. We allow ONE path only.
@@ -226,7 +229,7 @@ set_override() {
   [ "${LOCAL_INBOX:-none}" != none ] || { warn "skipped: create the local WhatsApp inbox first"; return 1; }
   url="$(public_url)${WEBHOOK_PATH}/${PICNIC_WA_PHONE}"
   verify="$(docker compose exec -T -e ID="$LOCAL_INBOX" rails bundle exec rails runner 'puts Inbox.find(ENV["ID"]).channel.provider_config["webhook_verify_token"]' 2>/dev/null | tail -1)"
-  local res; res="$(curl -s -X POST "$GRAPH/$PICNIC_WA_PHONE_ID" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+  local res; res="$(meta -X POST "$GRAPH/$PICNIC_WA_PHONE_ID" -H 'Content-Type: application/json' \
     -d "{\"webhook_configuration\":{\"override_callback_uri\":\"$url\",\"verify_token\":\"$verify\"}}")"
   echo "$res" | grep -q '"success":true' && ok "messages to the test number now go to this Mac (the staging inbox is muted for this number)" \
     || { fail "Meta rejected the override: $(echo "$res" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("error",{}).get("message","?"))' 2>/dev/null)"; return 1; }
@@ -236,7 +239,7 @@ clear_override() {
   step "Give the test number back to staging (remove override)"
   local token; token="$(wa_token)"
   [ -n "$token" ] || { warn "no token in Keychain; nothing to clear"; return 0; }
-  local res; res="$(curl -s -X POST "$GRAPH/$PICNIC_WA_PHONE_ID" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+  local res; res="$(meta -X POST "$GRAPH/$PICNIC_WA_PHONE_ID" -H 'Content-Type: application/json' \
     -d '{"webhook_configuration":{"override_callback_uri":""}}')"
   echo "$res" | grep -q '"success":true' && ok "override removed — the staging inbox receives the test number again" || fail "could not remove override: $res"
 }
@@ -244,7 +247,7 @@ clear_override() {
 show_override() {
   local token; token="$(wa_token)"
   [ -n "$token" ] || { warn "override: unknown (no token in Keychain)"; return; }
-  local cur; cur="$(curl -s "$GRAPH/$PICNIC_WA_PHONE_ID?fields=webhook_configuration" -H "Authorization: Bearer $token" \
+  local cur; cur="$(meta "$GRAPH/$PICNIC_WA_PHONE_ID?fields=webhook_configuration" \
     | python3 -c 'import json,sys; c=json.load(sys.stdin).get("webhook_configuration",{}); print(c.get("phone_number") or "")' 2>/dev/null)"
   [ -n "$cur" ] && ok "override ACTIVE → local (staging muted for the test number)" || ok "no override (the test number delivers to staging)"
 }
@@ -278,6 +281,36 @@ bot_token() {
     || { fail "could not store the token (is the local app up? run 'up' first)"; exit 1; }
 }
 
+# Creates the WhatsApp Cloud inbox in the LOCAL account. The token comes from the Keychain (stdin, never argv).
+# Chatwoot normally calls Meta right after creating a manual WhatsApp Cloud channel (`setup_webhooks`: it sets the
+# number's webhook to FRONTEND_URL and may register the number). That would change what staging receives behind your
+# back, so the callback is disabled for THIS process only; `lucia.sh up` is the one that points Meta at this Mac.
+whatsapp_inbox() {
+  step "WhatsApp inbox (local)"
+  [ -n "$(wa_token)" ] || { fail "no WhatsApp token in the Keychain — one-time: security add-generic-password -s $PICNIC_KEYCHAIN_SERVICE -a \"\$USER\" -U -w   (paste the token at the prompt)"; exit 1; }
+  local code; code="$(meta -o /dev/null -w '%{http_code}' "$GRAPH/$PICNIC_WA_PHONE_ID?fields=id")"
+  [ "$code" = 200 ] && ok "the token can read the test number" || { fail "Meta rejected the token for the test number (HTTP $code): expired, or missing permissions"; exit 1; }
+  local out
+  out="$(wa_token | docker compose exec -T -e ACC_ID="$PICNIC_LOCAL_ACCOUNT_ID" -e PHONE="$PICNIC_WA_PHONE" -e PHONE_ID="$PICNIC_WA_PHONE_ID" \
+      -e WABA_ID="$PICNIC_WA_WABA_ID" -e NAME="${PICNIC_LOCAL_INBOX_NAME:-WhatsApp local}" rails bundle exec rails runner '
+      Channel::Whatsapp.skip_callback(:commit, :after, :setup_webhooks)   # this process only; nothing is persisted
+      acc = Account.find(ENV["ACC_ID"].to_i)
+      inbox = acc.inboxes.where(channel_type: "Channel::Whatsapp").find { |i| i.channel.phone_number == ENV["PHONE"] }
+      if inbox
+        puts "RESULT existing inbox=#{inbox.id}"
+      else
+        token = STDIN.read.strip
+        channel = Channel::Whatsapp.create!(account: acc, phone_number: ENV["PHONE"], provider: "whatsapp_cloud",
+                                            provider_config: { "api_key" => token, "phone_number_id" => ENV["PHONE_ID"], "business_account_id" => ENV["WABA_ID"] })
+        inbox = acc.inboxes.create!(name: ENV["NAME"], channel: channel)
+        puts "RESULT created inbox=#{inbox.id}"
+      end' 2>&1 | grep -E '^RESULT|Invalid|RecordInvalid|Validation' | head -3)"
+  case "$out" in
+    RESULT*) ok "${out#RESULT } (Meta webhooks were NOT touched)"; touch "$STATE_DIR/wa-inbox-$PROJECT" ;;
+    *) fail "could not create the inbox: ${out:-no output (is the local app up? run 'up')}"; exit 1 ;;
+  esac
+}
+
 status() {
   step "Status ($PROJECT, $(cat VERSION_CW 2>/dev/null))"
   [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 20)" = 200 ] && ok "app http://localhost:${LOCAL_PORT}" || warn "app down"
@@ -305,5 +338,6 @@ case "$CMD" in
     [ "$STOP_DOCKER" = 1 ] && docker compose stop >/dev/null && ok "docker stopped" ;;
   status) status ;;
   bot-token) bot_token "$BOT_SRC" ;;
-  *) echo "usage: $0 up|status|down|bot-token [--from-server] [--dir <checkout>] [--switch] [--stop-docker]"; exit 2 ;;
+  whatsapp-inbox) whatsapp_inbox ;;
+  *) echo "usage: $0 up|status|down|bot-token [--from-server]|whatsapp-inbox [--dir <checkout>] [--switch] [--stop-docker]"; exit 2 ;;
 esac

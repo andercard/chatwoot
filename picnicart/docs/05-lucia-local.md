@@ -65,12 +65,14 @@ Los valores concretos están en `~/.config/picnicart/env` y en las notas privada
 | 4 | Reglas de acceso (ACL) de Tailscale: el servidor solo llega a la Mac por el 3005; la Mac al servidor por el puerto de n8n y SSH | ⏳ | consola de Tailscale → Access controls |
 | 5 | Activar Funnel en el tailnet | ⏳ | aprobar el enlace que imprime `lucia.sh up` |
 | 6 | Token del bot en la BD local | ✅ | `lucia.sh bot-token --from-server` (lo trae por SSH a la base local sin imprimirlo ni usar el portapapeles; los datos del servidor están en `~/.config/picnicart/env`). Alternativa: copiarlo al portapapeles y correr `lucia.sh bot-token` |
-| 7 | Bandeja WhatsApp Cloud en la cuenta local | ⏳ | Ajustes → Bandejas → WhatsApp → WhatsApp Cloud (número, Phone Number ID, WABA y clave de API: los pegas tú) |
-| 8 | Token de WhatsApp en el Llavero | ⏳ | `security add-generic-password -s <PICNIC_KEYCHAIN_SERVICE> -a "$USER" -w` |
+| 7 | Token de WhatsApp en el Llavero | ⏳ | `security add-generic-password -s <PICNIC_KEYCHAIN_SERVICE> -a "$USER" -U -w` y pegar el token en el aviso (no se ve ni queda en el historial). Sirve a la vez para la bandeja y para el override de Meta; necesita permisos de mensajería **y** de administración de WhatsApp |
+| 8 | Bandeja WhatsApp Cloud en la cuenta local | ⏳ | `lucia.sh whatsapp-inbox` (la crea sin que Chatwoot toque los webhooks de Meta; ver nota) |
 
 Cuando todo esté ✅ basta con `lucia.sh up` / `down`.
 
 ⚠️ El token del bot (paso 6) es el de un usuario del Chatwoot desplegado, limitado a la cuenta de staging. Queda guardado en la base de datos local de tu Mac: no hagas copias de esa base ni la compartas.
+
+**Por qué la bandeja se crea con `lucia.sh whatsapp-inbox` y no desde la pantalla de Chatwoot:** al crear un canal WhatsApp Cloud manual, Chatwoot llama a Meta por su cuenta (`setup_webhooks`: apunta el webhook del número a `FRONTEND_URL` y puede registrar el número). Eso cambiaría lo que recibe staging sin que lo decidas. El comando desactiva ese efecto solo durante la creación; el único que apunta Meta a tu Mac es `lucia.sh up`.
 
 ## Si algo falla
 
