@@ -44,6 +44,7 @@ cd ~/Desarrollo/chatwoot-worktrees/production && docker compose up -d
    - `SECRET_KEY_BASE=` → resultado de `openssl rand -hex 64`
    - `FRONTEND_URL=http://localhost:3005`
    - `POSTGRES_PASSWORD=postgres`
+   - `PICNIC_TS_IP=` → resultado de `tailscale ip -4`
    (`POSTGRES_HOST=postgres` y `REDIS_URL=redis://redis:6379` ya vienen bien para Docker.)
 2. Construir imágenes (la primera vez tarda ~10 min):
    ```bash
@@ -60,15 +61,18 @@ cd ~/Desarrollo/chatwoot-worktrees/production && docker compose up -d
 > La primera carga del navegador tarda 20–30 s (Vite compila módulo por módulo). Después es rápida.
 > Cada vez que el contenedor `vite` arranca corre `pnpm install --force` (~1,5 min). Espera a ver `VITE ready` en `docker compose logs vite` antes de abrir la app.
 
-## Abrirlo desde el celular
+## Abrirlo desde el celular (y qué puertos quedan abiertos)
 
-El puerto 3005 escucha en todas las interfaces de la Mac, así que el celular entra sin configuración extra:
+Política de exposición del override: **nada escucha en la red local (LAN) ni en `0.0.0.0`**.
+- Postgres, Redis, Mailhog y Vite: solo `127.0.0.1`.
+- La app (3005): `127.0.0.1` y la IP de **Tailscale** de la Mac (`tailscale ip -4`).
 
 | Dónde está el celular | URL |
 |---|---|
-| Mismo Wi-Fi que la Mac | `http://<IP de la Mac>:3005` → la IP sale con `ipconfig getifaddr en0` |
-| Cualquier red, con Tailscale abierto en el celular | `http://<IP Tailscale de la Mac>:3005` (`tailscale ip -4`) o `http://<nombre-de-la-Mac>.<tailnet>.ts.net:3005` |
-| Necesitas HTTPS (cámara, micrófono, notificaciones push, PWA) | la URL pública del túnel (Tailscale Funnel / cloudflared, guía 04) |
+| Con la app de Tailscale abierta (cualquier red) | `http://<IP de Tailscale de la Mac>:3005` (o `http://<nombre-de-la-Mac>.<tailnet>.ts.net:3005`) |
+| Necesitas HTTPS (cámara, micrófono, notificaciones push, PWA) | la URL HTTPS de la Mac en Tailscale (`tailscale serve`, solo tu red privada) |
+
+Requisitos: Tailscale debe estar encendido **antes** de `docker compose up` (la app se publica en esa dirección; si no, Docker falla al arrancar con "cannot assign requested address") y la variable `PICNIC_TS_IP` en `.env` debe tener el valor de `tailscale ip -4` (`lucia.sh up` la sincroniza).
 
 En el celular la recarga automática de Vite (HMR) no conecta: después de un cambio de front, recarga la página a mano. El primer acceso tarda ~30 s porque Vite sirve cientos de módulos sueltos.
 

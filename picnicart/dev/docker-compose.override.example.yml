@@ -1,22 +1,39 @@
 # Local dev overrides. Copy to the repo root as docker-compose.override.yml (excluded from git).
+# Needs PICNIC_TS_IP in .env  ->  value of `tailscale ip -4` (Tailscale must be running before `docker compose up`).
+#
+# Exposure policy: every published port is bound to loopback; only the app (3005) is also bound
+# to the Tailscale address so phones / other tailnet devices can open it. Nothing listens on the
+# LAN or on 0.0.0.0 (Postgres, Redis, Mailhog and Vite used to, with a default password).
 services:
-  # vite_ruby reads VITE_RUBY_HOST; the base file's VITE_DEV_SERVER_HOST is unused,
-  # so Rails can't find the dev server and falls back to a full (OOM-prone) build.
   rails:
     # App on host port 3005 instead of 3000 (container still listens on 3000).
     ports: !override
-      - "3005:3000"
+      - "127.0.0.1:3005:3000"
+      - "${PICNIC_TS_IP:?set PICNIC_TS_IP in .env (tailscale ip -4)}:3005:3000"
     environment:
+      # vite_ruby reads VITE_RUBY_HOST; the base file's VITE_DEV_SERVER_HOST is unused,
+      # so Rails can't find the dev server and falls back to a full (OOM-prone) build.
       - VITE_RUBY_HOST=vite
   vite:
+    ports: !override
+      - "127.0.0.1:3036:3036"
     environment:
       - VITE_RUBY_HOST=0.0.0.0
       # Rails proxies with Host "vite"; Vite 6 rejects unknown hosts with 403.
       - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=vite
   postgres:
+    ports: !override
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_PASSWORD=postgres
     volumes:
       # pgvector:pg16 stores data in /var/lib/postgresql/data; the base file mounts
       # the named volume at /data/postgres, so data would not survive `down`.
       - postgres:/var/lib/postgresql/data
+  redis:
+    ports: !override
+      - "127.0.0.1:6379:6379"
+  mailhog:
+    ports: !override
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"

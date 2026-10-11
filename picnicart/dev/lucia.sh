@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Local session: local Chatwoot <-> n8n STAGING <-> WhatsApp test number.
-# Never touches production services.
+# Local session: local Chatwoot <-> n8n STAGING (private Tailscale network) <-> WhatsApp test number.
+# Never touches production services. Nothing from the staging stack is exposed to the internet.
 #
-#   picnicart/dev/lucia.sh up        # start everything (idempotent)
-#   picnicart/dev/lucia.sh status    # show the state of every piece
-#   picnicart/dev/lucia.sh down      # give the test number back to staging, close tunnels
+#   picnicart/dev/lucia.sh up           # start everything (idempotent)
+#   picnicart/dev/lucia.sh status       # show the state of every piece
+#   picnicart/dev/lucia.sh down         # give the test number back to staging, close the public webhook path
 #   picnicart/dev/lucia.sh down --stop-docker
+#   picnicart/dev/lucia.sh bot-token    # one-time: store the bot token (read from the clipboard) in the local DB
 #
 # Options: --dir <path> (Chatwoot checkout to run; default: git toplevel of the current dir)
 #          --switch     (stop another running Chatwoot compose project instead of failing)
@@ -18,21 +19,17 @@ PICNIC_ENV="${PICNIC_ENV:-$HOME/.config/picnicart/env}"
 [ -f "$PICNIC_ENV" ] || { echo "✗ missing $PICNIC_ENV — copy picnicart/dev/env.example there and fill it in"; exit 1; }
 # shellcheck disable=SC1090
 set -a; . "$PICNIC_ENV"; set +a
-for v in PICNIC_SERVER_SSH PICNIC_N8N_STAGING_URL PICNIC_N8N_STAGING_PORT PICNIC_N8N_LOCAL_WEBHOOK_PATH PICNIC_WA_PHONE PICNIC_WA_PHONE_ID PICNIC_KEYCHAIN_SERVICE PICNIC_LOCAL_ACCOUNT_NAME; do
+for v in PICNIC_N8N_STAGING_URL PICNIC_N8N_WEBHOOK_URL PICNIC_N8N_HEALTH_URL PICNIC_WA_PHONE PICNIC_WA_PHONE_ID PICNIC_KEYCHAIN_SERVICE \
+         PICNIC_LOCAL_ACCOUNT_NAME PICNIC_LOCAL_ACCOUNT_ID PICNIC_AGENT_USER_ID PICNIC_BOT_USER_ID PICNIC_BOT_LABELS; do
   [ -n "${!v:-}" ] || { echo "✗ $v is empty in $PICNIC_ENV"; exit 1; }
 done
 
-SERVER="$PICNIC_SERVER_SSH"
-N8N_LOCAL_PORT="$PICNIC_N8N_STAGING_PORT"   # n8n staging is published on 127.0.0.1:<port> on the server
-N8N_PUBLIC="$PICNIC_N8N_STAGING_URL"
-N8N_WEBHOOK_PATH="$PICNIC_N8N_LOCAL_WEBHOOK_PATH"
-WA_PHONE="$PICNIC_WA_PHONE"
-WA_PHONE_ID="$PICNIC_WA_PHONE_ID"
 GRAPH="https://graph.facebook.com/v24.0"
-KEYCHAIN_SERVICE="$PICNIC_KEYCHAIN_SERVICE"
-LOCAL_ACCOUNT="$PICNIC_LOCAL_ACCOUNT_NAME"
 LOCAL_PORT=3005
+WEBHOOK_PATH="/webhooks/whatsapp"          # the ONLY path exposed publicly (Meta -> local Chatwoot)
+CONV_SEQ_START=900000                      # n8n sends conversation ids >= this to the local Chatwoot
 WEBHOOK_EVENTS='conversation_created conversation_status_changed conversation_updated message_created message_updated contact_updated'
+STATE_DIR="$HOME/.config/picnicart/state"; mkdir -p "$STATE_DIR"
 
 CMD="${1:-status}"; shift || true
 DIR=""; SWITCH=0; STOP_DOCKER=0
@@ -53,17 +50,18 @@ ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$*"; }
 fail() { printf '  \033[31m✗\033[0m %s\n' "$*"; }
 step() { printf '\n\033[1m%s\033[0m\n' "$*"; }
-rails_run() { docker compose exec -T rails bundle exec rails runner "$1" 2>/dev/null | grep -v -e 'warning' -e 'called from' -e 'DEPRECATION' | tail -1; }
 
-funnel_host() { tailscale status --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))' 2>/dev/null; }
-public_url() { local h; h="$(funnel_host)"; [ -n "$h" ] && echo "https://$h"; }
+ts_ip() { tailscale ip -4 2>/dev/null | head -1; }
+ts_host() { tailscale status --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))' 2>/dev/null; }
+public_url() { local h; h="$(ts_host)"; [ -n "$h" ] && echo "https://$h"; }
 http_code() { curl -s -o /dev/null -m "${2:-10}" -w '%{http_code}' "$1"; }
-tunnel_pid() { pgrep -f "ssh .*-L ${N8N_LOCAL_PORT}:127.0.0.1:${N8N_LOCAL_PORT} ${SERVER}" | head -1; }
-wa_token() { security find-generic-password -s "$KEYCHAIN_SERVICE" -w 2>/dev/null; }
+wa_token() { security find-generic-password -s "$PICNIC_KEYCHAIN_SERVICE" -w 2>/dev/null; }
 env_value() { grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-; }
+rails_run() { docker compose exec -T rails bundle exec rails runner "$1" 2>/dev/null | grep -v -e 'warning' -e 'called from' -e 'DEPRECATION'; }
+from_container() { docker compose exec -T rails sh -c "wget -qO- -T 6 '$1' 2>/dev/null" 2>/dev/null; }
 
 check_other_projects() {
-  local others
+  local others p
   others="$(docker compose ls --format json 2>/dev/null | python3 -c "import json,sys; print(' '.join(p['Name'] for p in json.load(sys.stdin) if p['Name']!='$PROJECT' and 'running' in p['Status']))" 2>/dev/null)"
   for p in $others; do
     if docker ps --filter "label=com.docker.compose.project=$p" --format '{{.Ports}}' | grep -q ":${LOCAL_PORT}->"; then
@@ -73,82 +71,148 @@ check_other_projects() {
   done
 }
 
+ensure_tailscale() {
+  step "1. Tailscale (private network)"
+  tailscale status >/dev/null 2>&1 || { fail "Tailscale is not running / not logged in — open the Tailscale app"; exit 1; }
+  local ip; ip="$(ts_ip)"
+  ok "this Mac: $ip"
+  # The app is published on this address (docker-compose.override.yml uses PICNIC_TS_IP); keep .env in sync.
+  if [ "$(env_value PICNIC_TS_IP)" != "$ip" ]; then
+    grep -q '^PICNIC_TS_IP=' .env && sed -i '' "s|^PICNIC_TS_IP=.*|PICNIC_TS_IP=$ip|" .env || printf '\nPICNIC_TS_IP=%s\n' "$ip" >> .env
+    ok "PICNIC_TS_IP updated in .env"
+  fi
+}
+
+# The dev images (chatwoot:development, ...) have the gems of ONE checkout baked in and the tags are shared by every
+# checkout. Sidekiq and Vite do not run `bundle install`, so after switching between checkouts with different
+# Gemfile.lock (e.g. develop vs the production release) they crash with "Could not find <gem>". Rebuild (cached) when needed.
+ensure_images() {
+  local want have; want="$PROJECT:$(shasum Gemfile.lock | cut -d' ' -f1)"; have="$(cat "$STATE_DIR/dev-image-owner" 2>/dev/null)"
+  [ "$want" = "$have" ] && return 0
+  warn "dev images were built for another checkout/Gemfile.lock — rebuilding (cached; first time ~10 min)"
+  if [ -f .git ]; then
+    # git worktree: its .git is a file pointing outside the build context, so the Dockerfile's
+    # `git rev-parse HEAD` fails. Build the base image from a clean clone instead (same args as docker-compose.yaml).
+    local tmp; tmp="$(mktemp -d)"
+    git clone -q "$PWD" "$tmp/src" && ( cd "$tmp/src" && docker build -q -f docker/Dockerfile \
+        --build-arg BUNDLE_WITHOUT= --build-arg EXECJS_RUNTIME=Node --build-arg RAILS_ENV=development \
+        --build-arg RAILS_SERVE_STATIC_FILES=false -t chatwoot:development . >/dev/null ) \
+      && docker compose build rails vite >/dev/null 2>&1; local rc=$?; rm -rf "$tmp"
+  else
+    docker compose build base >/dev/null 2>&1 && docker compose build >/dev/null 2>&1; local rc=$?
+  fi
+  [ "$rc" = 0 ] && { echo "$want" > "$STATE_DIR/dev-image-owner"; ok "images rebuilt for $PROJECT"; } \
+    || { fail "image build failed (try it by hand: docker compose build base && docker compose build)"; exit 1; }
+}
+
 ensure_docker() {
-  step "1. Chatwoot local ($PROJECT)"
+  step "2. Chatwoot local ($PROJECT, $(cat VERSION_CW 2>/dev/null))"
   docker info >/dev/null 2>&1 || { fail "Docker is not running — open Docker Desktop and retry"; exit 1; }
   [ -f .env ] && [ -f docker-compose.override.yml ] || { fail "missing .env or docker-compose.override.yml (see docs 01, 'Primera vez')"; exit 1; }
   check_other_projects
+  ensure_images
   docker compose up -d >/dev/null 2>&1 || { fail "docker compose up failed: docker compose logs"; exit 1; }
   printf '    waiting for http://localhost:%s ' "$LOCAL_PORT"
-  for _ in $(seq 1 90); do [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 20)" = 200 ] && break; printf '.'; sleep 3; done; echo
-  [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 20)" = 200 ] && ok "app up on http://localhost:${LOCAL_PORT}" || { fail "app not responding (docker compose logs rails vite)"; exit 1; }
+  for _ in $(seq 1 120); do [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 20)" = 200 ] && break; printf '.'; sleep 3; done; echo
+  [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 20)" = 200 ] && ok "app up: http://localhost:${LOCAL_PORT} and http://$(ts_ip):${LOCAL_PORT} (Tailscale only)" \
+    || { fail "app not responding (docker compose logs rails vite)"; exit 1; }
 }
 
+# Local data that mirrors staging so the shared n8n flows work unchanged:
+# account id, agent/bot user ids, the bot's labels, and conversation ids that cannot collide with staging's.
 ensure_local_data() {
-  step "2. Local account, admin password and webhook to n8n"
+  step "3. Local data (mirrors staging ids)"
   local pw; pw="$(env_value LOCAL_ADMIN_PASSWORD)"
   if [ -z "$pw" ]; then
     pw="Pa1!$(openssl rand -hex 12)"
     printf '\n# Local-only login for john@acme.inc (seed password replaced; app does not read this var)\nLOCAL_ADMIN_PASSWORD=%s\n' "$pw" >> .env
   fi
   local out
-  out="$(docker compose exec -T -e PW="$pw" -e ACC="$LOCAL_ACCOUNT" -e URL="http://host.docker.internal:${N8N_LOCAL_PORT}/webhook/${N8N_WEBHOOK_PATH}" -e EVENTS="$WEBHOOK_EVENTS" -e PHONE="$WA_PHONE" \
-    rails bundle exec rails runner '
-      u = User.find_by(email: "john@acme.inc")
-      u&.update!(password: ENV["PW"], password_confirmation: ENV["PW"]) unless u&.valid_password?(ENV["PW"])
-      acc = Account.find_or_create_by!(name: ENV["ACC"])
-      AccountUser.find_or_create_by!(account: acc, user: u) { |au| au.role = :administrator } if u
+  out="$(docker compose exec -T -e PW="$pw" -e ACC_ID="$PICNIC_LOCAL_ACCOUNT_ID" -e ACC_NAME="$PICNIC_LOCAL_ACCOUNT_NAME" \
+      -e AGENT_ID="$PICNIC_AGENT_USER_ID" -e BOT_ID="$PICNIC_BOT_USER_ID" -e LABELS="$PICNIC_BOT_LABELS" \
+      -e URL="$PICNIC_N8N_WEBHOOK_URL" -e EVENTS="$WEBHOOK_EVENTS" -e PHONE="$PICNIC_WA_PHONE" -e SEQ_START="$CONV_SEQ_START" \
+      rails bundle exec rails runner '
+      acc = Account.find_by(id: ENV["ACC_ID"].to_i) || Account.create!(id: ENV["ACC_ID"].to_i, name: ENV["ACC_NAME"])
+      acc.update!(name: ENV["ACC_NAME"]) unless acc.name == ENV["ACC_NAME"]
+
+      admin = User.find_by(email: "john@acme.inc")
+      admin.update!(password: ENV["PW"], password_confirmation: ENV["PW"]) if admin && !admin.valid_password?(ENV["PW"])
+      AccountUser.find_or_create_by!(account: acc, user: admin) { |au| au.role = :administrator } if admin
+
+      make_user = lambda do |id, name, email|
+        user = User.find_by(id: id)
+        unless user
+          pass = "Aa1!#{SecureRandom.hex(16)}"
+          user = User.create!(id: id, name: name, email: email, password: pass, password_confirmation: pass, confirmed_at: Time.current)
+        end
+        AccountUser.find_or_create_by!(account: acc, user: user) { |au| au.role = :administrator }
+        user
+      end
+      make_user.call(ENV["AGENT_ID"].to_i, "Asesor local", "asesor@picnic.local")
+      make_user.call(ENV["BOT_ID"].to_i, "Bot local", "bot@picnic.local")
+      ActiveRecord::Base.connection.reset_pk_sequence!("users")
+
+      ENV["LABELS"].split.each { |t| Label.find_or_create_by!(account_id: acc.id, title: t) }
+
+      seq = "conv_dpid_seq_#{acc.id}"
+      last = ActiveRecord::Base.connection.select_value("SELECT last_value FROM #{seq}").to_i
+      ActiveRecord::Base.connection.execute("ALTER SEQUENCE #{seq} RESTART WITH #{ENV["SEQ_START"].to_i}") if last < ENV["SEQ_START"].to_i
+      seq_now = ActiveRecord::Base.connection.select_value("SELECT last_value FROM #{seq}")
+
       wh = acc.webhooks.find_or_initialize_by(url: ENV["URL"])
-      wh.update!(name: "n8n staging (local)", subscriptions: ENV["EVENTS"].split, webhook_type: :account_type)
+      wh.update!(name: "n8n staging", subscriptions: ENV["EVENTS"].split, webhook_type: :account_type)
+      acc.webhooks.where.not(id: wh.id).where("url LIKE ?", "%n8n%").destroy_all
+
       inbox = acc.inboxes.where(channel_type: "Channel::Whatsapp").find { |i| i.channel.phone_number == ENV["PHONE"] }
-      puts "account=#{acc.id} inbox=#{inbox&.id || "none"}"' 2>/dev/null | grep '^account=')"
+      puts "RESULT account=#{acc.id} inbox=#{inbox&.id || "none"} seq=#{seq_now}"' 2>/dev/null | grep '^RESULT')"
   [ -n "$out" ] || { fail "could not prepare local data (docker compose logs rails)"; exit 1; }
-  ok "$LOCAL_ACCOUNT ready ($out); login john@acme.inc / LOCAL_ADMIN_PASSWORD in .env"
-  ok "account webhook → n8n staging /webhook/${N8N_WEBHOOK_PATH}"
-  LOCAL_INBOX="${out##*inbox=}"
-  [ "$LOCAL_INBOX" = none ] && warn "no WhatsApp inbox for $WA_PHONE in '$LOCAL_ACCOUNT' yet — one-time step in docs 05"
+  ok "${out#RESULT }; login john@acme.inc / LOCAL_ADMIN_PASSWORD (.env)"
+  ok "users $PICNIC_AGENT_USER_ID (agent) and $PICNIC_BOT_USER_ID (bot), labels: $PICNIC_BOT_LABELS"
+  ok "account webhook → n8n staging (private network)"
+  LOCAL_INBOX="${out##*inbox=}"; LOCAL_INBOX="${LOCAL_INBOX%% *}"
+  [ "$LOCAL_INBOX" = none ] && warn "no WhatsApp inbox for the test number yet — one-time step in docs 05"
+  [ -f "$STATE_DIR/bot-token-$PROJECT" ] || warn "bot token not stored yet — run: picnicart/dev/lucia.sh bot-token (docs 05)"
+  return 0
 }
 
-ensure_funnel() {
-  step "3. Public URL of this Mac (Tailscale Funnel)"
-  tailscale status >/dev/null 2>&1 || { fail "Tailscale is not running/logged in — open Tailscale"; exit 1; }
+ensure_n8n() {
+  step "4. n8n staging over Tailscale (nothing exposed)"
+  if [ -z "$(from_container "$PICNIC_N8N_HEALTH_URL")" ]; then
+    warn "n8n staging not answering — it may be asleep; waking it via its public URL"
+    http_code "$PICNIC_N8N_STAGING_URL" 30 >/dev/null
+    for _ in $(seq 1 20); do [ -n "$(from_container "$PICNIC_N8N_HEALTH_URL")" ] && break; sleep 3; done
+  fi
+  [ -n "$(from_container "$PICNIC_N8N_HEALTH_URL")" ] && ok "the local Chatwoot container reaches n8n staging" \
+    || { fail "the local Chatwoot container cannot reach n8n staging (Tailscale up on both sides? 'tailscale serve' active on the server?)"; exit 1; }
+}
+
+ensure_public_webhook() {
+  step "5. Public ingress for Meta (only ${WEBHOOK_PATH})"
   local url; url="$(public_url)"
-  if ! tailscale funnel status 2>/dev/null | grep -q "${LOCAL_PORT}"; then
-    tailscale funnel --bg "$LOCAL_PORT" >/tmp/picnicart-funnel.log 2>&1 &
-    sleep 5
-    if grep -q "not enabled" /tmp/picnicart-funnel.log; then
+  if ! tailscale funnel status 2>/dev/null | grep -q "$WEBHOOK_PATH"; then
+    tailscale funnel --bg --set-path="$WEBHOOK_PATH" "http://127.0.0.1:${LOCAL_PORT}${WEBHOOK_PATH}" >/tmp/picnicart-funnel.log 2>&1 &
+    sleep 6
+    if grep -qi "not enabled" /tmp/picnicart-funnel.log; then
       fail "Funnel is not enabled on the tailnet — approve once: $(grep -o 'https://login.tailscale.com[^ ]*' /tmp/picnicart-funnel.log)"; exit 1
     fi
   fi
-  [ "$(http_code "$url/api" 20)" = 200 ] && ok "$url → localhost:${LOCAL_PORT}" || { fail "$url not reachable yet (DNS can take a minute the first time)"; exit 1; }
-  [ "$(env_value FRONTEND_URL)" = "$url" ] || warn "FRONTEND_URL in .env is not $url (one-time step in docs 05; WhatsApp media needs it)"
-}
-
-ensure_n8n_tunnel() {
-  step "4. Tunnel to n8n STAGING"
-  if [ -z "$(tunnel_pid)" ]; then
-    ssh -f -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
-      -L "${N8N_LOCAL_PORT}:127.0.0.1:${N8N_LOCAL_PORT}" "$SERVER" || { fail "ssh tunnel failed (is your key on $SERVER?)"; exit 1; }
-  fi
-  if [ "$(http_code "http://127.0.0.1:${N8N_LOCAL_PORT}/healthz" 8)" != 200 ]; then
-    warn "n8n (staging) asleep (scale-to-zero) — waking it via its public URL"
-    http_code "$N8N_PUBLIC" 30 >/dev/null
-    for _ in $(seq 1 20); do [ "$(http_code "http://127.0.0.1:${N8N_LOCAL_PORT}/healthz" 5)" = 200 ] && break; sleep 3; done
-  fi
-  [ "$(http_code "http://127.0.0.1:${N8N_LOCAL_PORT}/healthz" 8)" = 200 ] && ok "n8n (staging) reachable at host.docker.internal:${N8N_LOCAL_PORT}" || { fail "n8n (staging) not answering"; exit 1; }
+  local code; code="$(http_code "$url${WEBHOOK_PATH}/probe" 20)"
+  [ "$code" != 000 ] && ok "Meta can reach $url${WEBHOOK_PATH}/… (HTTP $code); the rest of the app stays private" \
+    || { fail "$url not reachable yet (DNS can take a minute the first time)"; exit 1; }
+  [ "$(http_code "$url/api" 15)" = 200 ] && warn "the whole app answers on the public URL — path restriction is not active" || true
 }
 
 set_override() {
-  step "5. WhatsApp test number → this Mac (Meta webhook override)"
+  step "6. WhatsApp test number → this Mac (Meta webhook override)"
   local token url verify
   token="$(wa_token)"
-  [ -n "$token" ] || { fail "WhatsApp token not in Keychain — one-time: security add-generic-password -s $KEYCHAIN_SERVICE -a \"\$USER\" -w"; return 1; }
+  [ -n "$token" ] || { fail "WhatsApp token not in Keychain — one-time: security add-generic-password -s $PICNIC_KEYCHAIN_SERVICE -a \"\$USER\" -w"; return 1; }
   [ "${LOCAL_INBOX:-none}" != none ] || { warn "skipped: create the local WhatsApp inbox first"; return 1; }
-  url="$(public_url)/webhooks/whatsapp/${WA_PHONE}"
+  url="$(public_url)${WEBHOOK_PATH}/${PICNIC_WA_PHONE}"
   verify="$(docker compose exec -T -e ID="$LOCAL_INBOX" rails bundle exec rails runner 'puts Inbox.find(ENV["ID"]).channel.provider_config["webhook_verify_token"]' 2>/dev/null | tail -1)"
-  local res; res="$(curl -s -X POST "$GRAPH/$WA_PHONE_ID" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+  local res; res="$(curl -s -X POST "$GRAPH/$PICNIC_WA_PHONE_ID" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
     -d "{\"webhook_configuration\":{\"override_callback_uri\":\"$url\",\"verify_token\":\"$verify\"}}")"
-  echo "$res" | grep -q '"success":true' && ok "messages to $WA_PHONE now go to $url (staging account 2 is muted for this number)" \
+  echo "$res" | grep -q '"success":true' && ok "messages to the test number now go to this Mac (the staging inbox is muted for this number)" \
     || { fail "Meta rejected the override: $(echo "$res" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("error",{}).get("message","?"))' 2>/dev/null)"; return 1; }
 }
 
@@ -156,7 +220,7 @@ clear_override() {
   step "Give the test number back to staging (remove override)"
   local token; token="$(wa_token)"
   [ -n "$token" ] || { warn "no token in Keychain; nothing to clear"; return 0; }
-  local res; res="$(curl -s -X POST "$GRAPH/$WA_PHONE_ID" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+  local res; res="$(curl -s -X POST "$GRAPH/$PICNIC_WA_PHONE_ID" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
     -d '{"webhook_configuration":{"override_callback_uri":""}}')"
   echo "$res" | grep -q '"success":true' && ok "override removed — the staging inbox receives the test number again" || fail "could not remove override: $res"
 }
@@ -164,34 +228,47 @@ clear_override() {
 show_override() {
   local token; token="$(wa_token)"
   [ -n "$token" ] || { warn "override: unknown (no token in Keychain)"; return; }
-  local cfg; cfg="$(curl -s "$GRAPH/$WA_PHONE_ID?fields=webhook_configuration" -H "Authorization: Bearer $token")"
-  local cur; cur="$(echo "$cfg" | python3 -c 'import json,sys; c=json.load(sys.stdin).get("webhook_configuration",{}); print(c.get("phone_number") or "")' 2>/dev/null)"
-  [ -n "$cur" ] && ok "override ACTIVE → $cur (staging muted)" || ok "no override (test number delivers to staging)"
+  local cur; cur="$(curl -s "$GRAPH/$PICNIC_WA_PHONE_ID?fields=webhook_configuration" -H "Authorization: Bearer $token" \
+    | python3 -c 'import json,sys; c=json.load(sys.stdin).get("webhook_configuration",{}); print(c.get("phone_number") or "")' 2>/dev/null)"
+  [ -n "$cur" ] && ok "override ACTIVE → local (staging muted for the test number)" || ok "no override (the test number delivers to staging)"
+}
+
+bot_token() {
+  step "Bot token (one-time)"
+  command -v pbpaste >/dev/null || { fail "pbpaste not available"; exit 1; }
+  local len; len="$(pbpaste | tr -d '[:space:]' | wc -c | tr -d ' ')"
+  [ "$len" -ge 16 ] && [ "$len" -le 128 ] || { fail "the clipboard does not look like a token ($len chars). Copy the staging bot token first (docs 05) and retry."; exit 1; }
+  docker compose exec -T -e BOT_ID="$PICNIC_BOT_USER_ID" rails bundle exec rails runner '
+    tok = STDIN.read.strip
+    user = User.find(ENV["BOT_ID"].to_i)
+    user.access_token.update!(token: tok)
+    puts "TOKEN_SET"' < <(pbpaste) 2>/dev/null | grep -q TOKEN_SET \
+    && { printf '' | pbcopy; touch "$STATE_DIR/bot-token-$PROJECT"; ok "token stored for user $PICNIC_BOT_USER_ID in the local DB; clipboard cleared"; } \
+    || { fail "could not store the token (is the local app up? run 'up' first)"; exit 1; }
 }
 
 status() {
-  step "Status ($PROJECT)"
+  step "Status ($PROJECT, $(cat VERSION_CW 2>/dev/null))"
   [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 20)" = 200 ] && ok "app http://localhost:${LOCAL_PORT}" || warn "app down"
-  local lan; lan="$(ipconfig getifaddr en0 2>/dev/null)"
-  [ -n "$lan" ] && ok "phone (same Wi-Fi): http://$lan:${LOCAL_PORT}"
-  ok "phone (Tailscale): http://$(tailscale ip -4 2>/dev/null | head -1):${LOCAL_PORT}"
-  local url; url="$(public_url)"
-  [ "$(http_code "$url/api" 10)" = 200 ] && ok "public: $url" || warn "public URL off ($url)"
-  [ -n "$(tunnel_pid)" ] && [ "$(http_code "http://127.0.0.1:${N8N_LOCAL_PORT}/healthz" 5)" = 200 ] && ok "n8n (staging) tunnel up" || warn "n8n (staging) tunnel down"
+  local ip; ip="$(ts_ip)"
+  [ -n "$ip" ] && ok "phone / other tailnet devices: http://$ip:${LOCAL_PORT}"
+  if tailscale funnel status 2>/dev/null | grep -q "$WEBHOOK_PATH"; then ok "public ingress for Meta: $(public_url)${WEBHOOK_PATH} (only that path)"; else warn "public ingress off"; fi
+  [ -n "$(from_container "$PICNIC_N8N_HEALTH_URL")" ] && ok "local Chatwoot → n8n staging reachable" || warn "local Chatwoot cannot reach n8n staging"
   show_override
+  [ -f "$STATE_DIR/bot-token-$PROJECT" ] && ok "bot token stored" || warn "bot token not stored (lucia.sh bot-token)"
 }
 
 case "$CMD" in
   up)
-    ensure_docker; ensure_local_data; ensure_funnel; ensure_n8n_tunnel; set_override
+    ensure_tailscale; ensure_docker; ensure_local_data; ensure_n8n; ensure_public_webhook; set_override
     status
-    echo; echo "Write to $WA_PHONE from your phone. When finished: picnicart/dev/lucia.sh down" ;;
+    echo; echo "Write to the test number from your phone. When finished: picnicart/dev/lucia.sh down" ;;
   down)
     clear_override
-    step "Close tunnels"
-    tailscale funnel reset >/dev/null 2>&1; ok "funnel off (public URL closed)"
-    pid="$(tunnel_pid)"; [ -n "$pid" ] && kill "$pid" && ok "n8n tunnel closed" || ok "n8n tunnel was not running"
+    step "Close the public webhook path"
+    tailscale funnel --set-path="$WEBHOOK_PATH" "http://127.0.0.1:${LOCAL_PORT}${WEBHOOK_PATH}" off >/dev/null 2>&1; ok "ingress closed"
     [ "$STOP_DOCKER" = 1 ] && docker compose stop >/dev/null && ok "docker stopped" ;;
   status) status ;;
-  *) echo "usage: $0 up|status|down [--dir <checkout>] [--switch] [--stop-docker]"; exit 2 ;;
+  bot-token) bot_token ;;
+  *) echo "usage: $0 up|status|down|bot-token [--dir <checkout>] [--switch] [--stop-docker]"; exit 2 ;;
 esac
