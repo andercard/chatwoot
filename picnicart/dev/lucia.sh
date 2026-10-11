@@ -289,7 +289,8 @@ wa_token_store() {
   step "WhatsApp token (one-time)"
   command -v pbpaste >/dev/null || { fail "pbpaste not available"; exit 1; }
   local t; t="$(pbpaste | tr -d '[:space:]')"
-  [[ "$t" =~ ^EA[A-Za-z0-9]{60,600}$ ]] || { fail "the clipboard does not look like a Meta access token (starts with EA…, no spaces). Copy it first (docs 05) and retry."; exit 1; }
+  # (POSIX regex repetition is capped at 255 on macOS, so the length is checked separately)
+  { [[ "$t" =~ ^EA[A-Za-z0-9]+$ ]] && [ "${#t}" -ge 60 ] && [ "${#t}" -le 1000 ]; } || { fail "the clipboard does not look like a Meta access token (starts with EA…, no spaces). Copy it first (docs 05) and retry."; exit 1; }
   local code; code="$(printf 'header = "Authorization: Bearer %s"\n' "$t" | curl -s -K - -o /dev/null -m 20 -w '%{http_code}' "$GRAPH/$PICNIC_WA_PHONE_ID?fields=id")"
   [ "$code" = 200 ] || { fail "Meta rejected this token (HTTP $code): expired, incomplete or without access to the test number. Nothing was stored."; exit 1; }
   printf 'add-generic-password -U -s "%s" -a "%s" -w "%s"\n' "$PICNIC_KEYCHAIN_SERVICE" "$USER" "$t" | security -i >/dev/null 2>&1 \
