@@ -7,6 +7,7 @@ import { vOnClickOutside } from '@vueuse/components';
 import { CONVERSATION_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { useConversationFilterContext } from './provider.js';
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
+import { provideDropdownTeleport } from 'next/dropdown-menu/base/provider';
 
 import Button from 'next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -25,6 +26,7 @@ const props = defineProps({
 
 const emit = defineEmits(['applyFilter', 'updateFolder', 'close']);
 const { attributeFilterTypes } = useConversationFilterContext();
+provideDropdownTeleport();
 
 const filters = defineModel({
   type: Array,
@@ -98,14 +100,14 @@ const filterModalHeaderTitle = computed(() => {
 onBeforeUnmount(() => emit('close'));
 const outsideClickHandler = [
   () => emit('close'),
-  { ignore: ['#toggleConversationFilterButton'] },
+  { ignore: ['#toggleConversationFilterButton', '[data-dropdown-menu]'] },
 ];
 </script>
 
 <template>
   <div
     v-on-click-outside="outsideClickHandler"
-    class="z-40 max-w-3xl lg:w-[750px] overflow-visible w-full border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-6 grid gap-6"
+    class="fixed inset-x-0 bottom-0 z-40 max-h-[85dvh] overflow-y-auto rounded-t-xl rounded-b-none sm:static sm:max-h-none sm:overflow-visible sm:rounded-xl sm:w-full sm:max-w-3xl lg:w-[750px] border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg p-6 grid gap-6"
   >
     <h3 class="text-base font-medium leading-6 text-n-slate-12">
       {{ filterModalHeaderTitle }}
@@ -146,7 +148,7 @@ const outsideClickHandler = [
         />
       </template>
     </ul>
-    <div class="flex gap-2 justify-between">
+    <div class="flex flex-wrap gap-2 justify-between">
       <Button sm ghost blue @click="addFilter">
         {{ $t('FILTER.ADD_NEW_FILTER') }}
       </Button>
