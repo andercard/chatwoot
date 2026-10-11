@@ -65,8 +65,8 @@ Los valores concretos están en `~/.config/picnicart/env` y en las notas privada
 | 4 | Reglas de acceso (ACL) de Tailscale: el servidor solo llega a la Mac por el 3005; la Mac al servidor por el puerto de n8n y SSH | ⏳ | consola de Tailscale → Access controls |
 | 5 | Activar Funnel en el tailnet | ⏳ | aprobar el enlace que imprime `lucia.sh up` |
 | 6 | Token del bot en la BD local | ✅ | `lucia.sh bot-token --from-server` (lo trae por SSH a la base local sin imprimirlo ni usar el portapapeles; los datos del servidor están en `~/.config/picnicart/env`). Alternativa: copiarlo al portapapeles y correr `lucia.sh bot-token` |
-| 7 | Token de WhatsApp en el Llavero | ⏳ | copiar el token y correr `lucia.sh wa-token`: lo valida con Meta **antes** de guardarlo, lo guarda en el Llavero y limpia el portapapeles. (No uses `security add-generic-password -w` interactivo: corta el token a 128 caracteres.) Sirve para la bandeja y para el override; necesita permisos de mensajería **y** de administración de WhatsApp |
-| 8 | Bandeja WhatsApp Cloud en la cuenta local | ⏳ | `lucia.sh whatsapp-inbox` (la crea sin que Chatwoot toque los webhooks de Meta; ver nota) |
+| 7 | Token de WhatsApp en el Llavero | ✅ | copiar el token y correr `lucia.sh wa-token`: lo valida con Meta **antes** de guardarlo, lo guarda en el Llavero y limpia el portapapeles. (No uses `security add-generic-password -w` interactivo: corta el token a 128 caracteres.) Sirve para la bandeja y para el override; necesita permisos de mensajería **y** de administración de WhatsApp |
+| 8 | Bandeja WhatsApp Cloud en la cuenta local | ✅ | `lucia.sh whatsapp-inbox` (la crea sin que Chatwoot toque los webhooks de Meta; ver nota) |
 
 Cuando todo esté ✅ basta con `lucia.sh up` / `down`.
 
