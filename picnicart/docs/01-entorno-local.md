@@ -138,3 +138,7 @@ Es normal en modo desarrollo y no es un fallo de configuración:
 - **Primera carga tras recrear contenedores:** Vite reoptimiza dependencias (~15–20 s la primera vez); las siguientes cargas son más rápidas.
 
 Para ver el rendimiento real (como en producción) usa la imagen construida, no el entorno de desarrollo.
+
+## Idiomas en dev (carga más rápida)
+
+En desarrollo Vite solo carga los idiomas `en` y `es` (antes servía ~1.900 JSON de traducciones de los 43 idiomas, 84 % de los módulos del login). Para cambiarlo: variable `VITE_DEV_LOCALES` en el servicio `vite` del `docker-compose.override.yml` (ej. `en,es,pt_BR`, o `all` para todos) y `docker compose restart vite`. Un idioma no cargado muestra las claves en vez del texto. No afecta al build de producción.
