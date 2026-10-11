@@ -1,5 +1,6 @@
 export const LOCAL_STORAGE_KEYS = {
   DISMISSED_UPDATES: 'dismissedUpdates',
+  DISMISSED_PICNIC_UPDATES: 'dismissedPicnicUpdates',
   DISMISSED_PLATFORM_BANNERS: 'dismissedPlatformBanners',
   WIDGET_BUILDER: 'widgetBubble_',
   DRAFT_MESSAGES: 'draftMessages',
