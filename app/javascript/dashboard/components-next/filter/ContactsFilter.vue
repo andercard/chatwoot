@@ -11,6 +11,7 @@ import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
 import Button from 'next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ConditionRow from './ConditionRow.vue';
+import { provideDropdownTeleport } from 'next/dropdown-menu/base/provider';
 
 const props = defineProps({
   isSegmentView: { type: Boolean, default: false },
@@ -97,14 +98,15 @@ const filterModalHeaderTitle = computed(() => {
 onBeforeUnmount(() => emit('close'));
 const outsideClickHandler = [
   () => emit('close'),
-  { ignore: ['#toggleContactsFilterButton'] },
+  { ignore: ['#toggleContactsFilterButton', '[data-dropdown-menu]'] },
 ];
+provideDropdownTeleport();
 </script>
 
 <template>
   <div
     v-on-click-outside="outsideClickHandler"
-    class="z-40 max-w-3xl min-w-96 lg:w-[750px] overflow-visible w-full border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-6 grid gap-6"
+    class="fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-b-none sm:static sm:max-h-none sm:overflow-visible sm:rounded-b-xl z-40 max-w-3xl lg:w-[750px] w-full border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-6 grid gap-6"
   >
     <h3 class="text-base font-medium leading-6 text-n-slate-12">
       {{ filterModalHeaderTitle }}
@@ -145,7 +147,7 @@ const outsideClickHandler = [
         />
       </template>
     </ul>
-    <div class="flex justify-between gap-2">
+    <div class="flex flex-wrap justify-between gap-2">
       <Button sm ghost blue class="flex-shrink-0" @click="addFilter">
         {{ $t('CONTACTS_LAYOUT.FILTER.BUTTONS.ADD_FILTER') }}
       </Button>
