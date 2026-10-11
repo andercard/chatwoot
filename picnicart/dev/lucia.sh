@@ -59,6 +59,17 @@ http_code() { curl -s -o /dev/null -m "${2:-10}" -w '%{http_code}' "$1"; }
 wa_token() { security find-generic-password -s "$PICNIC_KEYCHAIN_SERVICE" -w 2>/dev/null; }
 env_value() { grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-; }
 rails_run() { docker compose exec -T rails bundle exec rails runner "$1" 2>/dev/null | grep -v -e 'warning' -e 'called from' -e 'DEPRECATION'; }
+# Everything published through Tailscale Funnel is reachable from the whole Internet. We allow ONE path only.
+funnel_paths() { tailscale funnel status 2>/dev/null | awk '/^\|-- /{print $2}'; }
+close_path() { tailscale serve --https=443 --set-path="$1" off >/dev/null 2>&1; }
+close_unexpected_paths() {
+  local p
+  for p in $(funnel_paths); do
+    [ "$p" = "$WEBHOOK_PATH" ] && continue
+    if close_path "$p"; then warn "closed an unexpected PUBLIC path: $p"; else fail "COULD NOT CLOSE the public path $p — run: tailscale serve --https=443 --set-path=$p off"; exit 1; fi
+  done
+}
+
 from_container() { docker compose exec -T rails sh -c "wget -qO- -T 6 '$1' 2>/dev/null" 2>/dev/null; }
 
 check_other_projects() {
@@ -190,7 +201,8 @@ ensure_n8n() {
 ensure_public_webhook() {
   step "5. Public ingress for Meta (only ${WEBHOOK_PATH})"
   local url; url="$(public_url)"
-  if ! tailscale funnel status 2>/dev/null | grep -q "$WEBHOOK_PATH"; then
+  close_unexpected_paths
+  if ! funnel_paths | grep -qx "$WEBHOOK_PATH"; then
     tailscale funnel --bg --set-path="$WEBHOOK_PATH" "http://127.0.0.1:${LOCAL_PORT}${WEBHOOK_PATH}" >/tmp/picnicart-funnel.log 2>&1 &
     sleep 6
     if grep -qi "not enabled" /tmp/picnicart-funnel.log; then
@@ -200,7 +212,10 @@ ensure_public_webhook() {
   local code; code="$(http_code "$url${WEBHOOK_PATH}/probe" 20)"
   [ "$code" != 000 ] && ok "Meta can reach $url${WEBHOOK_PATH}/… (HTTP $code); the rest of the app stays private" \
     || { fail "$url not reachable yet (DNS can take a minute the first time)"; exit 1; }
-  [ "$(http_code "$url/api" 15)" = 200 ] && warn "the whole app answers on the public URL — path restriction is not active" || true
+  close_unexpected_paths
+  local api_code; api_code="$(http_code "$url/api" 15)"
+  if [ "$api_code" = 200 ]; then fail "the WHOLE APP answers on the public URL — closing the ingress"; close_path "$WEBHOOK_PATH"; exit 1; fi
+  ok "verified: ${url}/api is not public (HTTP $api_code)"
 }
 
 set_override() {
@@ -268,7 +283,10 @@ status() {
   [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 20)" = 200 ] && ok "app http://localhost:${LOCAL_PORT}" || warn "app down"
   local ip; ip="$(ts_ip)"
   [ -n "$ip" ] && ok "phone / other tailnet devices: http://$ip:${LOCAL_PORT}"
-  if tailscale funnel status 2>/dev/null | grep -q "$WEBHOOK_PATH"; then ok "public ingress for Meta: $(public_url)${WEBHOOK_PATH} (only that path)"; else warn "public ingress off"; fi
+  local exposed; exposed="$(funnel_paths | grep -vx "$WEBHOOK_PATH" | tr '\n' ' ')"
+  if [ -n "$exposed" ]; then fail "EXPOSED TO THE INTERNET: $exposed — run lucia.sh up (closes them) or lucia.sh down"
+  elif funnel_paths | grep -qx "$WEBHOOK_PATH"; then ok "public ingress for Meta: $(public_url)${WEBHOOK_PATH} (only that path)"
+  else ok "no public ingress (Funnel closed)"; fi
   [ -n "$(from_container "$PICNIC_N8N_HEALTH_URL")" ] && ok "local Chatwoot → n8n staging reachable" || warn "local Chatwoot cannot reach n8n staging"
   show_override
   [ -f "$STATE_DIR/bot-token-$PROJECT" ] && ok "bot token stored" || warn "bot token not stored (lucia.sh bot-token)"
@@ -282,7 +300,8 @@ case "$CMD" in
   down)
     clear_override
     step "Close the public webhook path"
-    tailscale funnel --set-path="$WEBHOOK_PATH" "http://127.0.0.1:${LOCAL_PORT}${WEBHOOK_PATH}" off >/dev/null 2>&1; ok "ingress closed"
+    for p in $(funnel_paths); do close_path "$p"; done
+    [ -z "$(funnel_paths)" ] && { tailscale funnel --https=443 off >/dev/null 2>&1; ok "public ingress closed (nothing is published)"; } || fail "some public paths are still open: $(funnel_paths | tr '\n' ' ')"
     [ "$STOP_DOCKER" = 1 ] && docker compose stop >/dev/null && ok "docker stopped" ;;
   status) status ;;
   bot-token) bot_token "$BOT_SRC" ;;
