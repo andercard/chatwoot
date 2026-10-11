@@ -8,6 +8,7 @@ import { useMapGetter, useStore } from 'dashboard/composables/store.js';
 import wootConstants from 'dashboard/constants/globals';
 import SelectMenu from 'dashboard/components-next/selectmenu/SelectMenu.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import SheetHandle from 'dashboard/components-next/sheet-handle/SheetHandle.vue';
 
 const props = defineProps({
   isOnExpandedLayout: {
@@ -159,12 +160,13 @@ const handleSortChange = value => {
       v-if="showActionsDropdown"
       v-on-click-outside="() => toggleDropdown()"
       data-mobile-sheet
-      class="fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-xl p-4 sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-full sm:mt-1 sm:w-72 sm:max-h-none sm:overflow-visible sm:rounded-xl bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak z-40"
+      class="fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-xl p-4 pt-6 sm:pt-4 sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-full sm:mt-1 sm:w-72 sm:max-h-none sm:overflow-visible sm:rounded-xl bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak z-40"
       :class="{
         'ltr:left-0 rtl:right-0': !isOnExpandedLayout,
         'ltr:right-0 rtl:left-0': isOnExpandedLayout,
       }"
     >
+      <SheetHandle @close="toggleDropdown(false)" />
       <div class="flex items-center justify-between last:mt-4 gap-2">
         <span class="text-sm truncate text-n-slate-12">
           {{ $t('CHAT_LIST.CHAT_SORT.STATUS') }}
