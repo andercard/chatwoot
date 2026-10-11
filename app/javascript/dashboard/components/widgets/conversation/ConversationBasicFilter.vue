@@ -18,11 +18,12 @@ const props = defineProps({
 
 const emit = defineEmits(['changeFilter']);
 
-// Below `sm` the panel is a bottom sheet, so the sub menus open towards the start of the screen.
+// Below `sm` the panel is a bottom sheet, so the sub menus open under their button and scroll with the sheet.
 const isSmUp = useMediaQuery('(min-width: 640px)');
-const subMenuPosition = computed(() =>
-  !isSmUp.value || props.isOnExpandedLayout ? 'left' : 'right'
-);
+const subMenuPosition = computed(() => {
+  if (!isSmUp.value) return 'bottom';
+  return props.isOnExpandedLayout ? 'left' : 'right';
+});
 
 const store = useStore();
 const { t } = useI18n();
