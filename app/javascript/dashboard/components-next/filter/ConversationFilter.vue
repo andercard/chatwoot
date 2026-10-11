@@ -107,7 +107,8 @@ const outsideClickHandler = [
 <template>
   <div
     v-on-click-outside="outsideClickHandler"
-    class="fixed inset-x-0 bottom-0 z-40 max-h-[85dvh] overflow-y-auto rounded-t-xl rounded-b-none sm:static sm:max-h-none sm:overflow-visible sm:rounded-xl sm:w-full sm:max-w-3xl lg:w-[750px] border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg p-6 pb-24 sm:pb-6 grid gap-6"
+    data-mobile-sheet
+    class="fixed inset-x-0 bottom-0 z-40 max-h-[85dvh] overflow-y-auto rounded-t-xl rounded-b-none sm:static sm:max-h-none sm:overflow-visible sm:rounded-xl sm:w-full sm:max-w-3xl lg:w-[750px] border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg p-6 grid gap-6"
   >
     <h3 class="text-base font-medium leading-6 text-n-slate-12">
       {{ filterModalHeaderTitle }}

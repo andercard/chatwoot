@@ -158,7 +158,8 @@ const handleSortChange = value => {
     <div
       v-if="showActionsDropdown"
       v-on-click-outside="() => toggleDropdown()"
-      class="fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-xl p-4 pb-24 sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-full sm:mt-1 sm:w-72 sm:max-h-none sm:overflow-visible sm:rounded-xl sm:pb-4 bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak z-40"
+      data-mobile-sheet
+      class="fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-xl p-4 sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-full sm:mt-1 sm:w-72 sm:max-h-none sm:overflow-visible sm:rounded-xl bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak z-40"
       :class="{
         'ltr:left-0 rtl:right-0': !isOnExpandedLayout,
         'ltr:right-0 rtl:left-0': isOnExpandedLayout,
