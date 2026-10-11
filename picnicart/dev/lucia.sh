@@ -65,7 +65,17 @@ meta() { local t; t="$(wa_token)"; [ -n "$t" ] || return 9; printf 'header = "Au
 env_value() { grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2-; }
 rails_run() { docker compose exec -T rails bundle exec rails runner "$1" 2>/dev/null | grep -v -e 'warning' -e 'called from' -e 'DEPRECATION'; }
 # Everything published through Tailscale Funnel is reachable from the whole Internet. We allow ONE path only.
-funnel_paths() { tailscale funnel status 2>/dev/null | awk '/^\|-- /{print $2}'; }
+funnel_paths() { tailscale funnel status 2>/dev/null | awk '/^https:\/\//{on=/Funnel on/} /^\|-- /{if(on)print $2}'; }
+# HTTPS for the phone: `tailscale serve` WITHOUT funnel = reachable only from devices of your own tailnet (never the Internet).
+PHONE_HTTPS_PORT=8443
+phone_https_on() { tailscale serve status 2>/dev/null | grep -q ":${PHONE_HTTPS_PORT} (tailnet only)"; }
+phone_https_url() { local h; h="$(ts_host)"; [ -n "$h" ] && echo "https://$h:${PHONE_HTTPS_PORT}"; }
+ensure_phone_https() {
+  step "6. Phone over HTTPS (tailnet only)"
+  phone_https_on || tailscale serve --bg --https="$PHONE_HTTPS_PORT" "http://127.0.0.1:${LOCAL_PORT}" >/dev/null 2>&1
+  if phone_https_on; then ok "$(phone_https_url) — only devices signed in to your Tailscale (not the Internet)"
+  else tailscale serve --https="$PHONE_HTTPS_PORT" off >/dev/null 2>&1; warn "could not enable HTTPS for the phone; http://$(ts_ip):${LOCAL_PORT} still works"; fi
+}
 close_path() { tailscale serve --https=443 --set-path="$1" off >/dev/null 2>&1; }
 close_unexpected_paths() {
   local p
@@ -133,6 +143,13 @@ ensure_docker() {
     grep -q '^SAFE_FETCH_ALLOW_PRIVATE_NETWORK=' .env && sed -i '' 's|^SAFE_FETCH_ALLOW_PRIVATE_NETWORK=.*|SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true|' .env \
       || printf '\n# Local only: allow webhooks to the Tailscale network (n8n staging)\nSAFE_FETCH_ALLOW_PRIVATE_NETWORK=true\n' >> .env
     ok "SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true set in .env (local instance only)"
+    RECREATE=1
+  fi
+  # rack-mini-profiler (development only) adds a profiling call per request and slows the UI noticeably.
+  if [ "$(env_value DISABLE_MINI_PROFILER)" != true ]; then
+    grep -q '^DISABLE_MINI_PROFILER=' .env && sed -i '' 's|^DISABLE_MINI_PROFILER=.*|DISABLE_MINI_PROFILER=true|' .env \
+      || printf '\n# Local only: faster UI in development\nDISABLE_MINI_PROFILER=true\n' >> .env
+    ok "DISABLE_MINI_PROFILER=true set in .env (faster local UI)"
     RECREATE=1
   fi
   ensure_images
@@ -389,6 +406,7 @@ status() {
   [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 20)" = 200 ] && ok "app http://localhost:${LOCAL_PORT}" || warn "app down"
   local ip; ip="$(ts_ip)"
   [ -n "$ip" ] && ok "phone / other tailnet devices: http://$ip:${LOCAL_PORT}"
+  phone_https_on && ok "phone over HTTPS (tailnet only): $(phone_https_url)"
   local exposed; exposed="$(funnel_paths | grep -vx "$WEBHOOK_PATH" | tr '\n' ' ')"
   if [ -n "$exposed" ]; then fail "EXPOSED TO THE INTERNET: $exposed — run lucia.sh up (closes them) or lucia.sh down"
   elif funnel_paths | grep -qx "$WEBHOOK_PATH"; then ok "public ingress for Meta: $(public_url)${WEBHOOK_PATH} (only that path)"
@@ -400,12 +418,13 @@ status() {
 
 case "$CMD" in
   up)
-    ensure_tailscale; ensure_docker; ensure_local_data; ensure_n8n; ensure_public_webhook; set_override
+    ensure_tailscale; ensure_docker; ensure_local_data; ensure_n8n; ensure_public_webhook; ensure_phone_https; set_override
     status
     echo; echo "Write to the test number from your phone. When finished: picnicart/dev/lucia.sh down" ;;
   down)
     clear_override
-    step "Close the public webhook path"
+    step "Close the phone HTTPS and the public webhook path"
+    phone_https_on && tailscale serve --https="$PHONE_HTTPS_PORT" off >/dev/null 2>&1 && ok "phone HTTPS closed (http://$(ts_ip):${LOCAL_PORT} remains while Docker is up)"
     for p in $(funnel_paths); do close_path "$p"; done
     [ -z "$(funnel_paths)" ] && { tailscale funnel --https=443 off >/dev/null 2>&1; ok "public ingress closed (nothing is published)"; } || fail "some public paths are still open: $(funnel_paths | tr '\n' ' ')"
     [ "$STOP_DOCKER" = 1 ] && docker compose stop >/dev/null && ok "docker stopped" ;;

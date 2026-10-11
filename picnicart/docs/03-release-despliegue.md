@@ -96,3 +96,9 @@ Luego, los pasos 4–7 de arriba (migraciones, respaldo, desplegar, verificar). 
 Hoy el despliegue es **manual y con respaldo**, a propósito: staging y producción son la misma instancia y una release puede traer migraciones. Opciones para automatizarlo más adelante, de menor a mayor riesgo:
 - **Script en el servidor** (`deploy <tag>`: respaldo, `pull`, migrar, `up -d`, verificar salud). Se ejecuta por SSH a mano. Recomendado como primer paso.
 - **Pipeline por SSH/Tailscale**: el workflow entra al servidor y ejecuta ese script. Requiere guardar una llave en GitHub y abrir al runner el acceso al servidor (SSH hoy es solo por llave); mejor con una red privada. Solo después de varias releases manuales sin problemas.
+
+## Skill para el servidor
+
+`picnicart/skills/actualizar-chatbot/SKILL.md` es la skill genérica (sin datos privados) para la sesión del servidor: ante "actualiza chatbot" revisa migraciones y variables nuevas entre el tag actual y el destino (con la API pública de GitHub), clasifica el riesgo, exige respaldo verificado, despliega migrando **antes** de reemplazar los contenedores, verifica y explica el rollback. Cópiala al directorio de skills del servidor y complétala allí con los nombres reales de servicios; esos valores no van en este repositorio.
+
+Referencia de cómo publica Chatwoot: una release menor cada ~1 mes (v4.13.0 abr … v4.18.0 sep de 2026) con parches intermedios. Su guía oficial de Docker es: bajar imágenes, levantar y ejecutar `bundle exec rails db:chatwoot_prepare`; no cubre respaldos, variables ni rollback. Ejemplo real de un salto menor, v4.17.1 → v4.18.0: 3 migraciones (una de backfill de datos, dos que agregan columnas) y 3 líneas nuevas en `.env.example`.

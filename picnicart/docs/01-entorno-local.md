@@ -126,3 +126,15 @@ docker compose build --no-cache base && docker compose build   # reconstruir im�
 ```
 
 Después de `down -v` repite los pasos 3 y 4 de "Primera vez".
+
+## Por qué el front tarda en cargar en desarrollo
+
+Es normal en modo desarrollo y no es un fallo de configuración:
+
+- **Sin empaquetar:** Vite sirve cada archivo como módulo suelto; la pantalla de login pide ~250 archivos y el panel completo muchos más (las traducciones de todos los idiomas se importan juntas). En producción son unos pocos archivos empaquetados.
+- **Proxy de Rails:** el navegador pide los módulos a Rails (puerto 3005) y Rails los reenvía a Vite; cada módulo tarda ~75 ms en vez de ~9 ms directo.
+- **Docker en Mac:** la carpeta del proyecto se monta desde macOS (más lento que el disco de Linux) y todo corre en una VM con recursos limitados.
+- **rack-mini-profiler:** perfila cada petición en desarrollo; `lucia.sh up` pone `DISABLE_MINI_PROFILER=true` en el `.env` local. Si no usas Lucía, añade esa línea a mano y recrea `rails`.
+- **Primera carga tras recrear contenedores:** Vite reoptimiza dependencias (~15–20 s la primera vez); las siguientes cargas son más rápidas.
+
+Para ver el rendimiento real (como en producción) usa la imagen construida, no el entorno de desarrollo.

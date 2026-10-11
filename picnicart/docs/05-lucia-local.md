@@ -48,11 +48,12 @@ picnicart/dev/lucia.sh down            # devuelve el número a staging y cierra 
 3. Crea/ajusta los datos locales de la tabla de arriba y el webhook de cuenta hacia n8n.
 4. Comprueba, **desde el contenedor** de Chatwoot, que llega a n8n staging (lo despierta si estaba dormido).
 5. Abre un **Funnel solo para la ruta `/webhooks/whatsapp`** (la app, la API y el login quedan privados).
-6. Pone el **override de Meta** del número de prueba (token leído del Llavero de macOS).
+6. Abre **HTTPS para el celular** (`tailscale serve` en el puerto 8443, **sin** Funnel: solo dispositivos de tu tailnet; `down` lo cierra).
+7. Pone el **override de Meta** del número de prueba (token leído del Llavero de macOS).
 
 **Siempre termina con `down`.** Si se te olvida, el staging queda sin el número de prueba.
 
-Desde el celular (con Tailscale): `http://<IP de Tailscale de la Mac>:3005`. `status` imprime la URL.
+Desde el celular (con Tailscale): `https://<nombre de la Mac en la tailnet>:8443` (o `http://<IP de Tailscale>:3005`). `status` imprime las URLs. El HTTPS da contexto seguro al navegador del celular (notificaciones, micrófono). Es privado: `tailscale serve status` debe decir `(tailnet only)`.
 
 ## Configuración única
 
