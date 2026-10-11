@@ -64,7 +64,7 @@ Los valores concretos están en `~/.config/picnicart/env` y en las notas privada
 | 3 | Servidor y Mac en la misma tailnet; `tailscale serve` del puerto de n8n en el servidor | ✅ | hecho por la sesión del servidor |
 | 4 | Reglas de acceso (ACL) de Tailscale: el servidor solo llega a la Mac por el 3005; la Mac al servidor por el puerto de n8n y SSH | ⏳ | consola de Tailscale → Access controls |
 | 5 | Activar Funnel en el tailnet | ⏳ | aprobar el enlace que imprime `lucia.sh up` |
-| 6 | Token del bot en la BD local | ⏳ | `lucia.sh bot-token --from-server` (lo trae por SSH a la base local sin imprimirlo ni usar el portapapeles; los datos del servidor están en `~/.config/picnicart/env`). Alternativa: copiarlo al portapapeles y correr `lucia.sh bot-token` |
+| 6 | Token del bot en la BD local | ✅ | `lucia.sh bot-token --from-server` (lo trae por SSH a la base local sin imprimirlo ni usar el portapapeles; los datos del servidor están en `~/.config/picnicart/env`). Alternativa: copiarlo al portapapeles y correr `lucia.sh bot-token` |
 | 7 | Bandeja WhatsApp Cloud en la cuenta local | ⏳ | Ajustes → Bandejas → WhatsApp → WhatsApp Cloud (número, Phone Number ID, WABA y clave de API: los pegas tú) |
 | 8 | Token de WhatsApp en el Llavero | ⏳ | `security add-generic-password -s <PICNIC_KEYCHAIN_SERVICE> -a "$USER" -w` |
 
