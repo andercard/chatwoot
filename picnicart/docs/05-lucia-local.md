@@ -22,6 +22,7 @@ El n8n de staging mira el **número de conversación** que trae cada evento: si 
 | Conversaciones que arrancan en 900000 (no chocan con las de staging en la memoria del bot ni en Redis) | sí (`ALTER SEQUENCE`) |
 | Token del usuario bot = el que usa n8n | una vez: `lucia.sh bot-token` |
 | Misma versión de Chatwoot que la desplegada | usar el entorno `production` (rama = release) |
+| Permitir webhooks hacia la red privada (`SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true` en el `.env` local): Chatwoot bloquea por seguridad (SSRF) los webhooks hacia redes privadas y el host de n8n está en Tailscale | sí (solo esta instancia local) |
 | La app solo en `127.0.0.1` y la IP de Tailscale (nada en la LAN) | override de Docker (`dev/docker-compose.override.example.yml`) |
 
 ## ¿A cuál Chatwoot llega el mensaje de WhatsApp?
@@ -87,3 +88,6 @@ Cuando todo esté ✅ basta con `lucia.sh up` / `down`.
 | Llega a local pero el bot no responde | `docker compose logs -f sidekiq`; ejecuciones del workflow en n8n; ¿el id de conversación es ≥ 900000? (`lucia.sh up` reajusta la secuencia) |
 | El bot responde en staging en vez de local | override no activo → `lucia.sh status` |
 | Staging dejó de recibir el número | quedó un override activo → `lucia.sh down` |
+| En el log de Sidekiq: `Invalid webhook URL … has no public ip addresses` | falta `SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true` en el `.env` local (`lucia.sh up` lo pone) |
+| Meta: `Callback verification failed … SSL_ERROR_SYSCALL` al activar el override | el Funnel tarda unos segundos tras abrirse; `up` reintenta solo hasta 6 veces |
+| `lucia.sh doctor` | revisa todos los requisitos y dice qué falta |

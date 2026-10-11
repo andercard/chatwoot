@@ -127,7 +127,16 @@ ensure_docker() {
   docker info >/dev/null 2>&1 || { fail "Docker is not running — open Docker Desktop and retry"; exit 1; }
   [ -f .env ] && [ -f docker-compose.override.yml ] || { fail "missing .env or docker-compose.override.yml (see docs 01, 'Primera vez')"; exit 1; }
   check_other_projects
+  # Chatwoot refuses to send webhooks to private networks (SSRF protection) and the n8n host resolves to a Tailscale
+  # address, so this LOCAL instance must allow private-network webhooks. Only reachable publicly: the inbound /webhooks/whatsapp path.
+  if [ "$(env_value SAFE_FETCH_ALLOW_PRIVATE_NETWORK)" != true ]; then
+    grep -q '^SAFE_FETCH_ALLOW_PRIVATE_NETWORK=' .env && sed -i '' 's|^SAFE_FETCH_ALLOW_PRIVATE_NETWORK=.*|SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true|' .env \
+      || printf '\n# Local only: allow webhooks to the Tailscale network (n8n staging)\nSAFE_FETCH_ALLOW_PRIVATE_NETWORK=true\n' >> .env
+    ok "SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true set in .env (local instance only)"
+    RECREATE=1
+  fi
   ensure_images
+  if [ "${RECREATE:-0}" = 1 ]; then docker compose up -d --force-recreate rails sidekiq >/dev/null 2>&1; fi
   docker compose up -d >/dev/null 2>&1 || { fail "docker compose up failed: docker compose logs"; exit 1; }
   printf '    waiting for http://localhost:%s ' "$LOCAL_PORT"
   for _ in $(seq 1 120); do [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 20)" = 200 ] && break; printf '.'; sleep 3; done; echo
@@ -231,8 +240,14 @@ set_override() {
   [ "${LOCAL_INBOX:-none}" != none ] || { warn "skipped: create the local WhatsApp inbox first"; return 1; }
   url="$(public_url)${WEBHOOK_PATH}/${PICNIC_WA_PHONE}"
   verify="$(docker compose exec -T -e ID="$LOCAL_INBOX" rails bundle exec rails runner 'puts Inbox.find(ENV["ID"]).channel.provider_config["webhook_verify_token"]' 2>/dev/null | tail -1)"
-  local res; res="$(meta -X POST "$GRAPH/$PICNIC_WA_PHONE_ID" -H 'Content-Type: application/json' \
-    -d "{\"webhook_configuration\":{\"override_callback_uri\":\"$url\",\"verify_token\":\"$verify\"}}")"
+  # Right after Funnel is (re)opened Meta's TLS handshake to the public relay can fail for a few seconds: retry before giving up.
+  local res i
+  for i in 1 2 3 4 5 6; do
+    res="$(meta -X POST "$GRAPH/$PICNIC_WA_PHONE_ID" -H 'Content-Type: application/json' \
+      -d "{\"webhook_configuration\":{\"override_callback_uri\":\"$url\",\"verify_token\":\"$verify\"}}")"
+    echo "$res" | grep -q '"success":true' && break
+    [ "$i" -lt 6 ] && { warn "Meta could not verify the public URL yet (attempt $i/6); the Funnel needs a moment — retrying in 15 s"; sleep 15; }
+  done
   echo "$res" | grep -q '"success":true' && ok "messages to the test number now go to this Mac (the staging inbox is muted for this number)" \
     || { fail "Meta rejected the override: $(echo "$res" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("error",{}).get("message","?"))' 2>/dev/null)"; return 1; }
 }
@@ -352,6 +367,7 @@ doctor() {
   fi
 
   local exposed; exposed="$(funnel_paths | grep -vx "$WEBHOOK_PATH" | tr '\n' ' ')"
+  [ "$(env_value SAFE_FETCH_ALLOW_PRIVATE_NETWORK)" = true ]; chk "local Chatwoot may send webhooks to the Tailscale network" $? "lucia.sh up sets SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true in .env"
   [ -z "$exposed" ]; chk "nothing is public except ${WEBHOOK_PATH}" $? "run lucia.sh down (closes everything) — exposed: $exposed"
   docker compose ps --format '{{.Ports}}' 2>/dev/null | grep -qE '0\.0\.0\.0|\[::\]'; [ $? -ne 0 ]; chk "no Docker port is open to the LAN (0.0.0.0)" $? "check docker-compose.override.yml (picnicart/dev/docker-compose.override.example.yml)"
 
