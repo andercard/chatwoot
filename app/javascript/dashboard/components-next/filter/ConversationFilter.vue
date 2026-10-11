@@ -7,6 +7,7 @@ import { vOnClickOutside } from '@vueuse/components';
 import { CONVERSATION_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { useConversationFilterContext } from './provider.js';
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
+import { provideDropdownTeleport } from 'next/dropdown-menu/base/provider';
 
 import Button from 'next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
@@ -26,6 +27,7 @@ const props = defineProps({
 
 const emit = defineEmits(['applyFilter', 'updateFolder', 'close']);
 const { attributeFilterTypes } = useConversationFilterContext();
+provideDropdownTeleport();
 
 const filters = defineModel({
   type: Array,
@@ -99,7 +101,7 @@ const filterModalHeaderTitle = computed(() => {
 onBeforeUnmount(() => emit('close'));
 const outsideClickHandler = [
   () => emit('close'),
-  { ignore: ['#toggleConversationFilterButton'] },
+  { ignore: ['#toggleConversationFilterButton', '[data-dropdown-menu]'] },
 ];
 </script>
 
