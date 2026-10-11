@@ -12,6 +12,7 @@ import Button from 'next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ConditionRow from './ConditionRow.vue';
 import SheetHandle from 'next/sheet-handle/SheetHandle.vue';
+import { provideDropdownTeleport } from 'next/dropdown-menu/base/provider';
 
 const props = defineProps({
   isSegmentView: { type: Boolean, default: false },
@@ -98,8 +99,9 @@ const filterModalHeaderTitle = computed(() => {
 onBeforeUnmount(() => emit('close'));
 const outsideClickHandler = [
   () => emit('close'),
-  { ignore: ['#toggleContactsFilterButton'] },
+  { ignore: ['#toggleContactsFilterButton', '[data-dropdown-menu]'] },
 ];
+provideDropdownTeleport();
 </script>
 
 <template>
