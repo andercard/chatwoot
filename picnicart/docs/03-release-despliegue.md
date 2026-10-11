@@ -91,6 +91,21 @@ gh run watch -R andercard/chatwoot                                 # seguir el b
 ```
 Luego, los pasos 4–7 de arriba (migraciones, respaldo, desplegar, verificar). El script `build-image.sh` queda como alternativa si Actions no está disponible.
 
+## Aviso de nueva versión en la app
+
+Al empujar un tag `vX.Y.Z-picnic.N` (paso 2, o el `git tag … && git push origin …` de arriba) la app avisa sola a los administradores. No hay que hacer nada extra en el release.
+
+- **Versión instalada:** la imagen lleva la variable `PICNIC_RELEASE` con el tag con el que se construyó. La fijan `picnicart/scripts/build-image.sh` y el workflow `picnic_release.yml` (con `--build-arg` / `build-args`).
+- **Aviso:** los administradores ven «Hay una nueva versión vX.Y.Z-picnic.N de Picnic Art disponible» al lado del aviso oficial de Chatwoot. Se compara `PICNIC_RELEASE` contra los tags `vX.Y.Z-picnic.N` de `github.com/andercard/chatwoot`, una vez al día, con un job propio (`Internal::CheckPicnicReleaseJob`) que corre solo en producción.
+- **Retraso:** el aviso puede tardar hasta 24 h en aparecer tras empujar el tag, y puede aparecer antes de que termine el build de la imagen. Antes de avisar al equipo, confirmar que la imagen ya está publicada.
+- **Sin `PICNIC_RELEASE`** (local/dev o una imagen vieja) el aviso propio no aparece.
+- **Descartar:** el aviso se descarta por versión en el navegador de cada administrador; reaparece con la siguiente versión.
+- **Forzar la consulta sin esperar al job diario:**
+  ```bash
+  docker compose exec rails bundle exec rails runner 'Internal::CheckPicnicReleaseJob.perform_now'
+  ```
+  En producción, lo mismo desde el contenedor equivalente (ajusta el nombre del servicio, como en el paso 6).
+
 ## ¿Desplegar automáticamente desde el pipeline?
 
 Hoy el despliegue es **manual y con respaldo**, a propósito: staging y producción son la misma instancia y una release puede traer migraciones. Opciones para automatizarlo más adelante, de menor a mayor riesgo:
