@@ -98,6 +98,9 @@ RUN rm -rf /gems/ruby/3.4.0/cache/*.gem \
 # final build stage
 FROM ruby:3.4.4-alpine3.21
 
+ARG PICNIC_RELEASE
+ENV PICNIC_RELEASE=${PICNIC_RELEASE}
+
 ARG NODE_VERSION="24.13.0"
 ARG PNPM_VERSION="10.2.0"
 ENV NODE_VERSION=${NODE_VERSION}
