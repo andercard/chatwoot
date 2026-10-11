@@ -75,11 +75,24 @@ git merge v4.18.0            # resolver conflictos: solo aparecen donde editamos
 - PR a `production` → release `v4.18.0-picnic.1` siguiendo los pasos de arriba (con respaldo, porque una actualización siempre trae migraciones).
 - Nunca saltar a `develop` de Chatwoot en producción: solo tags de release.
 
-## Alternativa: construir en GitHub Actions
+## Construir en GitHub Actions (método principal)
 
-Más rápido que emular amd64 en la Mac. Requiere:
-1. Darle a `gh` el permiso `workflow` (`gh auth refresh -h github.com -s workflow`).
-2. Crear en Docker Hub un *access token* y guardarlo como secreto `DOCKERHUB_TOKEN` en `andercard/chatwoot` → Settings → Secrets → Actions (esto lo hace una persona; el token nunca va en el código).
-3. Un workflow que, al empujar un tag `v*-picnic.*`, construya `docker/Dockerfile` y haga push a `andercard/chatwoot:<tag>`.
+El workflow `.github/workflows/picnic_release.yml` construye la imagen cuando se empuja un tag `v*-picnic.*`: `linux/amd64` nativo (sin emulación), sin la carpeta `picnicart/`, y la publica en `andercard/chatwoot:<tag>`. Falla si ese tag de imagen ya existe (los tags son inmutables). El fork es público, así que los minutos de Actions son gratuitos.
 
-Ojo: el fork tiene Actions habilitadas y hereda los workflows de Chatwoot (publicar imágenes oficiales, etc.). Antes de usar Actions hay que deshabilitar los que no aplican.
+Una sola vez:
+1. Crear en Docker Hub un *access token* (permisos de lectura/escritura) y guardarlo como secreto `DOCKERHUB_TOKEN` en `andercard/chatwoot` → Settings → Secrets and variables → Actions. Lo hace una persona; el token nunca va en el código ni en el chat.
+2. En el fork están **deshabilitados** los workflows heredados de Chatwoot que publican imágenes (`Publish Chatwoot CE/EE docker images`), porque también reaccionan a tags `v*` y publicarían en el repositorio de Chatwoot. No volver a habilitarlos.
+
+Para cada release:
+```bash
+git switch production && git pull
+git tag v4.17.1-picnic.N && git push origin v4.17.1-picnic.N      # esto dispara el build
+gh run watch -R andercard/chatwoot                                 # seguir el build
+```
+Luego, los pasos 4–7 de arriba (migraciones, respaldo, desplegar, verificar). El script `build-image.sh` queda como alternativa si Actions no está disponible.
+
+## ¿Desplegar automáticamente desde el pipeline?
+
+Hoy el despliegue es **manual y con respaldo**, a propósito: staging y producción son la misma instancia y una release puede traer migraciones. Opciones para automatizarlo más adelante, de menor a mayor riesgo:
+- **Script en el servidor** (`deploy <tag>`: respaldo, `pull`, migrar, `up -d`, verificar salud). Se ejecuta por SSH a mano. Recomendado como primer paso.
+- **Pipeline por SSH/Tailscale**: el workflow entra al servidor y ejecuta ese script. Requiere guardar una llave en GitHub y abrir al runner el acceso al servidor (SSH hoy es solo por llave); mejor con una red privada. Solo después de varias releases manuales sin problemas.
