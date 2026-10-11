@@ -3,6 +3,7 @@
 # Never touches production services. Nothing from the staging stack is exposed to the internet.
 #
 #   picnicart/dev/lucia.sh up           # start everything (idempotent)
+#   picnicart/dev/lucia.sh doctor       # check every requirement; prints what is missing and the exact fix
 #   picnicart/dev/lucia.sh status       # show the state of every piece
 #   picnicart/dev/lucia.sh down         # give the test number back to staging, close the public webhook path
 #   picnicart/dev/lucia.sh down --stop-docker
@@ -329,6 +330,44 @@ whatsapp_inbox() {
   esac
 }
 
+# Read-only checklist of every one-time requirement. Prints what is missing and the exact fix, changes nothing.
+doctor() {
+  local todo=() code
+  chk() { if [ "$2" = 0 ]; then ok "$1"; else fail "$1"; todo+=("$1  →  $3"); fi; }
+  step "Doctor — requirements for Lucía local ($PROJECT, $(cat VERSION_CW 2>/dev/null))"
+
+  docker info >/dev/null 2>&1; chk "Docker is running" $? "open Docker Desktop"
+  [ -f .env ] && [ -f docker-compose.override.yml ]; chk "this checkout is initialized (.env + docker-compose.override.yml)" $? "docs 01, 'Primera vez'"
+  tailscale status >/dev/null 2>&1; chk "Tailscale is running on this Mac" $? "open the Tailscale app"
+  local host="${PICNIC_N8N_HEALTH_URL#*//}"; host="${host%%[:/]*}"
+  tailscale ping -c 1 --timeout=5s "$host" >/dev/null 2>&1; chk "the server is reachable inside the tailnet" $? "is Tailscale running on the server? (tailscale status)"
+  code="$(http_code "$PICNIC_N8N_HEALTH_URL" 10)"; [ "$code" = 200 ]; chk "n8n staging answers over Tailscale (HTTP $code)" $? "'tailscale serve' active on the server? asleep? open the public n8n URL to wake it"
+  tailscale status --json 2>/dev/null | python3 -c 'import json,sys; m=json.load(sys.stdin)["Self"].get("CapMap") or {}; sys.exit(0 if "funnel" in m and "https" in m else 1)'
+  chk "Funnel + HTTPS are allowed on this tailnet" $? "run lucia.sh up once and approve the link it prints"
+
+  [ -n "$(wa_token)" ]; chk "WhatsApp token is in the Keychain" $? "copy the token and run: lucia.sh wa-token"
+  if [ -n "$(wa_token)" ]; then
+    code="$(meta -o /dev/null -w '%{http_code}' "$GRAPH/$PICNIC_WA_PHONE_ID?fields=id")"; [ "$code" = 200 ]
+    chk "Meta accepts the token for the test number (HTTP $code)" $? "expired/incomplete token: copy a new one and run lucia.sh wa-token"
+  fi
+
+  local exposed; exposed="$(funnel_paths | grep -vx "$WEBHOOK_PATH" | tr '\n' ' ')"
+  [ -z "$exposed" ]; chk "nothing is public except ${WEBHOOK_PATH}" $? "run lucia.sh down (closes everything) — exposed: $exposed"
+  docker compose ps --format '{{.Ports}}' 2>/dev/null | grep -qE '0\.0\.0\.0|\[::\]'; [ $? -ne 0 ]; chk "no Docker port is open to the LAN (0.0.0.0)" $? "check docker-compose.override.yml (picnicart/dev/docker-compose.override.example.yml)"
+
+  if [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 8)" = 200 ]; then
+    local inbox; inbox="$(docker compose exec -T -e ACC_ID="$PICNIC_LOCAL_ACCOUNT_ID" -e PHONE="$PICNIC_WA_PHONE" rails bundle exec rails runner 'a=Account.find_by(id: ENV["ACC_ID"].to_i); i=a&.inboxes&.where(channel_type: "Channel::Whatsapp")&.find { |x| x.channel.phone_number == ENV["PHONE"] }; puts "INBOX=#{i&.id || "none"}"' 2>/dev/null | grep '^INBOX=' | cut -d= -f2)"
+    [ -n "$inbox" ] && [ "$inbox" != none ]; chk "local WhatsApp inbox exists (id ${inbox:-?})" $? "lucia.sh whatsapp-inbox"
+    [ -f "$STATE_DIR/bot-token-$PROJECT" ]; chk "bot token stored in the local database" $? "lucia.sh bot-token --from-server"
+  else
+    warn "local app is down — inbox and bot token are checked once it is up (lucia.sh up)"
+  fi
+  show_override
+  echo
+  if [ ${#todo[@]} -eq 0 ]; then ok "everything is in place → picnicart/dev/lucia.sh up --switch"
+  else printf '\033[1mMissing (%s):\033[0m\n' "${#todo[@]}"; printf '  • %s\n' "${todo[@]}"; return 1; fi
+}
+
 status() {
   step "Status ($PROJECT, $(cat VERSION_CW 2>/dev/null))"
   [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 20)" = 200 ] && ok "app http://localhost:${LOCAL_PORT}" || warn "app down"
@@ -355,8 +394,9 @@ case "$CMD" in
     [ -z "$(funnel_paths)" ] && { tailscale funnel --https=443 off >/dev/null 2>&1; ok "public ingress closed (nothing is published)"; } || fail "some public paths are still open: $(funnel_paths | tr '\n' ' ')"
     [ "$STOP_DOCKER" = 1 ] && docker compose stop >/dev/null && ok "docker stopped" ;;
   status) status ;;
+  doctor) doctor ;;
   bot-token) bot_token "$BOT_SRC" ;;
   whatsapp-inbox) whatsapp_inbox ;;
   wa-token) wa_token_store ;;
-  *) echo "usage: $0 up|status|down|bot-token [--from-server]|whatsapp-inbox|wa-token [--dir <checkout>] [--switch] [--stop-docker]"; exit 2 ;;
+  *) echo "usage: $0 up|status|doctor|down|bot-token [--from-server]|whatsapp-inbox|wa-token [--dir <checkout>] [--switch] [--stop-docker]"; exit 2 ;;
 esac
