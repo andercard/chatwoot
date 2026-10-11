@@ -6,7 +6,7 @@
 #   picnicart/dev/lucia.sh status       # show the state of every piece
 #   picnicart/dev/lucia.sh down         # give the test number back to staging, close the public webhook path
 #   picnicart/dev/lucia.sh down --stop-docker
-#   picnicart/dev/lucia.sh bot-token    # one-time: store the bot token (read from the clipboard) in the local DB
+#   picnicart/dev/lucia.sh bot-token [--from-server]   # one-time: store the bot token in the local DB (clipboard, or fetched over ssh)
 #
 # Options: --dir <path> (Chatwoot checkout to run; default: git toplevel of the current dir)
 #          --switch     (stop another running Chatwoot compose project instead of failing)
@@ -32,12 +32,13 @@ WEBHOOK_EVENTS='conversation_created conversation_status_changed conversation_up
 STATE_DIR="$HOME/.config/picnicart/state"; mkdir -p "$STATE_DIR"
 
 CMD="${1:-status}"; shift || true
-DIR=""; SWITCH=0; STOP_DOCKER=0
+DIR=""; SWITCH=0; STOP_DOCKER=0; BOT_SRC=clipboard
 while [ $# -gt 0 ]; do
   case "$1" in
     --dir) DIR="$2"; shift 2 ;;
     --switch) SWITCH=1; shift ;;
     --stop-docker) STOP_DOCKER=1; shift ;;
+    --from-server) BOT_SRC=--from-server; shift ;;
     *) echo "unknown option $1"; exit 2 ;;
   esac
 done
@@ -233,16 +234,31 @@ show_override() {
   [ -n "$cur" ] && ok "override ACTIVE → local (staging muted for the test number)" || ok "no override (the test number delivers to staging)"
 }
 
-bot_token() {
-  step "Bot token (one-time)"
-  command -v pbpaste >/dev/null || { fail "pbpaste not available"; exit 1; }
-  local len; len="$(pbpaste | tr -d '[:space:]' | wc -c | tr -d ' ')"
-  [ "$len" -ge 16 ] && [ "$len" -le 128 ] || { fail "the clipboard does not look like a token ($len chars). Copy the staging bot token first (docs 05) and retry."; exit 1; }
+# Reads a token from stdin (never from argv/env, so it does not show up in `ps`), validates its shape and stores it
+# as the access token of the bot user in the LOCAL database. Prints nothing secret.
+store_bot_token() {
   docker compose exec -T -e BOT_ID="$PICNIC_BOT_USER_ID" rails bundle exec rails runner '
     tok = STDIN.read.strip
-    user = User.find(ENV["BOT_ID"].to_i)
-    user.access_token.update!(token: tok)
-    puts "TOKEN_SET"' < <(pbpaste) 2>/dev/null | grep -q TOKEN_SET \
+    abort("BAD_TOKEN") unless tok.match?(/\A[A-Za-z0-9_\-]{16,128}\z/)
+    User.find(ENV["BOT_ID"].to_i).access_token.update!(token: tok)
+    puts "TOKEN_SET"' 2>/dev/null | grep -q TOKEN_SET
+}
+
+bot_token() {
+  step "Bot token (one-time)"
+  local source="${1:-clipboard}"
+  if [ "$source" = "--from-server" ]; then
+    for v in PICNIC_BOT_TOKEN_SSH PICNIC_BOT_TOKEN_REMOTE_FILE PICNIC_BOT_TOKEN_VAR; do
+      [ -n "${!v:-}" ] || { fail "$v is empty in $PICNIC_ENV"; exit 1; }
+    done
+    # the token travels ssh -> stdin of the local rails runner; it is never printed or written to disk
+    ssh -o BatchMode=yes "$PICNIC_BOT_TOKEN_SSH" "grep '^${PICNIC_BOT_TOKEN_VAR}=' ${PICNIC_BOT_TOKEN_REMOTE_FILE} | cut -d= -f2-" 2>/dev/null | store_bot_token \
+      && { touch "$STATE_DIR/bot-token-$PROJECT"; ok "token stored for user $PICNIC_BOT_USER_ID in the local DB (nothing printed)"; return 0; } \
+      || { fail "could not fetch/store the token (is the local app up? is the SSH key authorized? does the remote var exist?)"; exit 1; }
+  fi
+  command -v pbpaste >/dev/null || { fail "pbpaste not available"; exit 1; }
+  pbpaste | tr -d '\n' | grep -Eq '^[A-Za-z0-9_-]{16,128}$' || { fail "the clipboard does not look like a token. Copy it first, or use: lucia.sh bot-token --from-server"; exit 1; }
+  pbpaste | store_bot_token \
     && { printf '' | pbcopy; touch "$STATE_DIR/bot-token-$PROJECT"; ok "token stored for user $PICNIC_BOT_USER_ID in the local DB; clipboard cleared"; } \
     || { fail "could not store the token (is the local app up? run 'up' first)"; exit 1; }
 }
@@ -269,6 +285,6 @@ case "$CMD" in
     tailscale funnel --set-path="$WEBHOOK_PATH" "http://127.0.0.1:${LOCAL_PORT}${WEBHOOK_PATH}" off >/dev/null 2>&1; ok "ingress closed"
     [ "$STOP_DOCKER" = 1 ] && docker compose stop >/dev/null && ok "docker stopped" ;;
   status) status ;;
-  bot-token) bot_token ;;
-  *) echo "usage: $0 up|status|down|bot-token [--dir <checkout>] [--switch] [--stop-docker]"; exit 2 ;;
+  bot-token) bot_token "$BOT_SRC" ;;
+  *) echo "usage: $0 up|status|down|bot-token [--from-server] [--dir <checkout>] [--switch] [--stop-docker]"; exit 2 ;;
 esac
