@@ -6,6 +6,7 @@
 #   picnicart/dev/lucia.sh status       # show the state of every piece
 #   picnicart/dev/lucia.sh down         # give the test number back to staging, close the public webhook path
 #   picnicart/dev/lucia.sh down --stop-docker
+#   picnicart/dev/lucia.sh wa-token         # one-time: store the WhatsApp token (from the clipboard) in the Keychain
 #   picnicart/dev/lucia.sh whatsapp-inbox   # one-time: create the WhatsApp Cloud inbox locally (token from the Keychain)
 #   picnicart/dev/lucia.sh bot-token [--from-server]   # one-time: store the bot token in the local DB (clipboard, or fetched over ssh)
 #
@@ -225,7 +226,7 @@ set_override() {
   step "6. WhatsApp test number → this Mac (Meta webhook override)"
   local token url verify
   token="$(wa_token)"
-  [ -n "$token" ] || { fail "WhatsApp token not in Keychain — one-time: security add-generic-password -s $PICNIC_KEYCHAIN_SERVICE -a \"\$USER\" -w"; return 1; }
+  [ -n "$token" ] || { fail "WhatsApp token not in Keychain — copy it and run: picnicart/dev/lucia.sh wa-token"; return 1; }
   [ "${LOCAL_INBOX:-none}" != none ] || { warn "skipped: create the local WhatsApp inbox first"; return 1; }
   url="$(public_url)${WEBHOOK_PATH}/${PICNIC_WA_PHONE}"
   verify="$(docker compose exec -T -e ID="$LOCAL_INBOX" rails bundle exec rails runner 'puts Inbox.find(ENV["ID"]).channel.provider_config["webhook_verify_token"]' 2>/dev/null | tail -1)"
@@ -281,13 +282,29 @@ bot_token() {
     || { fail "could not store the token (is the local app up? run 'up' first)"; exit 1; }
 }
 
+# Stores the WhatsApp token in the Keychain from the clipboard. `security add-generic-password -w` (interactive) truncates
+# the input to 128 characters, which silently corrupts a Meta token, so the item is written through `security -i`
+# (commands on stdin: nothing in argv, no length limit). The token is verified against Meta BEFORE it is stored.
+wa_token_store() {
+  step "WhatsApp token (one-time)"
+  command -v pbpaste >/dev/null || { fail "pbpaste not available"; exit 1; }
+  local t; t="$(pbpaste | tr -d '[:space:]')"
+  [[ "$t" =~ ^EA[A-Za-z0-9]{60,600}$ ]] || { fail "the clipboard does not look like a Meta access token (starts with EA…, no spaces). Copy it first (docs 05) and retry."; exit 1; }
+  local code; code="$(printf 'header = "Authorization: Bearer %s"\n' "$t" | curl -s -K - -o /dev/null -m 20 -w '%{http_code}' "$GRAPH/$PICNIC_WA_PHONE_ID?fields=id")"
+  [ "$code" = 200 ] || { fail "Meta rejected this token (HTTP $code): expired, incomplete or without access to the test number. Nothing was stored."; exit 1; }
+  printf 'add-generic-password -U -s "%s" -a "%s" -w "%s"\n' "$PICNIC_KEYCHAIN_SERVICE" "$USER" "$t" | security -i >/dev/null 2>&1 \
+    && [ "$(wa_token | tr -d '[:space:]' | wc -c | tr -d ' ')" = "${#t}" ] \
+    && { printf '' | pbcopy; ok "token verified with Meta and stored in the Keychain (${#t} chars); clipboard cleared"; } \
+    || { fail "could not store the token in the Keychain"; exit 1; }
+}
+
 # Creates the WhatsApp Cloud inbox in the LOCAL account. The token comes from the Keychain (stdin, never argv).
 # Chatwoot normally calls Meta right after creating a manual WhatsApp Cloud channel (`setup_webhooks`: it sets the
 # number's webhook to FRONTEND_URL and may register the number). That would change what staging receives behind your
 # back, so the callback is disabled for THIS process only; `lucia.sh up` is the one that points Meta at this Mac.
 whatsapp_inbox() {
   step "WhatsApp inbox (local)"
-  [ -n "$(wa_token)" ] || { fail "no WhatsApp token in the Keychain — one-time: security add-generic-password -s $PICNIC_KEYCHAIN_SERVICE -a \"\$USER\" -U -w   (paste the token at the prompt)"; exit 1; }
+  [ -n "$(wa_token)" ] || { fail "no WhatsApp token in the Keychain — copy it and run: picnicart/dev/lucia.sh wa-token"; exit 1; }
   local code; code="$(meta -o /dev/null -w '%{http_code}' "$GRAPH/$PICNIC_WA_PHONE_ID?fields=id")"
   [ "$code" = 200 ] && ok "the token can read the test number" || { fail "Meta rejected the token for the test number (HTTP $code): expired, or missing permissions"; exit 1; }
   local out
@@ -339,5 +356,6 @@ case "$CMD" in
   status) status ;;
   bot-token) bot_token "$BOT_SRC" ;;
   whatsapp-inbox) whatsapp_inbox ;;
-  *) echo "usage: $0 up|status|down|bot-token [--from-server]|whatsapp-inbox [--dir <checkout>] [--switch] [--stop-docker]"; exit 2 ;;
+  wa-token) wa_token_store ;;
+  *) echo "usage: $0 up|status|down|bot-token [--from-server]|whatsapp-inbox|wa-token [--dir <checkout>] [--switch] [--stop-docker]"; exit 2 ;;
 esac
