@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useMediaQuery, useToggle } from '@vueuse/core';
+import { useToggle } from '@vueuse/core';
 import { vOnClickOutside } from '@vueuse/components';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useMapGetter, useStore } from 'dashboard/composables/store.js';
@@ -10,7 +10,7 @@ import SelectMenu from 'dashboard/components-next/selectmenu/SelectMenu.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import SheetHandle from 'dashboard/components-next/sheet-handle/SheetHandle.vue';
 
-const props = defineProps({
+defineProps({
   isOnExpandedLayout: {
     type: Boolean,
     required: true,
@@ -22,13 +22,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['changeFilter']);
-
-// Below `sm` the panel is a bottom sheet, so the sub menus open under their button and scroll with the sheet.
-const isSmUp = useMediaQuery('(min-width: 640px)');
-const subMenuPosition = computed(() => {
-  if (!isSmUp.value) return 'bottom';
-  return props.isOnExpandedLayout ? 'left' : 'right';
-});
 
 const store = useStore();
 const { t } = useI18n();
@@ -182,7 +175,7 @@ const handleSortChange = value => {
           :model-value="chatStatusFilter"
           :options="chatStatusOptions"
           :label="activeChatStatusLabel"
-          :sub-menu-position="subMenuPosition"
+          :sub-menu-position="isOnExpandedLayout ? 'left' : 'right'"
           @update:model-value="handleStatusChange"
         />
       </div>
@@ -197,7 +190,7 @@ const handleSortChange = value => {
           :model-value="chatSortFilter"
           :options="chatSortOptions"
           :label="activeChatSortLabel"
-          :sub-menu-position="subMenuPosition"
+          :sub-menu-position="isOnExpandedLayout ? 'left' : 'right'"
           @update:model-value="handleSortChange"
         />
       </div>
