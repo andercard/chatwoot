@@ -22,8 +22,8 @@ comandos:
   - cmd: "navegador 375x812, Conversaciones -> filtro"
     exit: null
     esperado: "panel dentro del ancho, menús dentro del viewport, el panel sigue abierto al elegir"
-    obtenido: "no corrido: el verify no tiene navegador"
-    coincide: no_verificado
+    obtenido: "probado por el dev en iPhone (Tailscale, 100.x:3005): hoja inferior a ancho completo, fila Estado/Igual a/valor/papelera apilada, botones visibles, sin recorte lateral"
+    coincide: true
   - cmd: "navegador 375x812, Contactos -> filtro"
     exit: null
     esperado: "igual que en Conversaciones"
