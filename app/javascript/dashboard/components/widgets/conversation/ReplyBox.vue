@@ -1057,6 +1057,9 @@ export default {
       this.updateEditorSelectionWith = content;
       this.onFocus();
     },
+    openMacros() {
+      this.addIntoEditor('#');
+    },
     executeCopilotAction(action, data) {
       this.copilot.execute(action, data);
     },
@@ -1432,7 +1435,10 @@ export default {
 
 <template>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
-  <div class="reply-box" :class="replyBoxClass">
+  <div
+    class="reply-box max-sm:grid max-sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] max-sm:items-end max-sm:gap-x-2 max-sm:gap-y-0 max-sm:!mx-0 max-sm:!mb-0 max-sm:!rounded-none max-sm:!border-x-0 max-sm:!border-b-0 max-sm:!bg-n-solid-1 max-sm:p-2 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+    :class="replyBoxClass"
+  >
     <ReplyTopPanel
       :mode="replyType"
       :conversation-id="conversationId"
@@ -1446,6 +1452,7 @@ export default {
       :characters-remaining="charactersRemaining"
       :editor-content="message"
       :has-content="hasMeaningfulEditorContent"
+      :show-expand="isFocused || hasMeaningfulEditorContent"
       @set-reply-mode="setReplyMode"
       @toggle-editor-size="toggleEditorSize"
       @toggle-copilot="copilot.toggleEditor"
@@ -1466,7 +1473,10 @@ export default {
       leave-from-class="opacity-100 translate-y-0 scale-100"
       leave-to-class="opacity-0 translate-y-2 scale-[0.98]"
     >
-      <div :key="copilot.editorTransitionKey.value" class="reply-box__top">
+      <div
+        :key="copilot.editorTransitionKey.value"
+        class="reply-box__top max-sm:col-start-3 max-sm:row-start-1 max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
+      >
         <ReplyToMessage
           v-if="shouldShowReplyToMessage"
           :message="inReplyTo"
@@ -1517,7 +1527,10 @@ export default {
           v-model="message"
           :conversation-id="conversationId"
           :editor-id="editorStateId"
-          class="input popover-prosemirror-menu"
+          class="input popover-prosemirror-menu max-sm:rounded-3xl max-sm:ps-4 max-sm:pe-12 max-sm:py-1"
+          :class="
+            isOnPrivateNote ? 'max-sm:bg-n-solid-amber' : 'max-sm:bg-n-alpha-2'
+          "
           :is-private="isOnPrivateNote"
           :placeholder="messagePlaceHolder"
           :update-selection-with="updateEditorSelectionWith"
@@ -1634,6 +1647,7 @@ export default {
         @toggle-insert-article="toggleInsertArticle"
         @toggle-quoted-reply="toggleQuotedReply"
         @request-contact-info-template="openContactInfoTemplateModal"
+        @open-macros="openMacros"
       />
     </Transition>
 
