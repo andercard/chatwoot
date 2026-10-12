@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreGetters, useMapGetter } from 'dashboard/composables/store';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
@@ -28,6 +28,12 @@ const teams = useMapGetter('teams/getTeams');
 const isRTL = useMapGetter('accounts/isRTL');
 
 const searchQuery = ref(props.searchKey);
+watch(
+  () => props.searchKey,
+  key => {
+    searchQuery.value = key;
+  }
+);
 
 const searchTerm = computed(() => searchQuery.value.trim().toLowerCase());
 
@@ -122,6 +128,7 @@ const onSelect = item => emit('selectAgent', item.record);
 <template>
   <CaretAnchoredPicker
     v-model:search="searchQuery"
+    :search-key="searchKey"
     :caret-position="caretPosition"
     :items="items"
     :search-placeholder="t('CONVERSATION.PICKER.MENTION.SEARCH_PLACEHOLDER')"

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { picoSearch } from '@chatwoot/pico-search';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
@@ -43,6 +43,12 @@ const cannedResponses = useMapGetter('getCannedResponses');
 const uiFlags = useMapGetter('getUIFlags');
 // The trigger can already be followed by text, from a draft or a caret moved back onto it
 const searchQuery = ref(props.searchKey);
+watch(
+  () => props.searchKey,
+  key => {
+    searchQuery.value = key;
+  }
+);
 
 const searchTerm = computed(() => searchQuery.value.trim());
 
@@ -113,6 +119,7 @@ onMounted(() => store.dispatch('getCannedResponse'));
 <template>
   <CaretAnchoredPicker
     v-model:search="searchQuery"
+    :search-key="searchKey"
     :caret-position="caretPosition"
     :items="items"
     :search-placeholder="t('COMBOBOX.SEARCH_PLACEHOLDER')"
