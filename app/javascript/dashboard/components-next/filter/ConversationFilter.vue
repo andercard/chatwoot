@@ -11,6 +11,7 @@ import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
 import Button from 'next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ConditionRow from './ConditionRow.vue';
+import SheetHandle from 'next/sheet-handle/SheetHandle.vue';
 
 const props = defineProps({
   isFolderView: {
@@ -105,8 +106,10 @@ const outsideClickHandler = [
 <template>
   <div
     v-on-click-outside="outsideClickHandler"
-    class="z-40 w-[min(34rem,calc(100vw-2rem))] lg:w-[750px] overflow-visible border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-6 grid gap-6"
+    data-mobile-sheet
+    class="fixed inset-x-0 bottom-0 z-40 max-h-[85dvh] overflow-y-auto rounded-t-xl rounded-b-none sm:static sm:max-h-none sm:overflow-visible sm:rounded-xl sm:w-full sm:max-w-3xl lg:w-[750px] border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg p-6 grid gap-6"
   >
+    <SheetHandle @close="emit('close')" />
     <h3 class="text-base font-medium leading-6 text-n-slate-12">
       {{ filterModalHeaderTitle }}
     </h3>
@@ -146,7 +149,7 @@ const outsideClickHandler = [
         />
       </template>
     </ul>
-    <div class="flex gap-2 justify-between">
+    <div class="flex flex-wrap gap-2 justify-between">
       <Button sm ghost blue @click="addFilter">
         {{ $t('FILTER.ADD_NEW_FILTER') }}
       </Button>
