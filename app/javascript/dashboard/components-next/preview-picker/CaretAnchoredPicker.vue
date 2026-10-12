@@ -1,8 +1,17 @@
 <script setup>
-import { computed, ref, watch, useSlots, useTemplateRef } from 'vue';
+import {
+  computed,
+  onMounted,
+  ref,
+  shallowRef,
+  watch,
+  useSlots,
+  useTemplateRef,
+} from 'vue';
 import {
   useElementBounding,
   useEventListener,
+  useMediaQuery,
   useResizeObserver,
   useWindowSize,
 } from '@vueuse/core';
@@ -34,6 +43,12 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Text typed after the trigger in the editor; it drives the filter on phones, where
+  // the picker has no search field of its own
+  searchKey: {
+    type: String,
+    default: '',
+  },
 });
 
 const emit = defineEmits(['select', 'close', 'removeTrigger']);
@@ -48,6 +63,8 @@ const VIEWPORT_MARGIN = 16;
 const GAP = 8;
 const SIDE_PREVIEW_MIN_WIDTH = 480;
 const STACKED_PREVIEW_MIN_HEIGHT = 280;
+const MOBILE_MEDIA_QUERY = '(max-width: 639px)';
+const MOBILE_MAX_HEIGHT_RATIO = 0.4;
 
 const slots = useSlots();
 
@@ -57,6 +74,18 @@ const caretAnchorRef = useTemplateRef('caretAnchorRef');
 const pickerRef = useTemplateRef('pickerRef');
 const selectedIndex = ref(0);
 
+// On phones, inside the reply box, the list sits right above the editor instead of
+// following the caret. The anchor only knows its parent once mounted, hence `isMounted`.
+const isNarrowScreen = useMediaQuery(MOBILE_MEDIA_QUERY);
+const replyBox = shallowRef(null);
+const isMounted = ref(false);
+const isMobile = computed(() => isNarrowScreen.value && Boolean(replyBox.value));
+onMounted(() => {
+  replyBox.value =
+    caretAnchorRef.value?.parentElement?.closest('.reply-box') ?? null;
+  isMounted.value = true;
+});
+
 const caretAnchor = useElementBounding(caretAnchorRef);
 const { width: windowWidth, height: windowHeight } = useWindowSize();
 const isRTL = useMapGetter('accounts/isRTL');
@@ -64,11 +93,13 @@ const isRTL = useMapGetter('accounts/isRTL');
 // The on-screen keyboard shrinks the visual viewport without resizing the window
 // on phones, so the space below the caret has to be measured against the former
 const visibleBottom = ref(window.innerHeight);
+const visibleHeight = ref(window.innerHeight);
 const updateVisibleBottom = () => {
   const viewport = window.visualViewport;
   visibleBottom.value = viewport
     ? viewport.offsetTop + viewport.height
     : window.innerHeight;
+  visibleHeight.value = viewport ? viewport.height : window.innerHeight;
 };
 updateVisibleBottom();
 useEventListener(window.visualViewport, 'resize', updateVisibleBottom);
@@ -110,7 +141,7 @@ const width = computed(() =>
 );
 
 const previewLayout = computed(() => {
-  if (!hasPreview.value) return 'none';
+  if (isMobile.value || !hasPreview.value) return 'none';
   if (width.value >= SIDE_PREVIEW_MIN_WIDTH) return 'side';
   if (placement.value.height >= STACKED_PREVIEW_MIN_HEIGHT) return 'stacked';
   return 'none';
@@ -125,6 +156,10 @@ const inlineStart = computed(() =>
 );
 
 const pickerStyle = computed(() => {
+  if (isMobile.value) {
+    return { maxHeight: `${visibleHeight.value * MOBILE_MAX_HEIGHT_RATIO}px` };
+  }
+
   const { placeAbove, height } = placement.value;
   const showsPreview = previewLayout.value !== 'none';
   const start = Math.min(
@@ -171,7 +206,8 @@ useKeyboardEvents({
   Escape: withPicker(() => emit('close')),
   Backspace: {
     action: event => {
-      if (search.value) return;
+      // On phones the editor keeps focus and the plugin closes the list when the trigger is deleted
+      if (isMobile.value || search.value) return;
       event.preventDefault();
       emit('removeTrigger');
     },
@@ -183,6 +219,14 @@ const onListItemSelection = index => {
   selectedIndex.value = index;
   onSelect();
 };
+
+watch(
+  [() => props.searchKey, isMobile],
+  ([key, mobile]) => {
+    if (mobile) search.value = key;
+  },
+  { immediate: true }
+);
 
 watch(items, () => {
   selectedIndex.value = 0;
@@ -196,7 +240,7 @@ watch(items, () => {
     class="absolute inset-x-0 pointer-events-none"
     :style="caretAnchorStyle"
   />
-  <TeleportWithDirection to="body">
+  <TeleportWithDirection v-if="isMounted" :to="isMobile ? replyBox : 'body'">
     <PreviewPicker
       ref="pickerRef"
       v-model:selected-index="selectedIndex"
@@ -207,8 +251,10 @@ watch(items, () => {
       :empty-label="emptyLabel"
       :is-loading="isLoading"
       :preview-layout="previewLayout"
+      :compact="isMobile"
       data-popover-content
-      class="fixed z-[9999]"
+      class="z-[9999]"
+      :class="isMobile ? 'absolute inset-x-0 bottom-full' : 'fixed'"
       :style="pickerStyle"
       @select="onListItemSelection"
     >
