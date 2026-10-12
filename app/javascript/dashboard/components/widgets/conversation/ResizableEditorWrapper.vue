@@ -58,6 +58,10 @@ const appliedHeight = computed(() => {
   return clampToBounds(Math.max(requested, editorHeight.value));
 });
 
+const isExpanded = computed(
+  () => appliedHeight.value > sizeBounds.value.default
+);
+
 // Measure height of elements surrounding the editor (top panel, email fields, bottom panel)
 const measureSurroundingHeight = () => {
   if (wrapperRef.value) {
@@ -116,11 +120,11 @@ const resetEditorHeight = () => {
 const toggleEditorExpand = () => {
   measureSurroundingHeight();
   const { expanded, max, default: defaultHeight } = sizeBounds.value;
-  const isExpanded = appliedHeight.value > defaultHeight;
+  const wasExpanded = isExpanded.value;
   requestedHeight.value = 0;
   // If expanded is too close to default, use max so the toggle is always noticeable
   const target = expanded - defaultHeight < 100 ? max : expanded;
-  editorHeight.value = isExpanded ? defaultHeight : target;
+  editorHeight.value = wasExpanded ? defaultHeight : target;
 };
 
 const handleMessageSent = () => {
@@ -154,7 +158,8 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
 <template>
   <div
     ref="wrapperRef"
-    class="relative resizable-editor-wrapper"
+    class="relative resizable-editor-wrapper group/wrapper max-sm:[&:not([data-expanded])_.resizable-editor-body]:!h-auto max-sm:[&:not([data-expanded])_.resizable-editor-body]:!min-h-11 max-sm:[&:not([data-expanded])_.resizable-editor-body]:!max-h-28"
+    :data-expanded="isExpanded || undefined"
     :style="{
       '--editor-height': appliedHeight + 'px',
       '--editor-min-allowed': sizeBounds.min + 'px',
@@ -165,7 +170,7 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
     }"
   >
     <div
-      class="group absolute inset-x-0 -top-4 z-10 flex h-4 cursor-row-resize select-none items-center justify-center bg-gradient-to-b from-transparent from-10% dark:to-n-surface-1/80 to-n-surface-1/90 backdrop-blur-[0.01875rem]"
+      class="group absolute inset-x-0 -top-4 z-10 flex max-sm:hidden max-sm:group-data-[expanded]/wrapper:flex h-4 cursor-row-resize select-none items-center justify-center bg-gradient-to-b from-transparent from-10% dark:to-n-surface-1/80 to-n-surface-1/90 backdrop-blur-[0.01875rem]"
       @mousedown="onResizeStart"
       @touchstart.prevent="onResizeStart"
       @dblclick="resetEditorHeight"
