@@ -103,6 +103,8 @@ export default {
     setLocale(locale) {
       if (locale) {
         this.$root.$i18n.locale = locale;
+        // Tells the browser the page language, so it does not offer to translate it
+        document.documentElement.lang = locale.replace('_', '-');
       }
     },
     async initializeAccount() {
