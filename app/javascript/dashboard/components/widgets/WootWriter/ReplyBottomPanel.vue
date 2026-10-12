@@ -1,5 +1,6 @@
 <script>
 import { ref } from 'vue';
+import { vOnClickOutside } from '@vueuse/components';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import FileUpload from 'vue-upload-component';
@@ -21,6 +22,7 @@ export default {
     VideoCallButton,
     RequestContactInfoButton,
   },
+  directives: { OnClickOutside: vOnClickOutside },
   mixins: [inboxMixin],
   props: {
     isNote: {
@@ -144,6 +146,10 @@ export default {
       useUISettings();
 
     const uploadRef = ref(false);
+    const showMobileMenu = ref(false);
+    const mobileMenuToggleRef = ref(null);
+    // Same label the desktop tooltip uses
+    const contentTemplatesLabel = 'Content Templates';
 
     const keyboardEvents = {
       '$mod+Alt+KeyA': {
@@ -170,6 +176,9 @@ export default {
       setSignatureFlagForInbox,
       fetchSignatureFlagFromUISettings,
       uploadRef,
+      showMobileMenu,
+      mobileMenuToggleRef,
+      contentTemplatesLabel,
     };
   },
   computed: {
@@ -186,6 +195,13 @@ export default {
     showAttachButton() {
       if (this.isEditorDisabled) return false;
       return this.showFileUpload || this.isNote;
+    },
+    showMobileMenuButton() {
+      return (
+        this.showAttachButton ||
+        this.enableWhatsAppTemplates ||
+        this.enableContentTemplates
+      );
     },
     showAudioRecorderButton() {
       if (this.isEditorDisabled) return false;
@@ -226,6 +242,20 @@ export default {
         channelType,
         medium: this.inbox?.medium,
       });
+    },
+    // Photos and camera only offer what the channel accepts, so iOS converts HEIC to JPEG
+    photoFileTypes() {
+      return this.allowedFileTypes
+        .split(',')
+        .map(type => type.trim())
+        .filter(type => /^(image|video)\//.test(type))
+        .join(',');
+    },
+    cameraFileTypes() {
+      return this.photoFileTypes
+        .split(',')
+        .filter(type => type.startsWith('image/'))
+        .join(',');
     },
     enableDragAndDrop() {
       return !this.newConversationModalActive;
@@ -278,6 +308,15 @@ export default {
     toggleInsertArticle() {
       this.$emit('toggleInsertArticle');
     },
+    // The phone menu reuses the hidden file inputs, which open the native pickers
+    pickFile(inputId) {
+      this.showMobileMenu = false;
+      document.getElementById(inputId)?.click();
+    },
+    pickTemplate(event) {
+      this.showMobileMenu = false;
+      this.$emit(event);
+    },
   },
 };
 </script>
@@ -285,6 +324,104 @@ export default {
 <template>
   <div class="flex justify-between p-3" :class="wrapClass">
     <div class="left-wrap">
+      <div v-if="showMobileMenuButton" class="relative sm:hidden">
+        <NextButton
+          ref="mobileMenuToggleRef"
+          :icon="showMobileMenu ? 'i-lucide-x' : 'i-lucide-plus'"
+          slate
+          faded
+          sm
+          :aria-label="$t('CONVERSATION.REPLYBOX.MOBILE_MENU.OPEN')"
+          @click="showMobileMenu = !showMobileMenu"
+        />
+        <ul
+          v-if="showMobileMenu"
+          v-on-click-outside="[
+            () => (showMobileMenu = false),
+            { ignore: [mobileMenuToggleRef] },
+          ]"
+          class="absolute bottom-full z-20 p-1 m-0 mb-2 w-64 list-none rounded-xl shadow-lg outline outline-1 start-0 bg-n-alpha-3 backdrop-blur-[100px] outline-n-container"
+        >
+          <li v-if="showAttachButton">
+            <button
+              type="button"
+              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
+              @click="pickFile('mobilePhotosInput')"
+            >
+              <span class="i-lucide-image size-5 text-n-slate-11" />
+              {{ $t('CONVERSATION.REPLYBOX.MOBILE_MENU.PHOTOS') }}
+            </button>
+          </li>
+          <li v-if="showAttachButton">
+            <button
+              type="button"
+              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
+              @click="pickFile('mobileCameraInput')"
+            >
+              <span class="i-lucide-camera size-5 text-n-slate-11" />
+              {{ $t('CONVERSATION.REPLYBOX.MOBILE_MENU.CAMERA') }}
+            </button>
+          </li>
+          <li v-if="showAttachButton">
+            <button
+              type="button"
+              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
+              @click="pickFile('conversationAttachment')"
+            >
+              <span class="i-lucide-paperclip size-5 text-n-slate-11" />
+              {{ $t('CONVERSATION.REPLYBOX.TIP_ATTACH_ICON') }}
+            </button>
+          </li>
+          <li v-if="enableWhatsAppTemplates">
+            <button
+              type="button"
+              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
+              @click="pickTemplate('selectWhatsappTemplate')"
+            >
+              <span class="i-ph-whatsapp-logo size-5 text-n-slate-11" />
+              {{ $t('CONVERSATION.FOOTER.WHATSAPP_TEMPLATES') }}
+            </button>
+          </li>
+          <li v-if="enableContentTemplates">
+            <button
+              type="button"
+              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
+              @click="pickTemplate('selectContentTemplate')"
+            >
+              <span class="i-ph-whatsapp-logo size-5 text-n-slate-11" />
+              {{ contentTemplatesLabel }}
+            </button>
+          </li>
+        </ul>
+        <template v-if="showAttachButton">
+          <FileUpload
+            class="hidden"
+            input-id="mobilePhotosInput"
+            :size="4096 * 4096"
+            :accept="photoFileTypes"
+            :multiple="enableMultipleFileUpload"
+            :drop="false"
+            :data="{
+              direct_upload_url: '/rails/active_storage/direct_uploads',
+              direct_upload: true,
+            }"
+            @input-file="onFileUpload"
+          />
+          <FileUpload
+            class="hidden"
+            input-id="mobileCameraInput"
+            :size="4096 * 4096"
+            :accept="cameraFileTypes"
+            capture="environment"
+            :drop="false"
+            :data="{
+              direct_upload_url: '/rails/active_storage/direct_uploads',
+              direct_upload: true,
+            }"
+            @input-file="onFileUpload"
+          />
+        </template>
+      </div>
       <NextButton
         v-if="!isEditorDisabled"
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_EMOJI_ICON')"
@@ -294,31 +431,33 @@ export default {
         sm
         @click="toggleEmojiPicker"
       />
-      <FileUpload
-        v-if="showAttachButton"
-        ref="uploadRef"
-        v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_ATTACH_ICON')"
-        input-id="conversationAttachment"
-        :size="4096 * 4096"
-        :accept="allowedFileTypes"
-        :multiple="enableMultipleFileUpload"
-        :drop="enableDragAndDrop"
-        :drop-directory="false"
-        :data="{
-          direct_upload_url: '/rails/active_storage/direct_uploads',
-          direct_upload: true,
-        }"
-        @input-file="onFileUpload"
-      >
-        <NextButton
+      <div v-if="showAttachButton" class="max-sm:hidden">
+        <FileUpload
           v-if="showAttachButton"
+          ref="uploadRef"
           v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_ATTACH_ICON')"
-          icon="i-ph-paperclip"
-          slate
-          faded
-          sm
-        />
-      </FileUpload>
+          input-id="conversationAttachment"
+          :size="4096 * 4096"
+          :accept="allowedFileTypes"
+          :multiple="enableMultipleFileUpload"
+          :drop="enableDragAndDrop"
+          :drop-directory="false"
+          :data="{
+            direct_upload_url: '/rails/active_storage/direct_uploads',
+            direct_upload: true,
+          }"
+          @input-file="onFileUpload"
+        >
+          <NextButton
+            v-if="showAttachButton"
+            v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_ATTACH_ICON')"
+            icon="i-ph-paperclip"
+            slate
+            faded
+            sm
+          />
+        </FileUpload>
+      </div>
       <NextButton
         v-if="showAudioRecorderButton"
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
@@ -359,6 +498,7 @@ export default {
       <NextButton
         v-if="enableWhatsAppTemplates"
         v-tooltip.top-end="$t('CONVERSATION.FOOTER.WHATSAPP_TEMPLATES')"
+        class="max-sm:hidden"
         icon="i-ph-whatsapp-logo"
         slate
         faded
@@ -372,6 +512,7 @@ export default {
       <NextButton
         v-if="enableContentTemplates"
         v-tooltip.top-end="'Content Templates'"
+        class="max-sm:hidden"
         icon="i-ph-whatsapp-logo"
         slate
         faded
@@ -414,7 +555,16 @@ export default {
         sm
         :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
-        class="flex-shrink-0"
+        class="flex-shrink-0 max-sm:hidden"
+        @click="onSend"
+      />
+      <NextButton
+        :aria-label="sendButtonText"
+        icon="i-lucide-arrow-up"
+        type="submit"
+        :color="isNote ? 'amber' : 'blue'"
+        :disabled="isSendDisabled"
+        class="flex-shrink-0 !rounded-full sm:hidden"
         @click="onSend"
       />
     </div>

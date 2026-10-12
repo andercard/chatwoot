@@ -285,6 +285,11 @@
       "WHATSAPP_TEMPLATES": "Plantillas de Whatsapp"
     },
     "REPLYBOX": {
+      "MOBILE_MENU": {
+        "OPEN": "Más opciones",
+        "PHOTOS": "Fotos",
+        "CAMERA": "Cámara"
+      },
       "REPLY": "Responder",
       "PRIVATE_NOTE": "Nota privada",
       "SEND": "Enviar",

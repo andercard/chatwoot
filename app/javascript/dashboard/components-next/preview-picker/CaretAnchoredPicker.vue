@@ -2,6 +2,7 @@
 import { computed, ref, watch, useSlots, useTemplateRef } from 'vue';
 import {
   useElementBounding,
+  useEventListener,
   useResizeObserver,
   useWindowSize,
 } from '@vueuse/core';
@@ -60,6 +61,19 @@ const caretAnchor = useElementBounding(caretAnchorRef);
 const { width: windowWidth, height: windowHeight } = useWindowSize();
 const isRTL = useMapGetter('accounts/isRTL');
 
+// The on-screen keyboard shrinks the visual viewport without resizing the window
+// on phones, so the space below the caret has to be measured against the former
+const visibleBottom = ref(window.innerHeight);
+const updateVisibleBottom = () => {
+  const viewport = window.visualViewport;
+  visibleBottom.value = viewport
+    ? viewport.offsetTop + viewport.height
+    : window.innerHeight;
+};
+updateVisibleBottom();
+useEventListener(window.visualViewport, 'resize', updateVisibleBottom);
+useEventListener(window.visualViewport, 'scroll', updateVisibleBottom);
+
 const items = computed(() => props.items);
 
 const caretAnchorStyle = computed(() => ({
@@ -75,7 +89,10 @@ useResizeObserver(
 const placement = computed(() => {
   const above = caretAnchor.top.value - VIEWPORT_MARGIN - GAP;
   const below =
-    windowHeight.value - caretAnchor.bottom.value - VIEWPORT_MARGIN - GAP;
+    Math.min(windowHeight.value, visibleBottom.value) -
+    caretAnchor.bottom.value -
+    VIEWPORT_MARGIN -
+    GAP;
   const placeAbove = above > below;
 
   return {
