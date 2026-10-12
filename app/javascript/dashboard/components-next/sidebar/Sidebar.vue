@@ -10,7 +10,7 @@ import { useI18n } from 'vue-i18n';
 import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
 import { vOnClickOutside } from '@vueuse/components';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
-import { useWindowSize, useEventListener } from '@vueuse/core';
+import { useWindowSize, useEventListener, useMediaQuery } from '@vueuse/core';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import SidebarGroup from './SidebarGroup.vue';
@@ -55,6 +55,10 @@ const isCallsAvailable = computed(
 );
 const searchShortcut = useKbd([`$mod`, 'k']);
 const { t } = useI18n();
+
+// An installed web app has no browser reload button, so the sidebar offers one
+const isInstalledApp = useMediaQuery('(display-mode: standalone)');
+const reloadApp = () => window.location.reload();
 
 const isACustomBrandedInstance = useMapGetter(
   'globalConfig/isACustomBrandedInstance'
@@ -1045,6 +1049,15 @@ const menuItems = computed(() => {
             />
           </template>
         </ComposeConversation>
+        <Button
+          v-if="isInstalledApp && !isEffectivelyCollapsed"
+          icon="i-lucide-refresh-cw"
+          color="slate"
+          size="sm"
+          class="dark:hover:!bg-n-slate-9/30 !h-7 !outline-n-weak !text-n-slate-11"
+          :title="t('SIDEBAR.RELOAD_APP')"
+          @click="reloadApp"
+        />
       </div>
     </section>
     <nav

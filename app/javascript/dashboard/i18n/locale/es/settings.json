@@ -309,6 +309,7 @@
     }
   },
   "SIDEBAR": {
+    "RELOAD_APP": "Recargar la aplicación",
     "NO_ITEMS": "No hay elementos",
     "CURRENTLY_VIEWING_ACCOUNT": "Visualizando:",
     "SWITCH": "Cambiar",

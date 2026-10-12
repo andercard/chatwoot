@@ -298,6 +298,11 @@
       "WHATSAPP_TEMPLATES": "Whatsapp Templates"
     },
     "REPLYBOX": {
+      "MOBILE_MENU": {
+        "OPEN": "More options",
+        "PHOTOS": "Photos",
+        "CAMERA": "Camera"
+      },
       "REPLY": "Reply",
       "PRIVATE_NOTE": "Private Note",
       "SEND": "Send",
