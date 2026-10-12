@@ -44,6 +44,9 @@ import {
   CAPTAIN_EVENTS,
 } from '../../../helper/AnalyticsHelper/events';
 import fileUploadMixin from 'dashboard/mixins/fileUploadMixin';
+import { getImageOptimizationPolicy } from 'dashboard/helper/imageOptimizationPolicy';
+import { getLongestSide } from 'shared/helpers/imageOptimizer';
+import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import {
   appendSignature,
   removeSignature,
@@ -78,6 +81,7 @@ export default {
     ReplyEmailHead,
     ReplyToMessage,
     ReplyTopPanel,
+    Spinner,
     ContentTemplates,
     WhatsappTemplates,
     WootMessageEditor,
@@ -308,9 +312,26 @@ export default {
     charactersRemaining() {
       return this.maxLength - this.message.length;
     },
+    // HD is only offered on channels whose policy has an HD tier (WhatsApp)
+    supportsHdToggle() {
+      if (this.isOnPrivateNote) return false;
+      const policy = getImageOptimizationPolicy({
+        inbox: this.inbox,
+        mime: 'image/jpeg',
+        installationLimit: this.installationLimit,
+      });
+      return !!policy?.supportsHd;
+    },
+    isProcessingAttachment() {
+      return (
+        this.isOptimizingImage ||
+        this.attachedFiles.some(attachment => attachment.isOptimizing)
+      );
+    },
     isReplyButtonDisabled() {
       if (this.isEditorDisabled) return true;
       if (this.isATwitterInbox) return true;
+      if (this.isProcessingAttachment) return true;
       if (this.hasAttachments || this.hasRecordedAudio) return false;
 
       return (
@@ -1141,8 +1162,60 @@ export default {
           thumb: reader.result,
           blobSignedId: blob ? blob.signed_id : undefined,
           isVoiceMessage: file?.isVoiceMessage || false,
+          originalFile: file.originalFile || file,
+          isHd: false,
+          sendAsHd: false,
+          isOptimizing: false,
         });
       };
+    },
+    // Re-optimizes the original image with the HD (or standard) profile and uploads it again
+    async toggleHd(attachment) {
+      if (attachment.isOptimizing || !attachment.originalFile) return;
+
+      const isHd = !attachment.isHd;
+      const policy = getImageOptimizationPolicy({
+        inbox: this.inbox,
+        mime:
+          attachment.originalFile.file?.type || attachment.originalFile.type,
+        installationLimit: this.installationLimit,
+      });
+      attachment.isOptimizing = true;
+      try {
+        const prepared = await this.prepareImageForUpload(
+          attachment.originalFile,
+          isHd ? 'hd' : 'standard'
+        );
+        if (!prepared) return;
+
+        const blob = this.globalConfig.directUploadsEnabled
+          ? await this.uploadDirectly(prepared)
+          : undefined;
+        const thumb = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(prepared.file);
+        });
+        // The HD mark only reaches the customer when the image is larger than the standard size
+        const longestSide = isHd
+          ? await getLongestSide(prepared.file).catch(() => null)
+          : null;
+
+        Object.assign(attachment, {
+          resource: blob || prepared,
+          thumb,
+          blobSignedId: blob ? blob.signed_id : undefined,
+          isHd,
+          sendAsHd:
+            isHd &&
+            (longestSide === null || longestSide > policy?.standardMaxSide),
+        });
+      } catch (error) {
+        useAlert(error?.message || error);
+      } finally {
+        attachment.isOptimizing = false;
+      }
     },
     removeAttachment(attachments) {
       this.attachedFiles = attachments;
@@ -1178,6 +1251,9 @@ export default {
             sender: this.sender,
             isVoiceMessage: attachment.isVoiceMessage || false,
           };
+          if (attachment.sendAsHd) {
+            attachmentPayload.contentAttributes = { image_quality: 'hd' };
+          }
 
           attachmentPayload = this.setReplyToInPayload(attachmentPayload);
           multipleMessagePayload.push(attachmentPayload);
@@ -1456,6 +1532,13 @@ export default {
         />
 
         <div
+          v-if="isOptimizingImage && isDefaultEditorMode"
+          class="flex items-center gap-2 mb-2 text-sm text-n-slate-11"
+        >
+          <Spinner class="!w-4 !h-4" />
+          {{ $t('CONVERSATION.IMAGE_OPTIMIZATION.OPTIMIZING') }}
+        </div>
+        <div
           v-if="hasAttachments && isDefaultEditorMode"
           class="bg-transparent py-0 mb-2"
           @paste="onPaste"
@@ -1463,7 +1546,9 @@ export default {
           <AttachmentPreview
             class="mt-2"
             :attachments="attachedFiles"
+            :show-hd-toggle="supportsHdToggle"
             @remove-attachment="removeAttachment"
+            @toggle-hd="toggleHd"
           />
         </div>
         <MessageSignatureMissingAlert
