@@ -207,12 +207,22 @@ ensure_local_data() {
       acc.webhooks.where.not(id: wh.id).where("url LIKE ?", "%n8n%").destroy_all
 
       inbox = acc.inboxes.where(channel_type: "Channel::Whatsapp").find { |i| i.channel.phone_number == ENV["PHONE"] }
-      puts "RESULT account=#{acc.id} inbox=#{inbox&.id || "none"} seq=#{seq_now}"' 2>/dev/null | grep '^RESULT')"
+      # The local DB is a copy of staging: a contact copied with the same phone as the test contact makes Chatwoot
+      # reject every incoming message (Phone number has already been taken) and nothing is created. Free the test contact.
+      dedup = 0
+      inbox&.contacts&.where&.not(phone_number: [nil, ""])&.find_each do |c|
+        next unless acc.contacts.where(phone_number: c.phone_number).where.not(id: c.id).exists?
+        c.update_columns(phone_number: nil)
+        dedup += 1
+      end
+      puts "RESULT account=#{acc.id} inbox=#{inbox&.id || "none"} seq=#{seq_now} dedup=#{dedup}"' 2>/dev/null | grep '^RESULT')"
   [ -n "$out" ] || { fail "could not prepare local data (docker compose logs rails)"; exit 1; }
   ok "${out#RESULT }; login john@acme.inc / LOCAL_ADMIN_PASSWORD (.env)"
   ok "users $PICNIC_AGENT_USER_ID (agent) and $PICNIC_BOT_USER_ID (bot), labels: $PICNIC_BOT_LABELS"
   ok "account webhook → n8n staging (private network)"
   LOCAL_INBOX="${out##*inbox=}"; LOCAL_INBOX="${LOCAL_INBOX%% *}"
+  local dedup="${out##*dedup=}"
+  [ "${dedup:-0}" -gt 0 ] 2>/dev/null && ok "cleared the phone of ${dedup} test contact(s) that duplicated a copied staging contact (otherwise incoming messages are dropped)"
   [ "$LOCAL_INBOX" = none ] && warn "no WhatsApp inbox for the test number yet — one-time step in docs 05"
   [ -f "$STATE_DIR/bot-token-$PROJECT" ] || warn "bot token not stored yet — run: picnicart/dev/lucia.sh bot-token (docs 05)"
   return 0
@@ -257,6 +267,15 @@ set_override() {
   [ "${LOCAL_INBOX:-none}" != none ] || { warn "skipped: create the local WhatsApp inbox first"; return 1; }
   url="$(public_url)${WEBHOOK_PATH}/${PICNIC_WA_PHONE}"
   verify="$(docker compose exec -T -e ID="$LOCAL_INBOX" rails bundle exec rails runner 'puts Inbox.find(ENV["ID"]).channel.provider_config["webhook_verify_token"]' 2>/dev/null | tail -1)"
+  # Meta verifies the URL from its own resolvers: wait until a public one knows the Funnel host (can take a few minutes).
+  local dns_host="${url#https://}"; dns_host="${dns_host%%/*}" d
+  if command -v dig >/dev/null 2>&1; then
+    for d in $(seq 1 24); do
+      [ -n "$(dig +short @8.8.8.8 "$dns_host" 2>/dev/null | head -1)$(dig +short @1.1.1.1 "$dns_host" 2>/dev/null | head -1)" ] && break
+      [ "$d" = 1 ] && warn "the Funnel host is not on public DNS yet — waiting (up to 6 min) so Meta can verify it"
+      sleep 15
+    done
+  fi
   # Right after Funnel is (re)opened Meta's TLS handshake to the public relay can fail for a few seconds: retry before giving up.
   local res i
   for i in 1 2 3 4 5 6; do
@@ -265,7 +284,7 @@ set_override() {
     echo "$res" | grep -q '"success":true' && break
     [ "$i" -lt 6 ] && { warn "Meta could not verify the public URL yet (attempt $i/6); the Funnel needs a moment — retrying in 15 s"; sleep 15; }
   done
-  echo "$res" | grep -q '"success":true' && ok "messages to the test number now go to this Mac (the staging inbox is muted for this number)" \
+  echo "$res" | grep -q '"success":true' && ok "messages to the test number now go to this Mac (the staging inbox is muted for this number; Meta can take a minute to apply it — if a message still lands in staging, run up --switch again)" \
     || { fail "Meta rejected the override: $(echo "$res" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("error",{}).get("message","?"))' 2>/dev/null)"; return 1; }
 }
 
@@ -390,6 +409,8 @@ doctor() {
 
   if [ "$(http_code "http://localhost:${LOCAL_PORT}/api" 8)" = 200 ]; then
     local inbox; inbox="$(docker compose exec -T -e ACC_ID="$PICNIC_LOCAL_ACCOUNT_ID" -e PHONE="$PICNIC_WA_PHONE" rails bundle exec rails runner 'a=Account.find_by(id: ENV["ACC_ID"].to_i); i=a&.inboxes&.where(channel_type: "Channel::Whatsapp")&.find { |x| x.channel.phone_number == ENV["PHONE"] }; puts "INBOX=#{i&.id || "none"}"' 2>/dev/null | grep '^INBOX=' | cut -d= -f2)"
+    local clash; clash="$(docker compose exec -T -e ACC_ID="$PICNIC_LOCAL_ACCOUNT_ID" -e PHONE="$PICNIC_WA_PHONE" rails bundle exec rails runner 'a=Account.find_by(id: ENV["ACC_ID"].to_i); i=a&.inboxes&.where(channel_type: "Channel::Whatsapp")&.find { |x| x.channel.phone_number == ENV["PHONE"] }; n=i ? i.contacts.where.not(phone_number: [nil, ""]).count { |c| a.contacts.where(phone_number: c.phone_number).where.not(id: c.id).exists? } : 0; puts "CLASH=#{n}"' 2>/dev/null | grep '^CLASH=' | cut -d= -f2)"
+    [ "${clash:-0}" = 0 ]; chk "no test contact shares its phone with a copied staging contact" $? "lucia.sh up clears it (otherwise incoming messages are silently dropped)"
     [ -n "$inbox" ] && [ "$inbox" != none ]; chk "local WhatsApp inbox exists (id ${inbox:-?})" $? "lucia.sh whatsapp-inbox"
     [ -f "$STATE_DIR/bot-token-$PROJECT" ]; chk "bot token stored in the local database" $? "lucia.sh bot-token --from-server"
   else
