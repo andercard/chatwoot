@@ -301,7 +301,8 @@
       "MOBILE_MENU": {
         "OPEN": "More options",
         "PHOTOS": "Photos",
-        "CAMERA": "Camera"
+        "CAMERA": "Camera",
+        "MACROS": "Macros"
       },
       "REPLY": "Reply",
       "PRIVATE_NOTE": "Private Note",

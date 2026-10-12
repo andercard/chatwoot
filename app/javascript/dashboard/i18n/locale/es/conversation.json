@@ -288,7 +288,8 @@
       "MOBILE_MENU": {
         "OPEN": "Más opciones",
         "PHOTOS": "Fotos",
-        "CAMERA": "Cámara"
+        "CAMERA": "Cámara",
+        "MACROS": "Macros"
       },
       "REPLY": "Responder",
       "PRIVATE_NOTE": "Nota privada",

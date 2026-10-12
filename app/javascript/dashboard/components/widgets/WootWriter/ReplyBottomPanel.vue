@@ -140,6 +140,7 @@ export default {
     'selectContentTemplate',
     'toggleQuotedReply',
     'requestContactInfoTemplate',
+    'openMacros',
   ],
   setup(props) {
     const { setSignatureFlagForInbox, fetchSignatureFlagFromUISettings } =
@@ -196,12 +197,91 @@ export default {
       if (this.isEditorDisabled) return false;
       return this.showFileUpload || this.isNote;
     },
+    showMacrosRow() {
+      return !this.isOnPrivateNote;
+    },
+    // Rows of the phone "+" menu: what the desktop row shows as icon buttons
+    mobileMenuItems() {
+      const photosAndFiles = [
+        {
+          key: 'photos',
+          icon: 'i-lucide-image',
+          label: this.$t('CONVERSATION.REPLYBOX.MOBILE_MENU.PHOTOS'),
+          action: () => this.pickFile('mobilePhotosInput'),
+        },
+        {
+          key: 'camera',
+          icon: 'i-lucide-camera',
+          label: this.$t('CONVERSATION.REPLYBOX.MOBILE_MENU.CAMERA'),
+          action: () => this.pickFile('mobileCameraInput'),
+        },
+        {
+          key: 'attach',
+          icon: 'i-lucide-paperclip',
+          label: this.$t('CONVERSATION.REPLYBOX.TIP_ATTACH_ICON'),
+          action: () => this.pickFile('conversationAttachment'),
+        },
+      ].map(item => ({ ...item, show: this.showAttachButton }));
+
+      return [
+        ...photosAndFiles,
+        {
+          key: 'audio',
+          show: this.showAudioRecorderButton,
+          icon: this.isRecordingAudio
+            ? 'i-ph-microphone-slash'
+            : 'i-ph-microphone',
+          label: this.$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON'),
+          action: () => this.toggleAudioRecorder(),
+        },
+        {
+          key: 'macros',
+          show: this.showMacrosRow,
+          icon: 'i-lucide-zap',
+          label: this.$t('CONVERSATION.REPLYBOX.MOBILE_MENU.MACROS'),
+          action: () => this.$emit('openMacros'),
+        },
+        {
+          key: 'article',
+          show: !!this.enableInsertArticleInReply,
+          icon: 'i-ph-article-ny-times',
+          label: this.$t('HELP_CENTER.ARTICLE_SEARCH.OPEN_ARTICLE_SEARCH'),
+          action: () => this.toggleInsertArticle(),
+        },
+        {
+          key: 'signature',
+          show: this.showMessageSignatureButton,
+          icon: 'i-ph-signature',
+          label: this.signatureToggleTooltip,
+          checked: this.sendWithSignature,
+          action: () => this.toggleMessageSignature(),
+        },
+        {
+          key: 'quotedReply',
+          show: this.showQuotedReplyToggle,
+          icon: 'i-ph-quotes',
+          label: this.quotedReplyToggleTooltip,
+          checked: this.quotedReplyEnabled,
+          action: () => this.$emit('toggleQuotedReply'),
+        },
+        {
+          key: 'whatsappTemplates',
+          show: this.enableWhatsAppTemplates,
+          icon: 'i-ph-whatsapp-logo',
+          label: this.$t('CONVERSATION.FOOTER.WHATSAPP_TEMPLATES'),
+          action: () => this.$emit('selectWhatsappTemplate'),
+        },
+        {
+          key: 'contentTemplates',
+          show: this.enableContentTemplates,
+          icon: 'i-ph-whatsapp-logo',
+          label: this.contentTemplatesLabel,
+          action: () => this.$emit('selectContentTemplate'),
+        },
+      ].filter(item => item.show);
+    },
     showMobileMenuButton() {
-      return (
-        this.showAttachButton ||
-        this.enableWhatsAppTemplates ||
-        this.enableContentTemplates
-      );
+      return this.mobileMenuItems.length > 0;
     },
     showAudioRecorderButton() {
       if (this.isEditorDisabled) return false;
@@ -310,21 +390,23 @@ export default {
     },
     // The phone menu reuses the hidden file inputs, which open the native pickers
     pickFile(inputId) {
-      this.showMobileMenu = false;
       document.getElementById(inputId)?.click();
     },
-    pickTemplate(event) {
+    runMobileMenuItem(item) {
       this.showMobileMenu = false;
-      this.$emit(event);
+      item.action();
     },
   },
 };
 </script>
 
 <template>
-  <div class="flex justify-between p-3" :class="wrapClass">
-    <div class="left-wrap">
-      <div v-if="showMobileMenuButton" class="relative sm:hidden">
+  <div class="flex justify-between p-3 max-sm:contents" :class="wrapClass">
+    <div class="flex gap-2 items-center max-sm:contents">
+      <div
+        v-if="showMobileMenuButton"
+        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-end"
+      >
         <NextButton
           ref="mobileMenuToggleRef"
           :icon="showMobileMenu ? 'i-lucide-x' : 'i-lucide-plus'"
@@ -342,54 +424,19 @@ export default {
           ]"
           class="absolute bottom-full z-20 p-1 m-0 mb-2 w-64 list-none rounded-xl shadow-lg outline outline-1 start-0 bg-n-alpha-3 backdrop-blur-[100px] outline-n-container"
         >
-          <li v-if="showAttachButton">
+          <li v-for="item in mobileMenuItems" :key="item.key">
             <button
               type="button"
               class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
-              @click="pickFile('mobilePhotosInput')"
+              :aria-pressed="item.checked"
+              @click="runMobileMenuItem(item)"
             >
-              <span class="i-lucide-image size-5 text-n-slate-11" />
-              {{ $t('CONVERSATION.REPLYBOX.MOBILE_MENU.PHOTOS') }}
-            </button>
-          </li>
-          <li v-if="showAttachButton">
-            <button
-              type="button"
-              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
-              @click="pickFile('mobileCameraInput')"
-            >
-              <span class="i-lucide-camera size-5 text-n-slate-11" />
-              {{ $t('CONVERSATION.REPLYBOX.MOBILE_MENU.CAMERA') }}
-            </button>
-          </li>
-          <li v-if="showAttachButton">
-            <button
-              type="button"
-              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
-              @click="pickFile('conversationAttachment')"
-            >
-              <span class="i-lucide-paperclip size-5 text-n-slate-11" />
-              {{ $t('CONVERSATION.REPLYBOX.TIP_ATTACH_ICON') }}
-            </button>
-          </li>
-          <li v-if="enableWhatsAppTemplates">
-            <button
-              type="button"
-              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
-              @click="pickTemplate('selectWhatsappTemplate')"
-            >
-              <span class="i-ph-whatsapp-logo size-5 text-n-slate-11" />
-              {{ $t('CONVERSATION.FOOTER.WHATSAPP_TEMPLATES') }}
-            </button>
-          </li>
-          <li v-if="enableContentTemplates">
-            <button
-              type="button"
-              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
-              @click="pickTemplate('selectContentTemplate')"
-            >
-              <span class="i-ph-whatsapp-logo size-5 text-n-slate-11" />
-              {{ contentTemplatesLabel }}
+              <span :class="item.icon" class="size-5 text-n-slate-11" />
+              <span class="flex-1">{{ item.label }}</span>
+              <span
+                v-if="item.checked"
+                class="i-lucide-check size-4 text-n-slate-12"
+              />
             </button>
           </li>
         </ul>
@@ -425,6 +472,7 @@ export default {
       <NextButton
         v-if="!isEditorDisabled"
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_EMOJI_ICON')"
+        class="max-sm:hidden"
         icon="i-ph-smiley-sticker"
         slate
         faded
@@ -461,6 +509,7 @@ export default {
       <NextButton
         v-if="showAudioRecorderButton"
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
+        class="max-sm:hidden"
         :icon="!isRecordingAudio ? 'i-ph-microphone' : 'i-ph-microphone-slash'"
         slate
         faded
@@ -469,6 +518,7 @@ export default {
       />
       <NextButton
         v-if="showAudioPlayStopButton"
+        class="max-sm:row-start-2 max-sm:justify-self-start"
         :icon="audioRecorderPlayStopIcon"
         slate
         faded
@@ -479,6 +529,7 @@ export default {
       <NextButton
         v-if="showMessageSignatureButton"
         v-tooltip.top-end="signatureToggleTooltip"
+        class="max-sm:hidden"
         icon="i-ph-signature"
         slate
         faded
@@ -488,6 +539,7 @@ export default {
       <NextButton
         v-if="showQuotedReplyToggle"
         v-tooltip.top-end="quotedReplyToggleTooltip"
+        class="max-sm:hidden"
         icon="i-ph-quotes"
         :variant="quotedReplyEnabled ? 'solid' : 'faded'"
         color="slate"
@@ -505,10 +557,15 @@ export default {
         sm
         @click="$emit('selectWhatsappTemplate')"
       />
-      <RequestContactInfoButton
-        v-if="!isOnPrivateNote"
-        @request-template="$emit('requestContactInfoTemplate')"
-      />
+      <!-- Phone: no menu row for these, they wait in a second row of the grid -->
+      <div
+        class="contents max-sm:hidden max-sm:[&:not(:empty)]:block max-sm:row-start-2 max-sm:justify-self-start"
+      >
+        <RequestContactInfoButton
+          v-if="!isOnPrivateNote"
+          @request-template="$emit('requestContactInfoTemplate')"
+        />
+      </div>
       <NextButton
         v-if="enableContentTemplates"
         v-tooltip.top-end="'Content Templates'"
@@ -519,14 +576,18 @@ export default {
         sm
         @click="$emit('selectContentTemplate')"
       />
-      <VideoCallButton
-        v-if="
-          (isAWebWidgetInbox || isAPIInbox) &&
-          !isOnPrivateNote &&
-          !isEditorDisabled
-        "
-        :conversation-id="conversationId"
-      />
+      <div
+        class="contents max-sm:hidden max-sm:[&:not(:empty)]:block max-sm:row-start-2 max-sm:justify-self-start"
+      >
+        <VideoCallButton
+          v-if="
+            (isAWebWidgetInbox || isAPIInbox) &&
+            !isOnPrivateNote &&
+            !isEditorDisabled
+          "
+          :conversation-id="conversationId"
+        />
+      </div>
       <transition name="modal-fade">
         <div
           v-show="uploadRef && uploadRef.dropActive"
@@ -541,6 +602,7 @@ export default {
       <NextButton
         v-if="enableInsertArticleInReply"
         v-tooltip.top-end="$t('HELP_CENTER.ARTICLE_SEARCH.OPEN_ARTICLE_SEARCH')"
+        class="max-sm:hidden"
         icon="i-ph-article-ny-times"
         slate
         faded
@@ -548,7 +610,7 @@ export default {
         @click="toggleInsertArticle"
       />
     </div>
-    <div class="right-wrap">
+    <div class="flex max-sm:contents">
       <NextButton
         :label="sendButtonText"
         type="submit"
@@ -564,7 +626,7 @@ export default {
         type="submit"
         :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
-        class="flex-shrink-0 !rounded-full sm:hidden"
+        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-end"
         @click="onSend"
       />
     </div>
@@ -572,14 +634,6 @@ export default {
 </template>
 
 <style lang="scss" scoped>
-.left-wrap {
-  @apply items-center flex gap-2;
-}
-
-.right-wrap {
-  @apply flex;
-}
-
 :deep(.file-uploads) {
   label {
     @apply cursor-pointer;
