@@ -57,6 +57,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    showExpand: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ['setReplyMode', 'toggleEditorSize', 'executeCopilotAction'],
   setup(props, { emit }) {
@@ -152,23 +156,31 @@ export default {
 
 <template>
   <div
-    class="flex justify-between gap-2 h-[3.25rem] items-center ltr:pl-3 ltr:pr-2 rtl:pr-3 rtl:pl-2"
+    class="flex justify-between gap-2 h-[3.25rem] items-center ltr:pl-3 ltr:pr-2 rtl:pr-3 rtl:pl-2 max-sm:contents"
   >
     <EditorModeToggle
+      class="max-sm:hidden"
       :mode="mode"
       :disabled="disabled"
       :is-reply-restricted="isReplyRestricted"
       @toggle-mode="handleModeToggle"
     />
-    <div class="flex items-center mx-4 my-0">
+    <div
+      class="flex items-center mx-4 my-0 max-sm:col-start-3 max-sm:row-start-2 max-sm:justify-self-end"
+    >
       <div v-if="isMessageLengthReachingThreshold" class="text-xs">
         <span :class="charLengthClass">
           {{ characterLengthWarning }}
         </span>
       </div>
     </div>
-    <div v-if="captainTasksEnabled" class="flex items-center gap-2">
-      <div class="relative">
+    <div
+      v-if="captainTasksEnabled"
+      class="flex items-center gap-2 max-sm:contents"
+    >
+      <div
+        class="relative max-sm:col-start-2 max-sm:row-start-1 max-sm:self-end"
+      >
         <NextButton
           ref="copilotToggleRef"
           ghost
@@ -196,11 +208,39 @@ export default {
       </div>
       <NextButton
         ghost
-        class="text-n-slate-11"
+        class="text-n-slate-11 max-sm:hidden"
         sm
         icon="i-lucide-maximize-2"
         @click="$emit('toggleEditorSize')"
       />
     </div>
+    <NextButton
+      ghost
+      round
+      sm
+      class="sm:hidden max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end max-sm:self-end max-sm:z-10 max-sm:m-1"
+      :class="
+        mode === REPLY_EDITOR_MODES.NOTE
+          ? 'text-n-amber-11 bg-n-amber-3 hover:enabled:!bg-n-amber-4'
+          : 'text-n-slate-11'
+      "
+      :icon="
+        mode === REPLY_EDITOR_MODES.NOTE
+          ? 'i-lucide-lock-keyhole'
+          : 'i-lucide-lock-keyhole-open'
+      "
+      :disabled="disabled || isReplyRestricted"
+      :aria-label="$t('CONVERSATION.REPLYBOX.PRIVATE_NOTE')"
+      @click="handleModeToggle"
+    />
+    <NextButton
+      v-if="showExpand"
+      ghost
+      round
+      sm
+      class="sm:hidden text-n-slate-11 max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end max-sm:self-start max-sm:z-10 max-sm:m-1"
+      icon="i-lucide-maximize-2"
+      @click="$emit('toggleEditorSize')"
+    />
   </div>
 </template>
