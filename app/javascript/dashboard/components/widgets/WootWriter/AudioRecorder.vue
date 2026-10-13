@@ -6,6 +6,7 @@ import RecordPlugin from 'wavesurfer.js/dist/plugins/record.js';
 import { format, intervalToDuration } from 'date-fns';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import WaveformSeekBar from 'dashboard/components-next/audio/WaveformSeekBar.vue';
+import { useSmoothPlayback } from 'dashboard/composables/useSmoothPlayback';
 import { convertAudio } from './utils/audioConversionUtils';
 
 const props = defineProps({
@@ -40,8 +41,16 @@ const recordedAudioUrl = ref(null);
 const recordedDuration = ref(0);
 const audio = ref(null);
 const isPlaying = ref(false);
-const currentTime = ref(0);
 const isPaused = ref(false);
+const {
+  currentTime,
+  start: startTracking,
+  stop: stopTracking,
+  jumpTo,
+} = useSmoothPlayback(
+  () => audio.value,
+  () => recordedDuration.value
+);
 let discarded = false;
 let chunks = [];
 let awaitingLastChunk = false;
@@ -79,6 +88,7 @@ const getRecordPluginOptions = audioFormat => {
 };
 
 const releaseAudio = () => {
+  stopTracking();
   audio.value?.pause();
   audio.value = null;
   isPlaying.value = false;
@@ -95,10 +105,8 @@ const buildPreview = () => {
     new Blob(chunks, { type: chunks[0]?.type })
   );
   audio.value = new Audio(recordedAudioUrl.value);
-  audio.value.addEventListener('timeupdate', () => {
-    currentTime.value = audio.value.currentTime;
-  });
   audio.value.addEventListener('ended', () => {
+    stopTracking();
     isPlaying.value = false;
   });
   hasRecording.value = true;
@@ -213,16 +221,19 @@ const playPause = () => {
   if (!audio.value) return;
   if (isPlaying.value) {
     audio.value.pause();
+    stopTracking();
   } else {
-    audio.value.play();
+    audio.value.play().catch(() => {});
+    startTracking();
   }
   isPlaying.value = !isPlaying.value;
 };
 
 const seek = progress => {
   if (!audio.value) return;
-  audio.value.currentTime = progress * recordedDuration.value;
-  currentTime.value = audio.value.currentTime;
+  const time = progress * recordedDuration.value;
+  audio.value.currentTime = time;
+  jumpTo(time);
 };
 
 const canSend = computed(() =>
@@ -260,7 +271,7 @@ defineExpose({ stopRecording, record });
 </script>
 
 <template>
-  <div class="flex gap-2 items-center w-full min-w-0">
+  <div class="flex gap-2 items-center w-full min-w-0 sm:p-2">
     <NextButton
       icon="i-lucide-trash-2"
       ruby
