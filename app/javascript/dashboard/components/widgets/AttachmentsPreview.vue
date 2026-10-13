@@ -50,7 +50,58 @@ const fileName = file => {
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-y-1 gap-x-2 overflow-auto max-h-[12.5rem]">
+  <div class="flex gap-2 overflow-x-auto sm:hidden">
+    <div
+      v-for="(attachment, index) in nonRecordedAudioAttachments"
+      :key="attachment.id"
+      class="relative overflow-hidden size-24 shrink-0 rounded-xl bg-n-slate-3"
+    >
+      <img
+        v-if="isTypeImage(attachment.resource)"
+        class="object-cover size-full"
+        :src="attachment.thumb"
+      />
+      <div
+        v-else
+        class="flex flex-col items-center justify-center gap-1 px-2 size-full"
+      >
+        <span class="i-lucide-file-text size-6 text-n-slate-11" />
+        <span class="w-full text-xs text-center truncate">
+          {{ fileName(attachment.resource) }}
+        </span>
+      </div>
+      <button
+        type="button"
+        class="absolute flex items-center justify-center rounded-full !p-0 top-1 end-1 size-7 bg-n-solid-3 text-n-slate-12 shadow"
+        :aria-label="fileName(attachment.resource)"
+        @click="onRemoveAttachment(index)"
+      >
+        <span class="i-lucide-x size-4 shrink-0" />
+      </button>
+      <button
+        v-if="showHdToggle && attachment.canToggleHd"
+        type="button"
+        class="absolute flex items-center gap-1 px-1.5 text-xs font-medium rounded-md bottom-1 start-1 h-5 disabled:opacity-70"
+        :class="
+          attachment.isHd
+            ? 'bg-n-brand text-white'
+            : 'bg-n-solid-3 text-n-slate-12'
+        "
+        :aria-pressed="!!attachment.isHd"
+        :disabled="!!attachment.isOptimizing"
+        @click="emit('toggleHd', attachment)"
+      >
+        <span
+          v-if="attachment.isOptimizing"
+          class="i-lucide-loader-circle size-3 animate-spin"
+        />
+        {{ $t('COMPONENTS.MEDIA.HD_BADGE') }}
+      </button>
+    </div>
+  </div>
+  <div
+    class="flex flex-wrap gap-y-1 gap-x-2 overflow-auto max-h-[12.5rem] max-sm:hidden"
+  >
     <div
       v-for="(attachment, index) in nonRecordedAudioAttachments"
       :key="attachment.id"

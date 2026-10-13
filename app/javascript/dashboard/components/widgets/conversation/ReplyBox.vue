@@ -1478,7 +1478,7 @@ export default {
     >
       <div
         :key="copilot.editorTransitionKey.value"
-        class="reply-box__top max-sm:col-start-3 max-sm:row-start-1 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4 max-sm:group-data-[expanded]/wrapper:animate-fade-in-up max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
+        class="reply-box__top max-sm:!static max-sm:col-start-3 max-sm:row-start-1 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4 max-sm:group-data-[expanded]/wrapper:animate-fade-in-up max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
       >
         <ReplyToMessage
           v-if="shouldShowReplyToMessage"
@@ -1580,11 +1580,11 @@ export default {
         </div>
         <div
           v-if="hasAttachments && isDefaultEditorMode"
-          class="bg-transparent py-0 mb-2"
+          class="bg-transparent py-0 sm:mb-2 max-sm:absolute max-sm:inset-x-0 max-sm:bottom-full max-sm:z-10 max-sm:bg-n-surface-1 max-sm:border-t max-sm:border-n-weak max-sm:p-2"
           @paste="onPaste"
         >
           <AttachmentPreview
-            class="mt-2"
+            class="sm:mt-2"
             :attachments="attachedFiles"
             :show-hd-toggle="supportsHdToggle"
             @remove-attachment="removeAttachment"
