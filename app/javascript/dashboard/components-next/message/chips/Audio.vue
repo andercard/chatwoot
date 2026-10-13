@@ -5,6 +5,8 @@ import {
   useTemplateRef,
   ref,
   getCurrentInstance,
+  onBeforeUnmount,
+  nextTick,
 } from 'vue';
 import Icon from 'next/icon/Icon.vue';
 import WaveformSeekBar from 'next/audio/WaveformSeekBar.vue';
@@ -12,6 +14,10 @@ import { timeStampAppendedURL } from 'dashboard/helper/URLHelper';
 import { downloadFile } from '@chatwoot/utils';
 import { useEmitter } from 'dashboard/composables/emitter';
 import { emitter } from 'shared/helpers/mitt';
+import {
+  needsOpusFallback,
+  toPlayableUrl,
+} from 'dashboard/helper/oggOpusFallback';
 
 const { attachment } = defineProps({
   attachment: {
@@ -31,6 +37,17 @@ defineOptions({
 const timeStampURL = computed(() => {
   return timeStampAppendedURL(attachment.dataUrl);
 });
+
+// Safari can't play OGG/Opus: on first play we convert it to WAV.
+const fallbackUrl = ref(null);
+const isConverting = ref(false);
+const conversionFailed = ref(false);
+const playableUrl = computed(() => fallbackUrl.value || timeStampURL.value);
+const requiresFallback = computed(
+  () =>
+    attachment.extension?.toLowerCase() === 'ogg' &&
+    needsOpusFallback('audio/ogg')
+);
 
 const TRANSCRIPT_PREVIEW_LENGTH = 200;
 const isTranscriptExpanded = ref(false);
@@ -133,7 +150,30 @@ const seek = ratio => {
   currentTime.value = time;
 };
 
-const playOrPause = () => {
+const convertToPlayable = async () => {
+  isConverting.value = true;
+  try {
+    fallbackUrl.value = await toPlayableUrl(attachment.dataUrl);
+    await nextTick();
+    audioPlayer.value.load();
+    audioPlayer.value.playbackRate = playbackSpeed.value;
+  } catch {
+    conversionFailed.value = true;
+  } finally {
+    isConverting.value = false;
+  }
+};
+
+onBeforeUnmount(() => {
+  if (fallbackUrl.value) URL.revokeObjectURL(fallbackUrl.value);
+});
+
+const playOrPause = async () => {
+  if (isConverting.value || conversionFailed.value) return;
+  if (requiresFallback.value && !fallbackUrl.value) {
+    await convertToPlayable();
+    if (!fallbackUrl.value) return;
+  }
   if (isPlaying.value) {
     audioPlayer.value.pause();
     isPlaying.value = false;
@@ -176,7 +216,7 @@ const downloadAudio = async () => {
     @timeupdate="onTimeUpdate"
     @ended="onEnd"
   >
-    <source :src="timeStampURL" />
+    <source :src="playableUrl" />
   </audio>
   <div
     v-bind="$attrs"
@@ -185,9 +225,16 @@ const downloadAudio = async () => {
     <div class="flex gap-2 w-full flex-1 items-center justify-start">
       <button
         class="p-0 border-0 size-10 shrink-0 grid place-content-center rounded-full bg-n-blue-9 text-white"
+        :disabled="isConverting || conversionFailed"
         @click="playOrPause"
       >
         <Icon
+          v-if="isConverting"
+          class="size-5 animate-spin"
+          icon="i-lucide-loader-circle"
+        />
+        <Icon
+          v-else
           class="size-6"
           :icon="
             isPlaying
