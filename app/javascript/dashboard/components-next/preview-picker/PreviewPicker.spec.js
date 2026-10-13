@@ -15,6 +15,7 @@ const mountPicker = props =>
       preview: '<span data-test="preview" />',
     },
     global: {
+      stubs: { RouterLink: { template: '<a data-test="edit"><slot /></a>' } },
       directives: {
         dompurifyHtml: (el, { value }) => {
           el.innerHTML = value;
@@ -72,5 +73,30 @@ describe('PreviewPicker', () => {
     wrapper.find('[role="option"]').element.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('stacks the title over the subtitle and shows the heading in compact mode', () => {
+    wrapper = mountPicker({
+      compact: true,
+      heading: 'Quick replies',
+      editLabel: 'Edit',
+      editTo: { name: 'canned_list' },
+    });
+
+    const [title, subtitle] = wrapper.find('[role="option"] span').element
+      .children;
+    expect(title.textContent).toBe('Greeting');
+    expect(title.className).toContain('text-xs');
+    expect(subtitle.textContent).toBe('Hello there');
+    expect(subtitle.className).toContain('text-sm');
+    expect(wrapper.text()).toContain('Quick replies');
+    expect(wrapper.find('[data-test="edit"]').text()).toBe('Edit');
+  });
+
+  it('does not render the heading on desktop', () => {
+    wrapper = mountPicker({ heading: 'Quick replies', editLabel: 'Edit' });
+
+    expect(wrapper.text()).not.toContain('Quick replies');
+    expect(wrapper.find('[data-test="edit"]').exists()).toBe(false);
   });
 });

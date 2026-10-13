@@ -106,7 +106,7 @@ const items = computed(() =>
     content: record.content,
     resolved: record.resolved,
     label: `/${record.shortCode}`,
-    title: highlightMatches(`/${record.shortCode}`),
+    title: highlightMatches(record.shortCode),
     subtitle: highlightMatches(buildSnippet(record.plainText)),
   }))
 );
@@ -123,6 +123,9 @@ onMounted(() => store.dispatch('getCannedResponse'));
     :caret-position="caretPosition"
     :items="items"
     :search-placeholder="t('COMBOBOX.SEARCH_PLACEHOLDER')"
+    :heading="t('CONVERSATION.REPLYBOX.QUICK_REPLIES.TITLE')"
+    :edit-label="t('CONVERSATION.REPLYBOX.QUICK_REPLIES.EDIT')"
+    :edit-to="{ name: 'canned_list' }"
     :is-loading="uiFlags.fetchingList"
     :empty-label="
       searchTerm

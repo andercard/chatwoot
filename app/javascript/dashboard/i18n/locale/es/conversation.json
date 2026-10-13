@@ -285,6 +285,10 @@
       "WHATSAPP_TEMPLATES": "Plantillas de Whatsapp"
     },
     "REPLYBOX": {
+      "QUICK_REPLIES": {
+        "TITLE": "Respuestas rápidas",
+        "EDIT": "Editar"
+      },
       "MOBILE_MENU": {
         "OPEN": "Más opciones",
         "PHOTOS": "Fotos",

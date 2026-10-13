@@ -298,6 +298,10 @@
       "WHATSAPP_TEMPLATES": "Whatsapp Templates"
     },
     "REPLYBOX": {
+      "QUICK_REPLIES": {
+        "TITLE": "Quick replies",
+        "EDIT": "Edit"
+      },
       "MOBILE_MENU": {
         "OPEN": "More options",
         "PHOTOS": "Photos",

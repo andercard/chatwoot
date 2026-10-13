@@ -43,6 +43,18 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  heading: {
+    type: String,
+    default: '',
+  },
+  editLabel: {
+    type: String,
+    default: '',
+  },
+  editTo: {
+    type: [Object, String],
+    default: null,
+  },
   // Text typed after the trigger in the editor; it drives the filter on phones, where
   // the picker has no search field of its own
   searchKey: {
@@ -254,6 +266,9 @@ watch(items, () => {
       :is-loading="isLoading"
       :preview-layout="previewLayout"
       :compact="isMobile"
+      :heading="heading"
+      :edit-label="editLabel"
+      :edit-to="editTo"
       data-popover-content
       class="z-[9999]"
       :class="isMobile ? 'absolute inset-x-0 bottom-full' : 'fixed'"

@@ -25,6 +25,19 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Phone layout only: fixed title above the list, with an optional edit link
+  heading: {
+    type: String,
+    default: '',
+  },
+  editLabel: {
+    type: String,
+    default: '',
+  },
+  editTo: {
+    type: [Object, String],
+    default: null,
+  },
   previewLayout: {
     type: String,
     default: 'side',
@@ -128,6 +141,21 @@ defineExpose({ scrollSelectedIntoView });
         />
       </div>
       <div
+        v-if="compact && heading"
+        class="flex items-center justify-between flex-shrink-0 gap-2 px-3 py-2 border-b border-n-weak"
+      >
+        <span class="min-w-0 text-xs font-medium truncate text-n-slate-11">
+          {{ heading }}
+        </span>
+        <router-link
+          v-if="editTo && editLabel"
+          :to="editTo"
+          class="flex-shrink-0 text-xs font-medium text-n-brand"
+        >
+          {{ editLabel }}
+        </router-link>
+      </div>
+      <div
         v-if="$slots.filters && !compact"
         class="flex-shrink-0 min-w-0 px-1 pt-1 pb-1.5"
         @mousedown.prevent
@@ -171,22 +199,27 @@ defineExpose({ scrollSelectedIntoView });
                 :selected="index === selectedIndex"
               />
               <span
-                class="flex min-w-0"
-                :class="
-                  compact
-                    ? 'flex-1 items-center justify-between gap-3'
-                    : 'flex-col gap-0.5'
-                "
+                class="flex flex-col min-w-0 gap-0.5"
+                :class="{ 'flex-1': compact }"
               >
                 <span
                   v-dompurify-html="item.title"
-                  class="max-w-full min-w-0 text-sm font-medium truncate text-n-slate-12"
+                  class="max-w-full min-w-0 font-medium truncate"
+                  :class="
+                    compact
+                      ? 'text-xs text-n-slate-11'
+                      : 'text-sm text-n-slate-12'
+                  "
                 />
                 <span
                   v-if="item.subtitle"
                   v-dompurify-html="item.subtitle"
-                  class="min-w-0 text-xs truncate text-n-slate-11"
-                  :class="compact ? 'flex-shrink-0 max-w-[50%]' : 'max-w-full'"
+                  class="min-w-0 max-w-full truncate"
+                  :class="
+                    compact
+                      ? 'text-sm text-n-slate-12'
+                      : 'text-xs text-n-slate-11'
+                  "
                 />
               </span>
             </li>
