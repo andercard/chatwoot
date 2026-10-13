@@ -1474,10 +1474,10 @@ export default {
 <template>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
   <div
-    class="reply-box max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] max-sm:items-center max-sm:gap-x-1 max-sm:gap-y-0 max-sm:group-data-[expanded]/wrapper:gap-y-2 max-sm:!mx-2 max-sm:!mb-[max(0.5rem,env(safe-area-inset-bottom))] max-sm:!rounded-[1.75rem] max-sm:!border-0 max-sm:p-1"
+    class="reply-box max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] max-sm:items-center max-sm:gap-x-1 max-sm:gap-y-0 max-sm:group-data-[grown]/wrapper:gap-y-1 max-sm:group-data-[expanded]/wrapper:gap-y-2 max-sm:!mx-2 max-sm:!mb-[max(0.5rem,env(safe-area-inset-bottom))] max-sm:!rounded-[1.75rem] max-sm:!border-0 max-sm:p-1"
     :class="[
       replyBoxClass,
-      isOnPrivateNote ? 'max-sm:!bg-n-solid-amber' : 'max-sm:!bg-n-solid-3',
+      isOnPrivateNote ? 'max-sm:!bg-n-solid-amber' : 'max-sm:!bg-n-slate-3',
       { 'max-sm:!grid-cols-3': showAudioRecorderEditor },
     ]"
   >
@@ -1523,7 +1523,7 @@ export default {
     >
       <div
         :key="copilot.editorTransitionKey.value"
-        class="reply-box__top max-sm:!static max-sm:row-start-1 max-sm:!bg-transparent max-sm:!rounded-none max-sm:!border-0 max-sm:group-data-[expanded]/wrapper:animate-fade-in-up max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
+        class="reply-box__top max-sm:!static max-sm:row-start-1 max-sm:group-data-[grown]/wrapper:row-span-2 max-sm:group-data-[expanded]/wrapper:row-start-2 max-sm:!bg-transparent max-sm:!rounded-none max-sm:!border-0 max-sm:group-data-[expanded]/wrapper:animate-fade-in-up max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
         :class="
           showAudioRecorderEditor
             ? 'max-sm:col-start-1 max-sm:col-span-3'
@@ -1582,7 +1582,7 @@ export default {
           v-model="message"
           :conversation-id="conversationId"
           :editor-id="editorStateId"
-          class="input popover-prosemirror-menu max-sm:!bg-transparent max-sm:rounded-none max-sm:ps-2 max-sm:pe-2 max-sm:group-data-[expanded]/wrapper:pe-12 max-sm:py-1 max-sm:[&_p.empty-node]:relative max-sm:[&_p.empty-node::before]:max-w-full max-sm:[&_p.empty-node::before]:truncate"
+          class="input popover-prosemirror-menu max-sm:!bg-transparent max-sm:rounded-none max-sm:ps-2 max-sm:pe-2 max-sm:py-1 max-sm:[&_p.empty-node]:relative max-sm:[&_p.empty-node::before]:max-w-full max-sm:[&_p.empty-node::before]:truncate"
           :is-private="isOnPrivateNote"
           :placeholder="messagePlaceHolder"
           :update-selection-with="updateEditorSelectionWith"

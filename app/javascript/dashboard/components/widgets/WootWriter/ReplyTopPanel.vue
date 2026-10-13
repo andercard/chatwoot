@@ -162,7 +162,7 @@ export default {
       @toggle-mode="handleModeToggle"
     />
     <div
-      class="flex items-center mx-4 my-0 max-sm:col-start-3 max-sm:row-start-2 max-sm:justify-self-end"
+      class="flex items-center mx-4 my-0 max-sm:col-start-3 max-sm:row-start-2 max-sm:justify-self-end max-sm:group-data-[expanded]/wrapper:row-start-3"
     >
       <div v-if="isMessageLengthReachingThreshold" class="text-xs">
         <span :class="charLengthClass">
@@ -175,7 +175,7 @@ export default {
       class="flex items-center gap-2 max-sm:contents"
     >
       <div
-        class="relative max-sm:hidden max-sm:col-start-2 max-sm:row-start-1 max-sm:self-end max-sm:mb-2.5 max-sm:group-data-[expanded]/wrapper:mb-0 max-sm:group-data-[expanded]/wrapper:row-start-2"
+        class="relative max-sm:hidden max-sm:group-data-[grown]/wrapper:block max-sm:group-data-[expanded]/wrapper:block max-sm:col-start-1 max-sm:row-start-1 max-sm:self-start"
       >
         <NextButton
           ref="copilotToggleRef"
@@ -198,7 +198,7 @@ export default {
           :has-selection="false"
           :has-content="hasContent"
           :conversation-id="conversationId"
-          class="ltr:right-0 rtl:left-0 bottom-full mb-2"
+          class="ltr:right-0 rtl:left-0 max-sm:ltr:!right-auto max-sm:ltr:!left-0 max-sm:rtl:!left-auto max-sm:rtl:!right-0 bottom-full mb-2"
           @execute-copilot-action="handleCopilotAction"
         />
       </div>
@@ -214,7 +214,7 @@ export default {
       ghost
       round
       sm
-      class="sm:hidden !rounded-full !size-8 max-sm:col-start-3 max-sm:row-start-1 max-sm:self-center max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4 max-sm:group-data-[expanded]/wrapper:justify-self-end"
+      class="sm:hidden !rounded-full !size-8 max-sm:col-start-3 max-sm:row-start-1 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3"
       :class="
         mode === REPLY_EDITOR_MODES.NOTE
           ? 'text-n-amber-11 bg-n-amber-3 hover:enabled:!bg-n-amber-4'
@@ -233,8 +233,16 @@ export default {
       ghost
       round
       sm
-      class="sm:hidden max-sm:hidden !rounded-full !size-8 text-n-slate-11 max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end max-sm:self-end max-sm:me-10 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4 max-sm:group-data-[expanded]/wrapper:self-start max-sm:group-data-[expanded]/wrapper:me-1 max-sm:z-10 max-sm:m-1 max-sm:mb-2.5 max-sm:group-data-[expanded]/wrapper:mb-1"
+      class="sm:hidden max-sm:hidden !rounded-full !size-8 text-n-slate-11 max-sm:col-start-4 max-sm:row-start-1 max-sm:self-start max-sm:justify-self-end max-sm:group-data-[grown]/wrapper:flex"
       icon="i-lucide-maximize-2"
+      @click="$emit('toggleEditorSize')"
+    />
+    <NextButton
+      ghost
+      round
+      sm
+      class="sm:hidden max-sm:hidden !rounded-full !size-8 text-n-slate-11 max-sm:col-start-4 max-sm:row-start-1 max-sm:self-start max-sm:justify-self-end max-sm:group-data-[expanded]/wrapper:flex"
+      icon="i-lucide-minimize-2"
       @click="$emit('toggleEditorSize')"
     />
   </div>

@@ -20,6 +20,8 @@ const MIN_HEIGHT = 80;
 const MIN_MESSAGES_HEIGHT = 200;
 const EXPAND_RATIO = 0.5;
 const RESET_DELAY_MS = 120;
+// Content taller than this (px) means more than one line of text on phones
+const SINGLE_LINE_MAX_PX = 30;
 
 const wrapperRef = useTemplateRef('wrapperRef');
 const surroundingHeight = ref(0);
@@ -28,7 +30,10 @@ const isResizing = ref(false);
 const startY = ref(0);
 const startHeight = ref(0);
 const requestedHeight = ref(0);
+const hasMultipleLines = ref(false);
 let resetTimeoutId = null;
+let contentObserver = null;
+let sizeObserver = null;
 
 const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
 
@@ -127,6 +132,20 @@ const toggleEditorExpand = () => {
   editorHeight.value = wasExpanded ? defaultHeight : target;
 };
 
+// The body keeps a min height, so measure the content blocks instead of the box
+const measureContentLines = () => {
+  const body = wrapperRef.value?.querySelector('.resizable-editor-body');
+  const first = body?.firstElementChild;
+  const last = body?.lastElementChild;
+  if (!first || !last) {
+    hasMultipleLines.value = false;
+    return;
+  }
+  const contentHeight =
+    last.getBoundingClientRect().bottom - first.getBoundingClientRect().top;
+  hasMultipleLines.value = contentHeight > SINGLE_LINE_MAX_PX;
+};
+
 const handleMessageSent = () => {
   clearTimeout(resetTimeoutId);
   resetTimeoutId = setTimeout(resetEditorHeight, RESET_DELAY_MS);
@@ -134,11 +153,22 @@ const handleMessageSent = () => {
 
 onMounted(() => {
   emitter.on(BUS_EVENTS.MESSAGE_SENT, handleMessageSent);
+  contentObserver = new MutationObserver(measureContentLines);
+  contentObserver.observe(wrapperRef.value, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+  sizeObserver = new ResizeObserver(measureContentLines);
+  sizeObserver.observe(wrapperRef.value);
+  measureContentLines();
 });
 
 onBeforeUnmount(() => {
   emitter.off(BUS_EVENTS.MESSAGE_SENT, handleMessageSent);
   clearTimeout(resetTimeoutId);
+  contentObserver?.disconnect();
+  sizeObserver?.disconnect();
   if (isResizing.value) {
     isResizing.value = false;
     clearDragStyles();
@@ -160,6 +190,7 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
     ref="wrapperRef"
     class="relative resizable-editor-wrapper group/wrapper max-sm:[&_.resizable-editor-body]:[interpolate-size:allow-keywords] max-sm:[&:not([data-expanded])_.resizable-editor-body]:!h-auto max-sm:[&:not([data-expanded])_.resizable-editor-body]:!min-h-11 max-sm:[&:not([data-expanded])_.resizable-editor-body]:!max-h-28"
     :data-expanded="isExpanded || undefined"
+    :data-grown="(hasMultipleLines && !isExpanded) || undefined"
     :style="{
       '--editor-height': appliedHeight + 'px',
       '--editor-min-allowed': sizeBounds.min + 'px',

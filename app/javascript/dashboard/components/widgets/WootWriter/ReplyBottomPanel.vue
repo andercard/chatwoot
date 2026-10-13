@@ -417,7 +417,7 @@ export default {
       <div
         v-if="showMobileMenuButton"
         :class="{ 'max-sm:!hidden': showMobileRecorderControls }"
-        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-center max-sm:group-data-[expanded]/wrapper:row-start-2"
+        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3 max-sm:group-data-[expanded]/wrapper:self-center"
       >
         <NextButton
           ref="mobileMenuToggleRef"
@@ -657,7 +657,7 @@ export default {
         icon="i-ph-microphone"
         :color="isNote ? 'amber' : 'blue'"
         :class="{ 'max-sm:!hidden': showMobileRecorderControls }"
-        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[expanded]/wrapper:row-start-2"
+        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3 max-sm:group-data-[expanded]/wrapper:self-center"
         @click="toggleAudioRecorder"
       />
       <NextButton
@@ -668,7 +668,7 @@ export default {
         :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
         :class="{ 'max-sm:!hidden': showMobileRecorderControls }"
-        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[expanded]/wrapper:row-start-2"
+        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3 max-sm:group-data-[expanded]/wrapper:self-center"
         @click="onSend"
       />
     </div>
