@@ -273,7 +273,6 @@ const tailwindConfig = {
           'logos',
           'ri',
           'ph',
-          'material-symbols',
           'teenyicons',
           'fluent',
         ]),

@@ -1,4 +1,4 @@
-import { createApp } from 'vue';
+import { createApp, watch } from 'vue';
 import { createI18n } from 'vue-i18n';
 
 import axios from 'axios';
@@ -10,7 +10,11 @@ import WootWizard from 'components/ui/Wizard.vue';
 import FloatingVue from 'floating-vue';
 import WootUiKit from 'dashboard/components';
 import App from 'dashboard/App.vue';
-import i18nMessages, { loadLocaleMessages } from 'dashboard/i18n';
+import i18nMessages, {
+  getInitialLocale,
+  loadLocaleMessages,
+  rememberLocale,
+} from 'dashboard/i18n';
 import createAxios from 'dashboard/helper/APIHelper';
 
 import commonHelpers, { isJSONValid } from 'dashboard/helper/commons';
@@ -40,11 +44,13 @@ const i18n = createI18n({
   messages: i18nMessages,
 });
 
-// The server already knows the UI language: fetch it now so the app mounts translated.
-const { selectedLocale } = window.chatwootConfig;
-const localeReady = loadLocaleMessages(i18n.global, selectedLocale)
+// Fetch the user's language while the page loads so the app mounts translated.
+const initialLocale = getInitialLocale();
+const localeReady = loadLocaleMessages(i18n.global, initialLocale)
   .then(() => {
-    i18n.global.locale.value = selectedLocale;
+    if (i18n.global.availableLocales.includes(initialLocale)) {
+      i18n.global.locale.value = initialLocale;
+    }
   })
   .catch(() => {});
 
@@ -54,6 +60,7 @@ const pinia = createPinia();
 
 const app = createApp(App);
 app.use(i18n);
+watch(i18n.global.locale, rememberLocale);
 app.use(store);
 app.use(pinia);
 app.use(router);

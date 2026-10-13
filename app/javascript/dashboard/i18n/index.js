@@ -54,4 +54,15 @@ export const loadLocaleMessages = async (i18n, locale) => {
   i18n.setLocaleMessage(locale, messages);
 };
 
+const LOCALE_STORAGE_KEY = 'chatwoot_ui_locale';
+
+// The server only knows the installation default at page load, so the language
+// the user last used is remembered in the browser and requested first.
+export const getInitialLocale = () =>
+  localStorage.getItem(LOCALE_STORAGE_KEY) ||
+  window.chatwootConfig.selectedLocale;
+
+export const rememberLocale = locale =>
+  localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+
 export default { en };

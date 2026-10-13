@@ -1,5 +1,9 @@
 <script>
-import { Chrome } from '@lk77/vue3-color';
+import { defineAsyncComponent } from 'vue';
+
+const Chrome = defineAsyncComponent(() =>
+  import('@lk77/vue3-color').then(m => m.Chrome)
+);
 
 export default {
   components: {
