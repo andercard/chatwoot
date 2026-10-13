@@ -100,6 +100,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    enableMacros: {
+      type: Boolean,
+      default: false,
+    },
     conversationId: {
       type: Number,
       required: true,
@@ -198,7 +202,7 @@ export default {
       return this.showFileUpload || this.isNote;
     },
     showMacrosRow() {
-      return !this.isOnPrivateNote;
+      return !this.isOnPrivateNote && this.enableMacros;
     },
     // Rows of the phone "+" menu: what the desktop row shows as icon buttons
     mobileMenuItems() {
@@ -439,6 +443,13 @@ export default {
               />
             </button>
           </li>
+          <li v-if="!isOnPrivateNote" class="empty:hidden">
+            <RequestContactInfoButton
+              as-row
+              @click="showMobileMenu = false"
+              @request-template="$emit('requestContactInfoTemplate')"
+            />
+          </li>
         </ul>
         <template v-if="showAttachButton">
           <FileUpload
@@ -518,7 +529,7 @@ export default {
       />
       <NextButton
         v-if="showAudioPlayStopButton"
-        class="max-sm:row-start-2 max-sm:justify-self-start"
+        class="max-sm:col-start-2 max-sm:row-start-1 max-sm:self-end"
         :icon="audioRecorderPlayStopIcon"
         slate
         faded
@@ -557,10 +568,8 @@ export default {
         sm
         @click="$emit('selectWhatsappTemplate')"
       />
-      <!-- Phone: no menu row for these, they wait in a second row of the grid -->
-      <div
-        class="contents max-sm:hidden max-sm:[&:not(:empty)]:block max-sm:row-start-2 max-sm:justify-self-start"
-      >
+      <!-- Phone: contact request lives in the "+" menu -->
+      <div class="contents max-sm:hidden">
         <RequestContactInfoButton
           v-if="!isOnPrivateNote"
           @request-template="$emit('requestContactInfoTemplate')"
@@ -576,9 +585,7 @@ export default {
         sm
         @click="$emit('selectContentTemplate')"
       />
-      <div
-        class="contents max-sm:hidden max-sm:[&:not(:empty)]:block max-sm:row-start-2 max-sm:justify-self-start"
-      >
+      <div class="contents max-sm:hidden">
         <VideoCallButton
           v-if="
             (isAWebWidgetInbox || isAPIInbox) &&
