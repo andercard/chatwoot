@@ -38,7 +38,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: bajo 640 px `.reply-box` es una cuadrícula `[auto auto 1fr auto]` sin borde ni radio ni margen laterales, con respiro `env(safe-area-inset-bottom)`; el editor es una píldora (`rounded-3xl`, fondo propio, ámbar en nota privada, espacio a la derecha para candado y maximizar); `showExpand` se calcula con foco o contenido; `openMacros` inserta `#` en el editor con `addIntoEditor` y abre la lista de macros; los adjuntos y avisos (quedan sobre la fila, a ancho de la píldora); en >= 640 px el layout actual no cambia; los specs actuales de `ReplyBox` siguen en verde
   - commit: `feat(mobile): composer bar with a pill, lock and round send`
 
-- [ ] **7 · Verificar en navegador con viewport de iPhone**
+- [x] **7 · Verificar en navegador con viewport de iPhone**
   - archivos: `openspec/changes/mobile-composer-bar/verification.md`
   - depende de: 1, 2, 3, 4, 5, 6
   - listo cuando: el archivo registra, con medidas, que en viewport 390×844 (touch) con un teclado simulado (visual viewport de 420 px de alto): el menú `+` abre y cada fila dispara su selector de archivos; el botón de enviar redondo envía un mensaje de prueba; `/` y `@` (en nota privada) muestran la lista a ancho completo **encima** de la barra y el editor conserva el foco; escribir tras el disparador filtra; tocar una fila inserta; el candado alterna nota privada (píldora y enviar en ámbar); el maximizar expande y la barra vuelve a compacta tras enviar; a >= 1024 px nada cambió
