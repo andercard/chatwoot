@@ -77,4 +77,12 @@ describe('oggOpusFallback', () => {
     needsOpusFallback('audio/ogg');
     expect(decoderLoaded).not.toHaveBeenCalled();
   });
+
+  it('does not download or decode when the browser supports ogg', () => {
+    mockCanPlay('probably');
+    if (needsOpusFallback('audio/ogg'))
+      toPlayableUrl('https://example.com/a.ogg');
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(decodeFile).not.toHaveBeenCalled();
+  });
 });

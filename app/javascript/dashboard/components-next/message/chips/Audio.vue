@@ -38,7 +38,7 @@ const timeStampURL = computed(() => {
   return timeStampAppendedURL(attachment.dataUrl);
 });
 
-// Safari can't play OGG/Opus: on first play we convert it to WAV.
+// Safari can't play OGG/Opus: we convert it to WAV once it is on screen.
 const fallbackUrl = ref(null);
 const isConverting = ref(false);
 const conversionFailed = ref(false);
@@ -47,6 +47,9 @@ const requiresFallback = computed(
   () =>
     attachment.extension?.toLowerCase() === 'ogg' &&
     needsOpusFallback('audio/ogg')
+);
+const isPlayDisabled = computed(
+  () => conversionFailed.value || (requiresFallback.value && !fallbackUrl.value)
 );
 
 const TRANSCRIPT_PREVIEW_LENGTH = 200;
@@ -151,38 +154,63 @@ const seek = ratio => {
 };
 
 const convertToPlayable = async () => {
+  if (isConverting.value || fallbackUrl.value) return;
   isConverting.value = true;
   try {
     fallbackUrl.value = await toPlayableUrl(attachment.dataUrl);
     await nextTick();
     audioPlayer.value.load();
     audioPlayer.value.playbackRate = playbackSpeed.value;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('OGG/Opus fallback failed', error);
     conversionFailed.value = true;
   } finally {
     isConverting.value = false;
   }
 };
 
+// Convert before the tap: iOS only allows play() inside the user gesture.
+let visibilityObserver = null;
+const stopObserving = () => {
+  visibilityObserver?.disconnect();
+  visibilityObserver = null;
+};
+
+onMounted(() => {
+  if (!requiresFallback.value) return;
+  if (typeof IntersectionObserver === 'undefined') {
+    convertToPlayable();
+    return;
+  }
+  visibilityObserver = new IntersectionObserver(entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return;
+    stopObserving();
+    convertToPlayable();
+  });
+  visibilityObserver.observe(
+    audioPlayer.value.parentElement ?? audioPlayer.value
+  );
+});
+
 onBeforeUnmount(() => {
+  stopObserving();
   if (fallbackUrl.value) URL.revokeObjectURL(fallbackUrl.value);
 });
 
-const playOrPause = async () => {
-  if (isConverting.value || conversionFailed.value) return;
-  if (requiresFallback.value && !fallbackUrl.value) {
-    await convertToPlayable();
-    if (!fallbackUrl.value) return;
-  }
+const playOrPause = () => {
+  if (isPlayDisabled.value) return;
   if (isPlaying.value) {
     audioPlayer.value.pause();
     isPlaying.value = false;
-  } else {
-    // Emit event to pause all other audio
-    emitter.emit('pause_playing_audio', uid);
-    audioPlayer.value.play();
-    isPlaying.value = true;
+    return;
   }
+  // Emit event to pause all other audio
+  emitter.emit('pause_playing_audio', uid);
+  isPlaying.value = true;
+  audioPlayer.value.play().catch(() => {
+    isPlaying.value = false;
+  });
 };
 
 const onEnd = () => {
@@ -225,11 +253,11 @@ const downloadAudio = async () => {
     <div class="flex gap-2 w-full flex-1 items-center justify-start">
       <button
         class="p-0 border-0 size-10 shrink-0 grid place-content-center rounded-full bg-n-blue-9 text-white"
-        :disabled="isConverting || conversionFailed"
+        :disabled="isPlayDisabled"
         @click="playOrPause"
       >
         <Icon
-          v-if="isConverting"
+          v-if="isPlayDisabled && !conversionFailed"
           class="size-5 animate-spin"
           icon="i-lucide-loader-circle"
         />
@@ -244,12 +272,14 @@ const downloadAudio = async () => {
         />
       </button>
       <div class="flex flex-col flex-1 min-w-0">
-        <WaveformSeekBar
-          :progress="progress"
-          :duration="duration"
-          :label="$t('CONVERSATION.REPLYBOX.AUDIO.SEEK')"
-          @seek="seek"
-        />
+        <div class="w-56 max-w-full">
+          <WaveformSeekBar
+            :progress="progress"
+            :duration="duration"
+            :label="$t('CONVERSATION.REPLYBOX.AUDIO.SEEK')"
+            @seek="seek"
+          />
+        </div>
         <div class="flex items-center justify-between gap-2">
           <span class="tabular-nums text-xs text-n-slate-11">
             {{ formatTime(isPlaying || currentTime ? currentTime : duration) }}
