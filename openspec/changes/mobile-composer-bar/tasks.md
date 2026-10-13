@@ -53,7 +53,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
 - [x] **9 · Caja expandida que sube sobre los íconos, a todo el ancho**
   - archivos: `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyTopPanel.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue`, `app/javascript/dashboard/components/widgets/conversation/ResizableEditorWrapper.vue`
   - depende de: 8
-  - listo cuando: bajo 640 px y con `data-expanded` en el wrapper, `.reply-box__top` ocupa las 4 columnas en la fila 1 (ancho ≈ el de `.reply-box` menos su padding), `+`, sparkle y enviar pasan a la fila 2 (misma altura entre sí), el candado queda abajo a la derecha dentro de la caja y el botón de contraer arriba a la derecha; con ámbar en nota privada; la caja anima su altura (transición de 150–300 ms, comprobable con `getComputedStyle(...).transitionDuration`) y vuelve a compacta de una línea al contraer o enviar; sin `data-expanded` el layout compacto de la ronda 1 no cambia; en >= 640 px nada cambia; `ReplyBox.spec.js` sigue en verde
+  - listo cuando: bajo 640 px y con `data-expanded` en el wrapper, `.reply-box__top` ocupa las 4 columnas en la fila 1 (ancho ≈ el de `.reply-box` menos su padding), `+`, sparkle y enviar pasan a la fila 2 (misma base: comparten el borde inferior, ±2 px), el candado queda abajo a la derecha dentro de la caja y el botón de contraer arriba a la derecha; con ámbar en nota privada; la caja anima su altura (transición de 150–300 ms, comprobable con `getComputedStyle(...).transitionDuration`) y vuelve a compacta de una línea al contraer o enviar; sin `data-expanded` el layout compacto de la ronda 1 no cambia; en >= 640 px nada cambia; `ReplyBox.spec.js` sigue en verde
   - commit: `feat(mobile): the expanded editor rises over the buttons at full width`
 
 - [x] **10 · Evidencia en navegador de lo que faltaba**
@@ -61,3 +61,16 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 8, 9
   - listo cuando: `verification.md` registra, con medidas en viewport 390×844 touch y teclado simulado de 420 px: (a) tocar cada fila Fotos/Cámara/Adjuntar dispara el `click()` de su `input[type=file]` (espiando `HTMLInputElement.prototype.click`); (b) `@` en nota privada filtra al escribir más caracteres; (c) con respuestas restringidas el candado está deshabilitado y el compositor está en nota; (d) la píldora crece al escribir varias líneas hasta ≈5 líneas (≈7 rem) y luego hace scroll; (e) `#` abre la lista de macros (en cuenta con macros) y la fila «Macros» no aparece sin macros; (f) en expandido la caja ocupa el ancho completo por encima de la fila de íconos y se anima; (g) «Pedir datos de contacto» aparece como fila cuando la conversación lo permite; el delta ajusta el escenario «Each row opens its action» para listar contacto y macros condicionada y agrega «Expanded editor rises over the buttons»
   - commit: `docs(openspec): record the second round of phone checks for the composer bar`
+
+- [ ] **11 · Ajustes visuales tras probar en el celular**
+  - archivos: `app/javascript/dashboard/components-next/preview-picker/PreviewPicker.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyTopPanel.vue`, `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue`
+  - depende de: ninguna
+  - listo cuando: en la lista móvil los títulos de grupo («Agentes», «Equipos») tienen aire vertical arriba y abajo (≈ 0.5 rem); el contenedor del candado es un círculo (`rounded-full`, mismo ancho y alto) en reposo y en ámbar; el compositor compacto móvil tiene menos espacio superior (la barra se ve como la de la app: ≈ 0.375 rem sobre la píldora en vez de 0.5 rem + la separación actual) sin cambiar la base inferior ni el respiro de `safe-area`; en escritorio el botón de adjuntar queda alineado con los demás botones de la fila (el contenedor del adjuntar no cambia el alineamiento: `contents` desde 640 px)
+  - commit: `fix(mobile): polish the group headings, the lock circle, the bar spacing and the desktop attach button`
+
+- [ ] **12 · Mensajes rápidos también en notas privadas**
+  - archivos: `app/javascript/dashboard/components/widgets/WootWriter/Editor.vue`
+  - depende de: ninguna
+  - listo cuando: al escribir `/` en una nota privada se abre la lista de respuestas predefinidas igual que en una respuesta pública (en móvil y en escritorio); el `@` de menciones sigue funcionando en nota privada; elegir una respuesta la inserta como texto en la nota; en respuesta pública nada cambia
+  - commit: `feat(editor): canned responses are suggested in private notes too`
+
