@@ -418,7 +418,7 @@ export default {
       <div
         v-if="showMobileMenuButton"
         :class="{ 'max-sm:!hidden': showMobileRecorderControls }"
-        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-end max-sm:mb-1.5 max-sm:group-data-[expanded]/wrapper:mb-0 max-sm:group-data-[expanded]/wrapper:row-start-2"
+        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-end max-sm:mb-2.5 max-sm:group-data-[expanded]/wrapper:mb-0 max-sm:group-data-[expanded]/wrapper:row-start-2"
       >
         <NextButton
           ref="mobileMenuToggleRef"
