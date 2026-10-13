@@ -20,7 +20,7 @@ const MIN_HEIGHT = 80;
 const MIN_MESSAGES_HEIGHT = 200;
 const EXPAND_RATIO = 0.5;
 const RESET_DELAY_MS = 120;
-// Content taller than this (px) means more than one line of text on phones
+// On phones the bar grows once there is text, or content taller than this (px)
 const SINGLE_LINE_MAX_PX = 30;
 
 const wrapperRef = useTemplateRef('wrapperRef');
@@ -141,9 +141,11 @@ const measureContentLines = () => {
     hasMultipleLines.value = false;
     return;
   }
+  // The ProseMirror placeholder is a CSS pseudo element, so an empty editor has no text
+  const hasContent = body.textContent.trim().length > 0;
   const contentHeight =
     last.getBoundingClientRect().bottom - first.getBoundingClientRect().top;
-  hasMultipleLines.value = contentHeight > SINGLE_LINE_MAX_PX;
+  hasMultipleLines.value = hasContent || contentHeight > SINGLE_LINE_MAX_PX;
 };
 
 const handleMessageSent = () => {
