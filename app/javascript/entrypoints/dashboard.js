@@ -10,7 +10,7 @@ import WootWizard from 'components/ui/Wizard.vue';
 import FloatingVue from 'floating-vue';
 import WootUiKit from 'dashboard/components';
 import App from 'dashboard/App.vue';
-import i18nMessages from 'dashboard/i18n';
+import i18nMessages, { loadLocaleMessages } from 'dashboard/i18n';
 import createAxios from 'dashboard/helper/APIHelper';
 
 import commonHelpers, { isJSONValid } from 'dashboard/helper/commons';
@@ -39,6 +39,14 @@ const i18n = createI18n({
   locale: 'en',
   messages: i18nMessages,
 });
+
+// The server already knows the UI language: fetch it now so the app mounts translated.
+const { selectedLocale } = window.chatwootConfig;
+const localeReady = loadLocaleMessages(i18n.global, selectedLocale)
+  .then(() => {
+    i18n.global.locale.value = selectedLocale;
+  })
+  .catch(() => {});
 
 sync(store, router);
 
@@ -123,6 +131,7 @@ initializeChatwootEvents();
 initializeAnalyticsEvents();
 initalizeRouter();
 
-window.onload = () => {
+window.onload = async () => {
+  await localeReady;
   app.mount('#app');
 };

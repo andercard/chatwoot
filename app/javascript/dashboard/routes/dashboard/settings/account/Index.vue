@@ -1,4 +1,5 @@
 <script>
+import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
 import { required } from '@vuelidate/validators';
 import { mapGetters } from 'vuex';
@@ -35,8 +36,16 @@ export default {
     const { enabledLanguages } = useConfig();
     const { accountId } = useAccount();
     const v$ = useVuelidate();
+    const i18n = useI18n({ useScope: 'global' });
 
-    return { updateUISettings, uiSettings, v$, enabledLanguages, accountId };
+    return {
+      updateUISettings,
+      uiSettings,
+      v$,
+      enabledLanguages,
+      accountId,
+      i18n,
+    };
   },
   data() {
     return {
@@ -122,7 +131,7 @@ export default {
         this.features = features;
         const effectiveLocale = this.uiSettings?.locale || locale;
         if (effectiveLocale) {
-          await loadLocaleMessages(this.$root.$i18n, effectiveLocale);
+          await loadLocaleMessages(this.i18n, effectiveLocale);
           this.$root.$i18n.locale = effectiveLocale;
         }
       } catch (error) {
@@ -146,7 +155,7 @@ export default {
         // If user locale is set, update the locale with user locale
         const updatedLocale = this.uiSettings?.locale || this.locale;
         if (updatedLocale) {
-          await loadLocaleMessages(this.$root.$i18n, updatedLocale);
+          await loadLocaleMessages(this.i18n, updatedLocale);
           this.$root.$i18n.locale = updatedLocale;
         }
         this.getAccount(this.id).locale = this.locale;

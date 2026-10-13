@@ -9,6 +9,7 @@ import PendingEmailVerificationBanner from './components/app/PendingEmailVerific
 import LowBackupCodesBanner from './components/app/LowBackupCodesBanner.vue';
 import vueActionCable from './helper/actionCable';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useStore } from 'dashboard/composables/store';
 import WootSnackbarBox from './components/SnackbarContainer.vue';
 import { setColorTheme } from './helper/themeHelper';
@@ -43,6 +44,7 @@ export default {
     // Use the font size composable (it automatically sets up the watcher)
     const { currentFontSize } = useFontSize();
     const { uiSettings } = useUISettings();
+    const i18n = useI18n({ useScope: 'global' });
 
     return {
       router,
@@ -50,6 +52,7 @@ export default {
       currentAccountId: accountId,
       currentFontSize,
       uiSettings,
+      i18n,
     };
   },
   data() {
@@ -103,7 +106,7 @@ export default {
     },
     async setLocale(locale) {
       if (locale) {
-        await loadLocaleMessages(this.$root.$i18n, locale);
+        await loadLocaleMessages(this.i18n, locale);
         this.$root.$i18n.locale = locale;
         // Tells the browser the page language, so it does not offer to translate it
         document.documentElement.lang = locale.replace('_', '-');
