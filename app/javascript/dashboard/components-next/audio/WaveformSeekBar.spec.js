@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import WaveformSeekBar from './WaveformSeekBar.vue';
+import WaveformSeekBar, { getKnobOffset } from './WaveformSeekBar.vue';
 
 const mountBar = (props = {}) => {
   const wrapper = mount(WaveformSeekBar, { props: { duration: 10, ...props } });
@@ -51,18 +51,18 @@ describe('WaveformSeekBar', () => {
     expect(wrapper.emitted('seek')[0][0]).toBeCloseTo(0.55);
   });
 
-  it('places the knob at the progress position', () => {
+  it('places the knob with a translate3d transform', () => {
     const { wrapper } = mountBar({ progress: 0.5 });
-    expect(
-      wrapper.find('[data-test-id="seek-knob"]').attributes('style')
-    ).toContain('50%');
+    const style = wrapper
+      .find('[data-test-id="seek-knob"]')
+      .attributes('style');
+    expect(style).toContain('translate3d(');
+    expect(style).not.toContain('inset');
   });
 
-  it('keeps the knob within 0-1', async () => {
-    const { wrapper } = mountBar({ progress: 3 });
-    const knob = () => wrapper.find('[data-test-id="seek-knob"]');
-    expect(knob().attributes('style')).toContain('100%');
-    await wrapper.setProps({ progress: -2 });
-    expect(knob().attributes('style')).toContain('calc(0%');
+  it('computes the knob offset from the measured width', () => {
+    expect(getKnobOffset(0.5, 200)).toBe(94);
+    expect(getKnobOffset(0.5, 200, true)).toBe(-94);
+    expect(getKnobOffset(0, 200)).toBe(-6);
   });
 });
