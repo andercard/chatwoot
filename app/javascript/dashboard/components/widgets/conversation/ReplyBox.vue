@@ -167,6 +167,7 @@ export default {
       isRecordingAudio: false,
       sendAfterRecording: false,
       replyType: REPLY_EDITOR_MODES.REPLY,
+      focusEditorOnMount: true,
       draftConversationId: null,
       draftReplyMode: null,
       bccEmails: '',
@@ -1038,11 +1039,13 @@ export default {
       });
       this.hideContentTemplatesModal();
     },
-    setReplyMode(mode = REPLY_EDITOR_MODES.REPLY) {
-      // Clear attachments when switching between private note and reply modes
-      // This is to prevent from breaking the upload rules
-      if (this.attachedFiles.length > 0) this.attachedFiles = [];
-
+    setReplyMode(mode = REPLY_EDITOR_MODES.REPLY, { focusEditor = true } = {}) {
+      if (!focusEditor) {
+        this.focusEditorOnMount = false;
+        setTimeout(() => {
+          this.focusEditorOnMount = true;
+        }, 500);
+      }
       this.$store.dispatch('draftMessages/setReplyEditorMode', { mode });
       if (this.canSendPublicReply) this.replyType = mode;
       if (this.isRecordingAudio) {
@@ -1546,6 +1549,7 @@ export default {
           :placeholder="messagePlaceHolder"
           :update-selection-with="updateEditorSelectionWith"
           :min-height="4"
+          :focus-on-mount="focusEditorOnMount"
           :disabled="isEditorDisabled"
           enable-insert-events
           :enable-macros="isMacrosEnabled"

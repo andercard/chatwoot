@@ -60,8 +60,8 @@ export default {
   },
   emits: ['setReplyMode', 'toggleEditorSize', 'executeCopilotAction'],
   setup(props, { emit }) {
-    const setReplyMode = mode => {
-      emit('setReplyMode', mode);
+    const setReplyMode = (mode, options) => {
+      emit('setReplyMode', mode, options);
     };
     const handleReplyClick = () => {
       if (props.isReplyRestricted) return;
@@ -75,7 +75,8 @@ export default {
         props.mode === REPLY_EDITOR_MODES.REPLY
           ? REPLY_EDITOR_MODES.NOTE
           : REPLY_EDITOR_MODES.REPLY;
-      setReplyMode(newMode);
+      // The lock only switches the mode: it must not open the keyboard
+      setReplyMode(newMode, { focusEditor: false });
     };
 
     const { captainTasksEnabled } = useCaptain();
