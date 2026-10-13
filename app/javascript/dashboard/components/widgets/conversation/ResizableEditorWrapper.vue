@@ -188,7 +188,7 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
 <template>
   <div
     ref="wrapperRef"
-    class="relative resizable-editor-wrapper group/wrapper max-sm:[&_.resizable-editor-body]:[interpolate-size:allow-keywords] max-sm:[&:not([data-expanded])_.resizable-editor-body]:!h-auto max-sm:[&:not([data-expanded])_.resizable-editor-body]:!min-h-11 max-sm:[&:not([data-expanded])_.resizable-editor-body]:!max-h-28"
+    class="relative resizable-editor-wrapper group/wrapper max-sm:[&_.resizable-editor-body]:[interpolate-size:allow-keywords] max-sm:[&:not([data-expanded])_.resizable-editor-body]:!h-auto max-sm:[&:not([data-expanded])_.resizable-editor-body]:!min-h-[1.3125rem] max-sm:[&:not([data-expanded])_.resizable-editor-body]:!max-h-28 max-sm:[&:not([data-expanded])_.resizable-editor-body_p]:!my-0 max-sm:[&:not([data-expanded])_.resizable-editor-body_p:last-child]:!mb-0"
     :data-expanded="isExpanded || undefined"
     :data-grown="(hasMultipleLines && !isExpanded) || undefined"
     :style="{

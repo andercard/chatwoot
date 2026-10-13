@@ -186,6 +186,7 @@ export default {
             'text-n-violet-9 bg-n-violet-3': showCopilotMenu,
           }"
           sm
+          class="max-sm:!size-10"
           icon="i-ph-sparkle-fill"
           @click="toggleCopilotMenu"
         />
@@ -214,7 +215,7 @@ export default {
       ghost
       round
       sm
-      class="sm:hidden !rounded-full !size-8 max-sm:col-start-3 max-sm:row-start-1 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3"
+      class="sm:hidden !rounded-full !size-8 max-sm:!size-10 max-sm:col-start-3 max-sm:row-start-1 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3"
       :class="
         mode === REPLY_EDITOR_MODES.NOTE
           ? 'text-n-amber-11 bg-n-amber-3 hover:enabled:!bg-n-amber-4'
@@ -233,7 +234,7 @@ export default {
       ghost
       round
       sm
-      class="sm:hidden max-sm:hidden !rounded-full !size-8 text-n-slate-11 max-sm:col-start-4 max-sm:row-start-1 max-sm:self-start max-sm:justify-self-end max-sm:group-data-[grown]/wrapper:flex"
+      class="sm:hidden max-sm:hidden !rounded-full !size-8 max-sm:!size-10 text-n-slate-11 max-sm:col-start-4 max-sm:row-start-1 max-sm:self-start max-sm:justify-self-end max-sm:group-data-[grown]/wrapper:flex"
       icon="i-lucide-maximize-2"
       @click="$emit('toggleEditorSize')"
     />
@@ -241,7 +242,7 @@ export default {
       ghost
       round
       sm
-      class="sm:hidden max-sm:hidden !rounded-full !size-8 text-n-slate-11 max-sm:col-start-4 max-sm:row-start-1 max-sm:self-start max-sm:justify-self-end max-sm:group-data-[expanded]/wrapper:flex"
+      class="sm:hidden max-sm:hidden !rounded-full !size-8 max-sm:!size-10 text-n-slate-11 max-sm:col-start-4 max-sm:row-start-1 max-sm:self-start max-sm:justify-self-end max-sm:group-data-[expanded]/wrapper:flex"
       icon="i-lucide-minimize-2"
       @click="$emit('toggleEditorSize')"
     />

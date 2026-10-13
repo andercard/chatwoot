@@ -375,6 +375,7 @@ export default {
           slate
           faded
           sm
+          class="max-sm:!size-10 max-sm:!rounded-full max-sm:!bg-transparent max-sm:hover:enabled:!bg-n-alpha-2"
           :aria-label="$t('CONVERSATION.REPLYBOX.MOBILE_MENU.OPEN')"
           @click="showMobileMenu = !showMobileMenu"
         />
@@ -567,7 +568,7 @@ export default {
         :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.RECORD')"
         icon="i-ph-microphone"
         :color="isNote ? 'amber' : 'blue'"
-        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3 max-sm:group-data-[expanded]/wrapper:self-center"
+        class="flex-shrink-0 !rounded-full max-sm:!h-10 max-sm:!w-12 sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3 max-sm:group-data-[expanded]/wrapper:self-center"
         @click="toggleAudioRecorder"
       />
       <NextButton
@@ -577,7 +578,7 @@ export default {
         type="submit"
         :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
-        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3 max-sm:group-data-[expanded]/wrapper:self-center"
+        class="flex-shrink-0 !rounded-full max-sm:!h-10 max-sm:!w-12 sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3 max-sm:group-data-[expanded]/wrapper:self-center"
         @click="onSend"
       />
     </div>
