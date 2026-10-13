@@ -7,6 +7,7 @@ import {
   getCurrentInstance,
 } from 'vue';
 import Icon from 'next/icon/Icon.vue';
+import WaveformSeekBar from 'next/audio/WaveformSeekBar.vue';
 import { timeStampAppendedURL } from 'dashboard/helper/URLHelper';
 import { downloadFile } from '@chatwoot/utils';
 import { useEmitter } from 'dashboard/composables/emitter';
@@ -122,8 +123,12 @@ const onTimeUpdate = () => {
   currentTime.value = audioPlayer.value?.currentTime;
 };
 
-const seek = event => {
-  const time = Number(event.target.value);
+const progress = computed(() =>
+  duration.value ? currentTime.value / duration.value : 0
+);
+
+const seek = ratio => {
+  const time = ratio * duration.value;
   audioPlayer.value.currentTime = time;
   currentTime.value = time;
 };
@@ -177,49 +182,50 @@ const downloadAudio = async () => {
     v-bind="$attrs"
     class="rounded-xl w-full gap-2 p-1.5 bg-n-alpha-white flex flex-col items-center border border-n-container shadow-[0px_2px_8px_0px_rgba(94,94,94,0.06)]"
   >
-    <div class="flex gap-1 w-full flex-1 items-center justify-start">
-      <button class="p-0 border-0 size-8" @click="playOrPause">
+    <div class="flex gap-2 w-full flex-1 items-center justify-start">
+      <button class="p-0 border-0 size-10 shrink-0" @click="playOrPause">
         <Icon
           v-if="isPlaying"
-          class="size-8"
+          class="size-10"
           icon="i-teenyicons-pause-small-solid"
         />
-        <Icon v-else class="size-8" icon="i-teenyicons-play-small-solid" />
+        <Icon v-else class="size-10" icon="i-teenyicons-play-small-solid" />
       </button>
-      <div class="tabular-nums text-xs">
-        {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
-      </div>
-      <div class="flex-1 items-center flex px-2">
-        <input
-          type="range"
-          min="0"
-          :max="duration"
-          :value="currentTime"
-          class="w-full h-1 bg-n-slate-12/40 rounded-lg appearance-none cursor-pointer accent-current"
-          @input="seek"
+      <div class="flex flex-col flex-1 min-w-0">
+        <WaveformSeekBar
+          :progress="progress"
+          :duration="duration"
+          @seek="seek"
         />
+        <div class="tabular-nums text-xs text-n-slate-11">
+          {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
+        </div>
       </div>
-      <button
-        class="border-0 w-10 h-6 grid place-content-center bg-n-alpha-2 hover:bg-alpha-3 rounded-2xl"
-        @click="changePlaybackSpeed"
-      >
-        <span class="text-xs text-n-slate-11 font-medium">
-          {{ playbackSpeedLabel }}
-        </span>
-      </button>
-      <button
-        class="p-0 border-0 size-8 grid place-content-center"
-        @click="toggleMute"
-      >
-        <Icon v-if="isMuted" class="size-4" icon="i-lucide-volume-off" />
-        <Icon v-else class="size-4" icon="i-lucide-volume-2" />
-      </button>
-      <button
-        class="p-0 border-0 size-8 grid place-content-center"
-        @click="downloadAudio"
-      >
-        <Icon class="size-4" icon="i-lucide-download" />
-      </button>
+      <div class="flex flex-col items-center shrink-0">
+        <button
+          class="border-0 w-10 h-6 grid place-content-center bg-n-alpha-2 hover:bg-alpha-3 rounded-2xl"
+          @click="changePlaybackSpeed"
+        >
+          <span class="text-xs text-n-slate-11 font-medium">
+            {{ playbackSpeedLabel }}
+          </span>
+        </button>
+        <div class="flex">
+          <button
+            class="p-0 border-0 size-6 grid place-content-center"
+            @click="toggleMute"
+          >
+            <Icon v-if="isMuted" class="size-4" icon="i-lucide-volume-off" />
+            <Icon v-else class="size-4" icon="i-lucide-volume-2" />
+          </button>
+          <button
+            class="p-0 border-0 size-6 grid place-content-center"
+            @click="downloadAudio"
+          >
+            <Icon class="size-4" icon="i-lucide-download" />
+          </button>
+        </div>
+      </div>
     </div>
 
     <div

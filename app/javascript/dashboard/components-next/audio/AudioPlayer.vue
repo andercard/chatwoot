@@ -5,6 +5,7 @@ import { useEmitter } from 'dashboard/composables/emitter';
 import { emitter } from 'shared/helpers/mitt';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import WaveformSeekBar from './WaveformSeekBar.vue';
 
 const props = defineProps({
   src: {
@@ -70,8 +71,12 @@ const onTimeUpdate = () => {
   currentTime.value = audioPlayer.value?.currentTime;
 };
 
-const seek = event => {
-  const time = Number(event.target.value);
+const progress = computed(() =>
+  duration.value ? currentTime.value / duration.value : 0
+);
+
+const seek = ratio => {
+  const time = ratio * duration.value;
   audioPlayer.value.currentTime = time;
   currentTime.value = time;
 };
@@ -95,7 +100,7 @@ const downloadRecording = () => {
 
 <template>
   <div
-    class="flex items-center justify-center h-8 gap-2 px-2 rounded-full bg-n-alpha-1 dark:bg-n-alpha-2 overflow-hidden"
+    class="flex items-center justify-center h-10 gap-2 px-2 rounded-full bg-n-alpha-1 dark:bg-n-alpha-2 overflow-hidden"
     @click.stop
   >
     <audio
@@ -122,13 +127,11 @@ const downloadRecording = () => {
         />
       </template>
     </Button>
-    <input
-      type="range"
-      min="0"
-      :max="duration || 0"
-      :value="currentTime"
-      class="flex-1 min-w-0 lg:grow-0 lg:basis-24 h-0.5 rounded-full appearance-none cursor-pointer bg-n-slate-12/30 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-2 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-n-slate-11 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:size-2 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-n-slate-11"
-      @input="seek"
+    <WaveformSeekBar
+      :progress="progress"
+      :duration="duration"
+      class="flex-1 min-w-0 lg:grow-0 lg:basis-24"
+      @seek="seek"
     />
     <span class="text-label-small tabular-nums text-n-slate-11 shrink-0">
       {{ displayedTime }}
