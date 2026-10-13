@@ -57,10 +57,6 @@ export default {
       type: Boolean,
       default: false,
     },
-    showExpand: {
-      type: Boolean,
-      default: false,
-    },
   },
   emits: ['setReplyMode', 'toggleEditorSize', 'executeCopilotAction'],
   setup(props, { emit }) {
@@ -179,7 +175,7 @@ export default {
       class="flex items-center gap-2 max-sm:contents"
     >
       <div
-        class="relative max-sm:col-start-2 max-sm:row-start-1 max-sm:self-end max-sm:group-data-[expanded]/wrapper:row-start-2"
+        class="relative max-sm:col-start-2 max-sm:row-start-1 max-sm:self-end max-sm:mb-1.5 max-sm:group-data-[expanded]/wrapper:mb-0 max-sm:group-data-[expanded]/wrapper:row-start-2"
       >
         <NextButton
           ref="copilotToggleRef"
@@ -218,7 +214,7 @@ export default {
       ghost
       round
       sm
-      class="sm:hidden !rounded-full !size-8 max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end max-sm:self-end max-sm:z-10 max-sm:m-1 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4"
+      class="sm:hidden !rounded-full !size-8 max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end max-sm:self-end max-sm:z-10 max-sm:m-1 max-sm:mb-1.5 max-sm:group-data-[expanded]/wrapper:mb-1 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4"
       :class="
         mode === REPLY_EDITOR_MODES.NOTE
           ? 'text-n-amber-11 bg-n-amber-3 hover:enabled:!bg-n-amber-4'
@@ -234,11 +230,10 @@ export default {
       @click="handleModeToggle"
     />
     <NextButton
-      v-if="showExpand"
       ghost
       round
       sm
-      class="sm:hidden !rounded-full !size-8 text-n-slate-11 max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end max-sm:self-end max-sm:me-10 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4 max-sm:group-data-[expanded]/wrapper:self-start max-sm:group-data-[expanded]/wrapper:me-1 max-sm:z-10 max-sm:m-1"
+      class="sm:hidden !rounded-full !size-8 text-n-slate-11 max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end max-sm:self-end max-sm:me-10 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4 max-sm:group-data-[expanded]/wrapper:self-start max-sm:group-data-[expanded]/wrapper:me-1 max-sm:z-10 max-sm:m-1 max-sm:mb-1.5 max-sm:group-data-[expanded]/wrapper:mb-1"
       icon="i-lucide-maximize-2"
       @click="$emit('toggleEditorSize')"
     />

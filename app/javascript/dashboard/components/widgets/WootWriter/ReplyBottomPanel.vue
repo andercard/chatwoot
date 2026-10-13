@@ -397,7 +397,7 @@ export default {
     <div class="flex gap-2 items-center max-sm:contents">
       <div
         v-if="showMobileMenuButton"
-        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-end max-sm:group-data-[expanded]/wrapper:row-start-2"
+        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-end max-sm:mb-1.5 max-sm:group-data-[expanded]/wrapper:mb-0 max-sm:group-data-[expanded]/wrapper:row-start-2"
       >
         <NextButton
           ref="mobileMenuToggleRef"
@@ -608,7 +608,7 @@ export default {
         type="submit"
         :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
-        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-end max-sm:group-data-[expanded]/wrapper:row-start-2"
+        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-end max-sm:mb-1.5 max-sm:group-data-[expanded]/wrapper:mb-0 max-sm:group-data-[expanded]/wrapper:row-start-2"
         @click="onSend"
       />
     </div>
