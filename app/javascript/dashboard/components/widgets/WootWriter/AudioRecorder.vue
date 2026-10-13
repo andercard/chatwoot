@@ -144,9 +144,17 @@ const releaseAudio = () => {
   recordedAudioUrl.value = null;
 };
 
-const startRecording = () => {
-  record.value.startRecording();
-  isRecording.value = true;
+const startRecording = async () => {
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error('getUserMedia unavailable');
+    }
+    await record.value.startRecording();
+    isRecording.value = true;
+  } catch (error) {
+    isRecording.value = false;
+    emit('recordError', { error, reason: 'microphone' });
+  }
 };
 
 // Pausing stops the recording: the preview plays the captured audio
@@ -181,6 +189,10 @@ const recordAgain = async () => {
   await nextTick();
   startRecording();
 };
+
+const canSend = computed(() =>
+  isRecording.value ? recordedDuration.value > 0 : hasRecording.value
+);
 
 const progress = computed(() =>
   recordedDuration.value ? currentTime.value / recordedDuration.value : 0
@@ -246,7 +258,7 @@ defineExpose({ stopRecording, record });
         ref="waveformContainer"
         class="flex-1 min-w-0 overflow-hidden"
       />
-      <div v-if="!isRecording" class="flex-1 min-w-0 overflow-hidden">
+      <div v-if="!isRecording" class="flex-1 min-w-0">
         <WaveformSeekBar
           :progress="progress"
           :duration="recordedDuration"
@@ -267,6 +279,7 @@ defineExpose({ stopRecording, record });
       ruby
       sm
       class="flex-shrink-0 !rounded-full"
+      :disabled="!canSend"
       :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.PAUSE')"
       data-test-id="pause-recording"
       @click="stopRecording"
@@ -286,7 +299,7 @@ defineExpose({ stopRecording, record });
       sm
       class="flex-shrink-0 !rounded-full"
       :color="isNote ? 'amber' : 'blue'"
-      :disabled="isSending"
+      :disabled="isSending || !canSend"
       :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.SEND')"
       data-test-id="send-recording"
       @click="emit('send')"

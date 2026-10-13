@@ -307,7 +307,8 @@
         "SEND": "Send voice message",
         "PLAY": "Play recording",
         "PAUSE_PLAYBACK": "Pause playback",
-        "RECORD_AGAIN": "Record again"
+        "RECORD_AGAIN": "Record again",
+        "MIC_UNAVAILABLE": "Microphone unavailable. Allow microphone access and open the page over HTTPS."
       },
       "QUICK_REPLIES": {
         "TITLE": "Quick replies",

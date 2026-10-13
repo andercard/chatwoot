@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, useTemplateRef } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
 
 const props = defineProps({
   progress: { type: Number, default: 0 },
@@ -10,21 +11,32 @@ const props = defineProps({
 
 const emit = defineEmits(['seek']);
 
-const BAR_COUNT = 32;
+// 3px bar + 3px gap
+const BAR_STEP_PX = 6;
+const BAR_GAP_PX = 3;
+const MIN_BARS = 16;
+const MAX_BARS = 128;
 // 1.25rem of the 2rem track when there are no peaks
 const FLAT_BAR_HEIGHT = 0.625;
 const KEYBOARD_STEP = 0.05;
 const MIN_PEAK = 0.2;
 
 const track = useTemplateRef('track');
+const barsArea = useTemplateRef('barsArea');
+const barCount = ref(MIN_BARS);
 const isDragging = ref(false);
 
 const clamp = value => Math.min(1, Math.max(0, value));
 
+useResizeObserver(barsArea, ([entry]) => {
+  const fit = Math.floor((entry.contentRect.width + BAR_GAP_PX) / BAR_STEP_PX);
+  barCount.value = Math.min(MAX_BARS, Math.max(MIN_BARS, fit));
+});
+
 const bars = computed(() =>
-  Array.from({ length: BAR_COUNT }, (_, index) => {
+  Array.from({ length: barCount.value }, (_, index) => {
     const peak = props.peaks.length
-      ? props.peaks[Math.floor((index / BAR_COUNT) * props.peaks.length)]
+      ? props.peaks[Math.floor((index / barCount.value) * props.peaks.length)]
       : FLAT_BAR_HEIGHT;
     return { index, height: Math.max(MIN_PEAK, clamp(peak)) * 100 };
   })
@@ -32,7 +44,7 @@ const bars = computed(() =>
 
 const currentProgress = computed(() => clamp(props.progress));
 const playedBars = computed(() =>
-  Math.round(currentProgress.value * BAR_COUNT)
+  Math.round(currentProgress.value * barCount.value)
 );
 
 const emitFromPointer = event => {
@@ -83,27 +95,32 @@ const onKeydown = event => {
     aria-valuemin="0"
     :aria-valuemax="Math.round(duration)"
     :aria-valuenow="Math.round(currentProgress * duration)"
-    class="flex items-center justify-between gap-0.5 w-full min-w-0 h-8 relative cursor-pointer touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-n-brand rounded-md"
+    class="flex items-center justify-center w-full min-w-0 h-8 px-1.5 cursor-pointer touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-n-brand rounded-md"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="onPointerUp"
     @keydown="onKeydown"
   >
-    <span
-      v-for="bar in bars"
-      :key="bar.index"
-      class="w-[0.1875rem] shrink-0 rounded-full"
-      :class="bar.index < playedBars ? 'bg-n-blue-9' : 'bg-n-slate-7'"
-      :style="{ height: `${bar.height}%` }"
-    />
     <div
-      data-test-id="seek-knob"
-      class="absolute top-1/2 size-3 -translate-y-1/2 rounded-full bg-n-blue-9 shadow pointer-events-none"
-      :class="isDragging ? 'scale-125' : ''"
-      :style="{
-        insetInlineStart: `calc(${currentProgress * 100}% - 0.375rem)`,
-      }"
-    />
+      ref="barsArea"
+      class="flex items-center justify-between w-full h-full relative"
+    >
+      <span
+        v-for="bar in bars"
+        :key="bar.index"
+        class="w-[0.1875rem] shrink-0 rounded-full"
+        :class="bar.index < playedBars ? 'bg-n-blue-9' : 'bg-n-slate-7'"
+        :style="{ height: `${bar.height}%` }"
+      />
+      <div
+        data-test-id="seek-knob"
+        class="absolute top-1/2 size-3 -translate-y-1/2 rounded-full bg-n-blue-9 shadow pointer-events-none"
+        :class="isDragging ? 'scale-125' : ''"
+        :style="{
+          insetInlineStart: `calc(${currentProgress * 100}% - 0.375rem)`,
+        }"
+      />
+    </div>
   </div>
 </template>

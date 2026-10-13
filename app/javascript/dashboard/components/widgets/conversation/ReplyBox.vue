@@ -1148,9 +1148,13 @@ export default {
         file => !file?.isVoiceMessage
       );
     },
-    onRecordError() {
+    onRecordError({ reason } = {}) {
       this.sendAfterRecording = false;
       this.toggleAudioRecorder();
+      if (reason === 'microphone') {
+        useAlert(this.$t('CONVERSATION.REPLYBOX.AUDIO.MIC_UNAVAILABLE'));
+        return;
+      }
       useAlert(this.$t('CONVERSATION.REPLYBOX.AUDIO_CONVERSION_FAILED'));
     },
     toggleTyping(status) {
