@@ -11,6 +11,10 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  height: {
+    type: Number,
+    default: 100,
+  },
 });
 
 const emit = defineEmits([
@@ -19,12 +23,15 @@ const emit = defineEmits([
   'pause',
   'play',
   'recordError',
+  'recordPausedChange',
 ]);
 
 const waveformContainer = ref(null);
 const wavesurfer = ref(null);
 const record = ref(null);
 const isRecording = ref(false);
+const isPaused = ref(false);
+const durationText = ref('00:00');
 const isPlaying = ref(false);
 const hasRecording = ref(false);
 const recordedAudioUrl = ref(null);
@@ -64,7 +71,7 @@ const initWaveSurfer = () => {
     container: waveformContainer.value,
     waveColor: '#1F93FF',
     progressColor: '#6E6F73',
-    height: 100,
+    height: props.height,
     barWidth: 2,
     barGap: 1,
     barRadius: 2,
@@ -113,8 +120,18 @@ const initWaveSurfer = () => {
     }
   });
 
+  record.value.on('record-pause', () => {
+    isPaused.value = true;
+    emit('recordPausedChange', true);
+  });
+  record.value.on('record-resume', () => {
+    isPaused.value = false;
+    emit('recordPausedChange', false);
+  });
+
   record.value.on('record-progress', time => {
-    emit('recorderProgressChanged', formatTimeProgress(time));
+    durationText.value = formatTimeProgress(time);
+    emit('recorderProgressChanged', durationText.value);
   });
 };
 
@@ -122,7 +139,17 @@ const stopRecording = () => {
   if (isRecording.value) {
     record.value.stopRecording();
     isRecording.value = false;
+    isPaused.value = false;
+    emit('recordPausedChange', false);
   }
+};
+
+const pause = () => {
+  if (isRecording.value && !isPaused.value) record.value.pauseRecording();
+};
+
+const resume = () => {
+  if (isRecording.value && isPaused.value) record.value.resumeRecording();
 };
 
 const startRecording = () => {
@@ -152,9 +179,21 @@ onUnmounted(() => {
   }
 });
 
-defineExpose({ playPause, stopRecording, record });
+defineExpose({ playPause, stopRecording, record, pause, resume, isPaused });
 </script>
 
 <template>
-  <div ref="waveformContainer" class="w-full p-1" />
+  <!-- Phone: elapsed time and live waveform share one row -->
+  <div class="flex gap-3 items-center max-sm:px-1 sm:contents">
+    <span
+      class="text-sm font-medium sm:hidden text-n-slate-12 tabular-nums"
+      data-test-id="recording-duration"
+    >
+      {{ durationText }}
+    </span>
+    <div
+      ref="waveformContainer"
+      class="p-1 w-full max-sm:flex-1 max-sm:min-w-0"
+    />
+  </div>
 </template>

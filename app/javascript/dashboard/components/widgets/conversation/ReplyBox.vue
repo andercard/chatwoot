@@ -67,6 +67,9 @@ import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { emitter } from 'shared/helpers/mitt';
+const PHONE_MEDIA_QUERY = '(max-width: 639px)';
+const PHONE_WAVEFORM_HEIGHT = 40;
+const DESKTOP_WAVEFORM_HEIGHT = 100;
 const EmojiIconPicker = defineAsyncComponent(
   () =>
     import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
@@ -167,6 +170,8 @@ export default {
       isRecordingAudio: false,
       recordingAudioState: '',
       recordingAudioDurationText: '',
+      isRecordingPaused: false,
+      sendAfterRecording: false,
       replyType: REPLY_EDITOR_MODES.REPLY,
       draftConversationId: null,
       draftReplyMode: null,
@@ -1127,7 +1132,7 @@ export default {
     onRecordProgressChanged(duration) {
       this.recordingAudioDurationText = duration;
     },
-    onFinishRecorder(file) {
+    async onFinishRecorder(file) {
       this.recordingAudioState = 'stopped';
       this.hasRecordedAudio = true;
       // Added a new key isVoiceMessage to the file to identify recorded audio
@@ -1136,9 +1141,40 @@ export default {
         ...file,
         isVoiceMessage: true,
       };
-      return file && this.onFileUpload(autoRecordedFile);
+      if (file) await this.onFileUpload(autoRecordedFile);
+      if (!this.sendAfterRecording) return;
+      this.sendAfterRecording = false;
+      if (this.attachedFiles.some(attached => attached.isVoiceMessage)) {
+        this.onSendReply();
+      }
+    },
+    // Phone: stops the recording, waits for the upload and sends the voice note
+    sendRecordedAudio() {
+      if (this.sendAfterRecording) return;
+      if (this.hasRecordedAudio) {
+        this.onSendReply();
+        return;
+      }
+      this.sendAfterRecording = true;
+      this.$refs.audioRecorderInput?.stopRecording();
+    },
+    // The phone shows the waveform in a ~2.5rem row, desktop keeps the tall one
+    getAudioWaveformHeight() {
+      return window.matchMedia(PHONE_MEDIA_QUERY).matches
+        ? PHONE_WAVEFORM_HEIGHT
+        : DESKTOP_WAVEFORM_HEIGHT;
+    },
+    toggleRecordingPause() {
+      const recorder = this.$refs.audioRecorderInput;
+      if (!recorder) return;
+      if (this.isRecordingPaused) {
+        recorder.resume();
+      } else {
+        recorder.pause();
+      }
     },
     onRecordError() {
+      this.sendAfterRecording = false;
       this.toggleAudioRecorder();
       useAlert(this.$t('CONVERSATION.REPLYBOX.AUDIO_CONVERSION_FAILED'));
     },
@@ -1414,6 +1450,8 @@ export default {
       this.recordingAudioDurationText = '00:00';
       this.isRecordingAudio = false;
       this.recordingAudioState = '';
+      this.isRecordingPaused = false;
+      this.sendAfterRecording = false;
       this.hasRecordedAudio = false;
       // Only clear the recorded audio when we click toggle button.
       this.attachedFiles = this.attachedFiles.filter(
@@ -1437,26 +1475,33 @@ export default {
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
   <div
     class="reply-box max-sm:grid max-sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] max-sm:items-end max-sm:gap-x-2 max-sm:gap-y-0 max-sm:group-data-[expanded]/wrapper:gap-y-2 max-sm:!mx-0 max-sm:!mb-0 max-sm:!rounded-none max-sm:!border-x-0 max-sm:!border-b-0 max-sm:!bg-n-solid-1 max-sm:p-2 max-sm:pt-1.5 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-    :class="replyBoxClass"
+    :class="[replyBoxClass, { 'max-sm:!grid-cols-3': showAudioRecorderEditor }]"
   >
-    <ReplyTopPanel
-      :mode="replyType"
-      :conversation-id="conversationId"
-      :is-reply-restricted="!canSendPublicReply"
-      :disabled="
-        (copilot.isActive.value && copilot.isButtonDisabled.value) ||
-        showAudioRecorderEditor
+    <!-- Phone: while recording only the recorder controls remain -->
+    <div
+      :class="
+        showAudioRecorderEditor ? 'max-sm:hidden sm:contents' : 'contents'
       "
-      :is-editor-disabled="isEditorDisabled"
-      :is-message-length-reaching-threshold="isMessageLengthReachingThreshold"
-      :characters-remaining="charactersRemaining"
-      :editor-content="message"
-      :has-content="hasMeaningfulEditorContent"
-      @set-reply-mode="setReplyMode"
-      @toggle-editor-size="toggleEditorSize"
-      @toggle-copilot="copilot.toggleEditor"
-      @execute-copilot-action="executeCopilotAction"
-    />
+    >
+      <ReplyTopPanel
+        :mode="replyType"
+        :conversation-id="conversationId"
+        :is-reply-restricted="!canSendPublicReply"
+        :disabled="
+          (copilot.isActive.value && copilot.isButtonDisabled.value) ||
+          showAudioRecorderEditor
+        "
+        :is-editor-disabled="isEditorDisabled"
+        :is-message-length-reaching-threshold="isMessageLengthReachingThreshold"
+        :characters-remaining="charactersRemaining"
+        :editor-content="message"
+        :has-content="hasMeaningfulEditorContent"
+        @set-reply-mode="setReplyMode"
+        @toggle-editor-size="toggleEditorSize"
+        @toggle-copilot="copilot.toggleEditor"
+        @execute-copilot-action="executeCopilotAction"
+      />
+    </div>
     <ArticleSearchPopover
       v-if="showArticleSearchPopover && connectedPortalSlug"
       :selected-portal-slug="connectedPortalSlug"
@@ -1474,7 +1519,12 @@ export default {
     >
       <div
         :key="copilot.editorTransitionKey.value"
-        class="reply-box__top max-sm:!static max-sm:col-start-3 max-sm:row-start-1 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4 max-sm:group-data-[expanded]/wrapper:animate-fade-in-up max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
+        class="reply-box__top max-sm:!static max-sm:row-start-1 max-sm:group-data-[expanded]/wrapper:animate-fade-in-up max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
+        :class="
+          showAudioRecorderEditor
+            ? 'max-sm:col-start-1 max-sm:col-span-3'
+            : 'max-sm:col-start-3 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4'
+        "
       >
         <ReplyToMessage
           v-if="shouldShowReplyToMessage"
@@ -1501,11 +1551,13 @@ export default {
           v-if="showAudioRecorderEditor"
           ref="audioRecorderInput"
           :audio-record-format="audioRecordFormat"
+          :height="getAudioWaveformHeight()"
           @recorder-progress-changed="onRecordProgressChanged"
           @finish-record="onFinishRecorder"
           @record-error="onRecordError"
           @play="recordingAudioState = 'playing'"
           @pause="recordingAudioState = 'paused'"
+          @record-paused-change="isRecordingPaused = $event"
         />
         <CopilotEditorSection
           v-if="copilot.isActive.value && !showAudioRecorderEditor"
@@ -1622,6 +1674,10 @@ export default {
         :inbox="inbox"
         :is-on-private-note="isOnPrivateNote"
         :is-recording-audio="isRecordingAudio"
+        :is-recording-paused="isRecordingPaused"
+        :is-sending-recording="sendAfterRecording"
+        :send-recorded-audio="sendRecordedAudio"
+        :toggle-recording-pause="toggleRecordingPause"
         :is-send-disabled="isReplyButtonDisabled"
         :is-note="isPrivate"
         :is-editor-disabled="isEditorDisabled"

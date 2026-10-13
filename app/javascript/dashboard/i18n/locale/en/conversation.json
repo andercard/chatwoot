@@ -299,7 +299,11 @@
     },
     "REPLYBOX": {
       "AUDIO": {
-        "SEEK": "Seek audio"
+        "SEEK": "Seek audio",
+        "DELETE": "Delete recording",
+        "PAUSE": "Pause recording",
+        "RESUME": "Resume recording",
+        "SEND": "Send voice message"
       },
       "QUICK_REPLIES": {
         "TITLE": "Quick replies",
