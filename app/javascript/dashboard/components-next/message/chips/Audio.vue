@@ -69,6 +69,60 @@ const playbackSpeed = ref(1);
 
 const { uid } = getCurrentInstance();
 
+// `timeupdate` only fires ~4 times per second, which makes the knob jump.
+// While playing we read the real currentTime on every frame instead.
+// The browser also only updates `currentTime` in coarse steps, so between real
+// updates we interpolate from the last known media time and the wall clock.
+const SEEK_BACK_THRESHOLD = 0.25;
+const MIN_READY_STATE = 3;
+let rafId = null;
+let lastMediaTime = 0;
+let lastStamp = 0;
+let lastRealTime = 0;
+const syncClock = () => {
+  const real = audioPlayer.value?.currentTime ?? 0;
+  lastRealTime = real;
+  lastMediaTime = real;
+  lastStamp = performance.now();
+  return real;
+};
+const stopTracking = () => {
+  if (rafId !== null) cancelAnimationFrame(rafId);
+  rafId = null;
+  if (audioPlayer.value) currentTime.value = syncClock();
+};
+const tick = () => {
+  const el = audioPlayer.value;
+  rafId = requestAnimationFrame(tick);
+  if (!el) return;
+  const now = performance.now();
+  const real = el.currentTime;
+  const canExtrapolate =
+    !el.paused && !el.ended && !el.seeking && el.readyState >= MIN_READY_STATE;
+
+  if (!canExtrapolate) {
+    syncClock();
+    currentTime.value = real;
+    return;
+  }
+
+  if (real !== lastRealTime) {
+    const isSeekBack = real < currentTime.value - SEEK_BACK_THRESHOLD;
+    lastRealTime = real;
+    lastMediaTime = real;
+    lastStamp = now;
+    currentTime.value = isSeekBack ? real : Math.max(real, currentTime.value);
+    return;
+  }
+
+  const estimate = lastMediaTime + ((now - lastStamp) / 1000) * el.playbackRate;
+  const max = Number.isFinite(duration.value) ? duration.value : estimate;
+  currentTime.value = Math.max(currentTime.value, Math.min(estimate, max));
+};
+const startTracking = () => {
+  if (rafId === null) rafId = requestAnimationFrame(tick);
+};
+
 // MediaRecorder-produced WebM/Opus blobs lack a Duration header → <audio>.duration
 // resolves to Infinity until we seek past the end, which forces the engine to
 // scan the file and compute the real length. Safe no-op for files with a real
@@ -120,6 +174,7 @@ useEmitter('pause_playing_audio', currentPlayingId => {
       /* ignore pause errors */
     }
     isPlaying.value = false;
+    stopTracking();
   }
 });
 
@@ -136,6 +191,7 @@ const toggleMute = () => {
 };
 
 const onTimeUpdate = () => {
+  if (rafId !== null) return;
   currentTime.value = audioPlayer.value?.currentTime;
 };
 
@@ -147,6 +203,9 @@ const seek = ratio => {
   const time = ratio * duration.value;
   audioPlayer.value.currentTime = time;
   currentTime.value = time;
+  lastRealTime = time;
+  lastMediaTime = time;
+  lastStamp = performance.now();
 };
 
 const convertToPlayable = async () => {
@@ -173,6 +232,8 @@ const convertToPlayable = async () => {
 
 // The native <audio> failed: fall back to the WAV (or give up if it was the WAV).
 const onMediaError = () => {
+  stopTracking();
+  isPlaying.value = false;
   if (!isOgg) return;
   if (fallbackUrl.value) {
     conversionFailed.value = true;
@@ -205,6 +266,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  stopTracking();
   stopObserving();
   if (fallbackUrl.value) URL.revokeObjectURL(fallbackUrl.value);
 });
@@ -214,13 +276,16 @@ const playOrPause = () => {
   if (isPlaying.value) {
     audioPlayer.value.pause();
     isPlaying.value = false;
+    stopTracking();
     return;
   }
   // Emit event to pause all other audio
   emitter.emit('pause_playing_audio', uid);
   isPlaying.value = true;
+  startTracking();
   audioPlayer.value.play().catch(error => {
     isPlaying.value = false;
+    stopTracking();
     if (error.name === 'AbortError') return;
     // eslint-disable-next-line no-console
     console.error('Audio playback failed', error.name, error.message);
@@ -229,6 +294,7 @@ const playOrPause = () => {
 };
 
 const onEnd = () => {
+  stopTracking();
   isPlaying.value = false;
   currentTime.value = 0;
   playbackSpeed.value = 1;
@@ -241,6 +307,7 @@ const changePlaybackSpeed = () => {
   const nextIndex = (currentIndex + 1) % speeds.length;
   playbackSpeed.value = speeds[nextIndex];
   audioPlayer.value.playbackRate = playbackSpeed.value;
+  syncClock();
 };
 
 const downloadAudio = async () => {
