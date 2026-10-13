@@ -60,3 +60,61 @@ Provisional: los números salen de `origin/production` y la ronda 1 del verify l
 **C. Humano (iPhone real, con la versión instalada en la pantalla de inicio):** `@` y `/` con teclado real, enviar un mensaje, alternar el candado, abrir cada fila del `+`. Esto no se puede reemplazar con el navegador de escritorio.
 
 El change se archiva con `openspec` solo tras esa prueba humana; publicar (PR, `v4.18.0-picnic.5`) requiere confirmación aparte.
+
+---
+
+# Ronda 2 (tras el verify de la ronda 1)
+
+### Qué encontré
+
+Sin `.codegraph/` en el worktree (plan mode es solo lectura): lo afirmado sale de leer archivos con `rg`/`Read` y de pruebas en el navegador de la ronda 1.
+
+**Lo que pidió el dev (captura de la caja expandida):**
+- Al expandir hoy la píldora queda en la columna 3 de la cuadrícula (`ReplyBox.vue`, `.reply-box__top` con `max-sm:col-start-3 max-sm:row-start-1`), entre el `+`/sparkle de la izquierda y el enviar de la derecha: queda angosta con "bordes blancos grandes" a los lados (en la prueba: 246 px de 390). Lo que quiere: la caja **sale desde abajo y sube por encima de los íconos** `+`, sparkle y enviar, ocupa **todo el ancho**, con el panel interior blanco y con una **animación corta**; los íconos quedan en una fila debajo y el candado dentro de la caja.
+- Hoy el expandido se detecta con `data-expanded` en `.resizable-editor-wrapper`, que ya lleva `group/wrapper` (`ResizableEditorWrapper.vue`); `ReplyTopPanel.vue` ya usa `max-sm:group-data-[expanded]/wrapper:...`. Ese es el gancho para reordenar la cuadrícula sin JS nuevo.
+- La altura compacta usa `!h-auto` (`ResizableEditorWrapper.vue`); de `auto` a un alto fijo **no se anima** con CSS, así que la animación pide valores numéricos.
+
+**Lo que dejó a medias el verify (`verify-report.md`):**
+- «Pedir datos de contacto» quedó como botón suelto en la fila 2 porque `RequestContactInfoButton.vue` guarda adentro su condición (`showButton`) y su acción (`requestContactInfo`, `emit('requestTemplate')`) y no estaba en el cerco de la tarea 5. Decisión del dev (por la explicación en chat): pasa a **fila del menú `+`**, así que se amplía el cerco.
+- «Macros» se muestra siempre en respuesta (`showMacrosRow = !isOnPrivateNote`, `ReplyBottomPanel.vue:200`); decisión del dev: **solo si la cuenta tiene macros** → `ReplyBox.vue` ya calcula `isMacrosEnabled` (`FEATURE_FLAGS.MACROS`, `ReplyBox.vue:204`) y se lo pasa al editor (`:enable-macros`, `:1546`); falta pasarlo al panel inferior.
+- El criterio de la tarea 5 se contradice: lista «el emoji» entre las filas del menú pero el título y la propuesta dicen que se quita en móvil. Se corrige el texto (el emoji se quita, no es fila).
+- La videollamada (`VideoCallButton`, solo web widget/API) aparece en móvil en la fila 2 (`ReplyBottomPanel.vue:562-582`) aunque la propuesta decía que no. Decisión: se oculta en móvil (`max-sm:hidden`); los inboxes de Picnic son WhatsApp.
+- Sin evidencia en navegador de: filtrado tras `@`; candado deshabilitado con respuestas restringidas; la píldora creciendo hasta ~5 líneas; que cada fila del `+` dispara su selector de archivos; que `#` abre la lista de macros.
+- `verification.md` y el delta `specs/mobile-composer/spec.md` quedan por actualizar con esto.
+
+### Qué propongo, y qué queda afuera
+
+1. **Caja expandida desde abajo (< 640 px, con `data-expanded`):** la cuadrícula pasa a dos filas. Fila 1: la caja ocupa las 4 columnas (todo el ancho útil, sin bordes grandes), esquinas superiores redondeadas, fondo neutro (ámbar en nota privada), con el candado abajo a la derecha y el botón de contraer (el mismo ícono de maximizar) arriba a la derecha. Fila 2: `+`, sparkle y enviar. Al expandir la caja sube con una transición de ~200 ms; al contraer o enviar vuelve a la barra compacta de una línea.
+2. **Menú `+`:** «Pedir datos de contacto» como fila (misma condición y acción que hoy), «Macros» solo con macros habilitadas, sin videollamada, sin fila 2 en la cuadrícula.
+3. **Evidencia que faltaba**, medida en el navegador y registrada en `verification.md`; criterios del delta ajustados.
+
+**No entra:** la prueba en iPhone real (la hace el dev); cambios de escritorio (>= 640 px); publicar (PR/tag) — después de verificar, con confirmación; mover a upstream.
+
+### Con qué restricciones
+- Mismas que la ronda 1: Tailwind solo, utilidades lógicas, sin textos fijos (i18n `en`+`es`), `max-sm:`/`sm:hidden` para no tocar escritorio, commits convencionales sin mencionar IA, lint/specs en Docker acotados a lo tocado (`${=F}` en zsh).
+- La animación se hace con transición de altura/transformación de Tailwind (`transition-*`, `duration-200`); los únicos estilos en línea siguen siendo las variables `--editor-*` que ya existían.
+- `RequestContactInfoButton.vue` se usa también en escritorio: el cambio es una prop opcional (`asRow`) que no altera su salida por defecto.
+
+
+### Cómo se verifica
+
+Provisional: los valores de abajo salen de `origin/production` y de la ronda 1; la ronda 2 del verify los reemplaza por los reales.
+
+**Criterio del cambio entero:** en un viewport de teléfono, al expandir, la caja de escritura ocupa todo el ancho y queda por encima de los íconos `+`, sparkle y enviar, con animación; el menú `+` contiene contacto y macros (esta solo con macros habilitadas); y a >= 640 px el compositor es el de hoy.
+
+**A. Automático**
+- Lint: `F=$(git diff --name-only origin/production | grep -E '\.(js|vue)$' | tr '\n' ' '); docker compose exec -T vite pnpm exec eslint ${=F}` → 0 errores; el único aviso admitido es el ya existente `MacroList.vue` `no-dynamic-keys` (se corrige lo esperado, no el código).
+- Specs: `docker compose exec -T vite pnpm exec vitest run app/javascript/dashboard/components/widgets/conversation/specs/ReplyBox.spec.js app/javascript/dashboard/components/widgets/WootWriter app/javascript/dashboard/components-next/preview-picker` → `Failed = 0`, `Test Files >= 4` (ronda 1: 4 archivos, 262 tests).
+- Sin backend: `git diff --name-only origin/production -- app/models app/controllers app/services app/jobs db` → vacío.
+
+**B. Navegador (invariantes, 390×844 touch):**
+- con `data-expanded`, el ancho de `.reply-box__top` ≥ `.reply-box` menos 24 px y su `bottom` ≤ `top` del botón `+` (la caja queda por encima de los íconos);
+- `+`, sparkle y enviar comparten la misma coordenada `top` (±2 px) en la fila 2 y el candado queda dentro de la caja;
+- el espía de `click()` registra una llamada por cada fila Fotos/Cámara/Adjuntar;
+- sin macros habilitadas no existe la fila «Macros»;
+- a 1440×900 el DOM visible es el de hoy (pestañas Responder/Nota privada, sin botón `+`).
+
+**C. Humano (iPhone real, app instalada en la pantalla de inicio):** `@` y `/` con teclado real, enviar, alternar el candado, expandir y contraer, abrir cada fila del `+`.
+
+El change se archiva solo tras la prueba humana; publicar (`v4.18.0-picnic.5`) requiere confirmación aparte.
+
