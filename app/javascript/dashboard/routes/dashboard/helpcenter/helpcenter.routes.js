@@ -1,11 +1,6 @@
 import { FEATURE_FLAGS } from '../../../featureFlags';
 import { getPortalRoute } from './helpers/routeHelper';
 
-import HelpCenterPageRouteView from './pages/HelpCenterPageRouteView.vue';
-
-import PortalsIndex from './pages/PortalsIndexPage.vue';
-import PortalsNew from './pages/PortalsNewPage.vue';
-
 const PortalsArticlesIndexPage = () =>
   import('./pages/PortalsArticlesIndexPage.vue');
 const PortalsArticlesNewPage = () =>
@@ -97,7 +92,7 @@ const portalRoutes = [
       featureFlag: FEATURE_FLAGS.HELP_CENTER,
       permissions: ['administrator', 'knowledge_base_manage'],
     },
-    component: PortalsNew,
+    component: () => import('./pages/PortalsNewPage.vue'),
   },
   {
     path: getPortalRoute(':navigationPath'),
@@ -106,7 +101,7 @@ const portalRoutes = [
       featureFlag: FEATURE_FLAGS.HELP_CENTER,
       permissions: ['administrator', 'knowledge_base_manage'],
     },
-    component: PortalsIndex,
+    component: () => import('./pages/PortalsIndexPage.vue'),
   },
 ];
 
@@ -114,7 +109,7 @@ export default {
   routes: [
     {
       path: getPortalRoute(),
-      component: HelpCenterPageRouteView,
+      component: () => import('./pages/HelpCenterPageRouteView.vue'),
       redirect: to => {
         return {
           name: 'portals_index',

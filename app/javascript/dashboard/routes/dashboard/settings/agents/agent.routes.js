@@ -1,13 +1,11 @@
 import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
-import AgentHome from './Index.vue';
 
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/agents'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
@@ -18,7 +16,7 @@ export default {
         {
           path: 'list',
           name: 'agent_list',
-          component: AgentHome,
+          component: () => import('./Index.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.AGENT_MANAGEMENT,
             permissions: ['administrator'],

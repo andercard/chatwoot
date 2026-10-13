@@ -1,7 +1,5 @@
 import { frontendURL } from '../../../../helper/URLHelper';
 import { INSTALLATION_TYPES } from 'dashboard/constants/installationTypes';
-import SettingsWrapper from '../SettingsWrapper.vue';
-import ProviderIndex from './ProviderIndex.vue';
 
 export default {
   routes: [
@@ -11,7 +9,7 @@ export default {
         permissions: ['administrator'],
         installationTypes: [INSTALLATION_TYPES.CLOUD],
       },
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       props: {
         headerTitle: 'BILLING_SETTINGS.TITLE',
         icon: 'credit-card-person',
@@ -21,7 +19,7 @@ export default {
         {
           path: '',
           name: 'billing_settings_index',
-          component: ProviderIndex,
+          component: () => import('./ProviderIndex.vue'),
           meta: {
             installationTypes: [INSTALLATION_TYPES.CLOUD],
             permissions: ['administrator'],

@@ -1,18 +1,15 @@
 import { frontendURL } from '../../../../helper/URLHelper';
 
-import SettingsWrapper from '../SettingsWrapper.vue';
-import Index from './Index.vue';
-
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/templates'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
           name: 'settings_templates',
-          component: Index,
+          component: () => import('./Index.vue'),
           meta: {
             permissions: ['administrator'],
           },

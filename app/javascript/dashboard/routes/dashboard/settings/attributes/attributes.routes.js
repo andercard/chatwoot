@@ -1,13 +1,11 @@
 import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
-import AttributesHome from './Index.vue';
 
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/custom-attributes'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
@@ -18,7 +16,7 @@ export default {
         {
           path: 'list',
           name: 'attributes_list',
-          component: AttributesHome,
+          component: () => import('./Index.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.CUSTOM_ATTRIBUTES,
             permissions: ['administrator'],

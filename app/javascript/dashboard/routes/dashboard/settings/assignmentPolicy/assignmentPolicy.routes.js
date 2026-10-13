@@ -1,19 +1,11 @@
 import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
-import AssignmentPolicyIndex from './Index.vue';
-import AgentAssignmentIndex from './pages/AgentAssignmentIndexPage.vue';
-import AgentAssignmentCreate from './pages/AgentAssignmentCreatePage.vue';
-import AgentAssignmentEdit from './pages/AgentAssignmentEditPage.vue';
-import AgentCapacityIndex from './pages/AgentCapacityIndexPage.vue';
-import AgentCapacityCreate from './pages/AgentCapacityCreatePage.vue';
-import AgentCapacityEdit from './pages/AgentCapacityEditPage.vue';
 
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/assignment-policy'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
@@ -24,7 +16,7 @@ export default {
         {
           path: 'index',
           name: 'assignment_policy_index',
-          component: AssignmentPolicyIndex,
+          component: () => import('./Index.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.ASSIGNMENT_V2,
             permissions: ['administrator'],
@@ -33,7 +25,7 @@ export default {
         {
           path: 'assignment',
           name: 'agent_assignment_policy_index',
-          component: AgentAssignmentIndex,
+          component: () => import('./pages/AgentAssignmentIndexPage.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.ASSIGNMENT_V2,
             permissions: ['administrator'],
@@ -42,7 +34,7 @@ export default {
         {
           path: 'assignment/create',
           name: 'agent_assignment_policy_create',
-          component: AgentAssignmentCreate,
+          component: () => import('./pages/AgentAssignmentCreatePage.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.ASSIGNMENT_V2,
             permissions: ['administrator'],
@@ -51,7 +43,7 @@ export default {
         {
           path: 'assignment/edit/:id',
           name: 'agent_assignment_policy_edit',
-          component: AgentAssignmentEdit,
+          component: () => import('./pages/AgentAssignmentEditPage.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.ASSIGNMENT_V2,
             permissions: ['administrator'],
@@ -60,7 +52,7 @@ export default {
         {
           path: 'capacity',
           name: 'agent_capacity_policy_index',
-          component: AgentCapacityIndex,
+          component: () => import('./pages/AgentCapacityIndexPage.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.ADVANCED_ASSIGNMENT,
             permissions: ['administrator'],
@@ -69,7 +61,7 @@ export default {
         {
           path: 'capacity/create',
           name: 'agent_capacity_policy_create',
-          component: AgentCapacityCreate,
+          component: () => import('./pages/AgentCapacityCreatePage.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.ADVANCED_ASSIGNMENT,
             permissions: ['administrator'],
@@ -78,7 +70,7 @@ export default {
         {
           path: 'capacity/edit/:id',
           name: 'agent_capacity_policy_edit',
-          component: AgentCapacityEdit,
+          component: () => import('./pages/AgentCapacityEditPage.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.ADVANCED_ASSIGNMENT,
             permissions: ['administrator'],

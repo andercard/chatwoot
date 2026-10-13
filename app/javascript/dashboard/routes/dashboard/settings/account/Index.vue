@@ -5,6 +5,7 @@ import { mapGetters } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useConfig } from 'dashboard/composables/useConfig';
+import { loadLocaleMessages } from 'dashboard/i18n';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { FEATURE_FLAGS } from '../../../../featureFlags';
 import WithLabel from 'v3/components/Form/WithLabel.vue';
@@ -113,16 +114,17 @@ export default {
         const { name, locale, id, domain, support_email, features } =
           this.getAccount(this.accountId);
 
-        const effectiveLocale = this.uiSettings?.locale || locale;
-        if (effectiveLocale) {
-          this.$root.$i18n.locale = effectiveLocale;
-        }
         this.name = name;
         this.locale = locale;
         this.id = id;
         this.domain = domain;
         this.supportEmail = support_email;
         this.features = features;
+        const effectiveLocale = this.uiSettings?.locale || locale;
+        if (effectiveLocale) {
+          await loadLocaleMessages(this.$root.$i18n, effectiveLocale);
+          this.$root.$i18n.locale = effectiveLocale;
+        }
       } catch (error) {
         // Ignore error
       }
@@ -144,6 +146,7 @@ export default {
         // If user locale is set, update the locale with user locale
         const updatedLocale = this.uiSettings?.locale || this.locale;
         if (updatedLocale) {
+          await loadLocaleMessages(this.$root.$i18n, updatedLocale);
           this.$root.$i18n.locale = updatedLocale;
         }
         this.getAccount(this.id).locale = this.locale;

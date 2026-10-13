@@ -6,8 +6,6 @@ import {
   PORTAL_PERMISSIONS,
 } from 'dashboard/constants/permissions.js';
 
-import SearchView from './components/SearchView.vue';
-
 export const routes = [
   {
     path: frontendURL('accounts/:accountId/search/:tab?'),
@@ -20,6 +18,6 @@ export const routes = [
         PORTAL_PERMISSIONS,
       ],
     },
-    component: SearchView,
+    component: () => import('./components/SearchView.vue'),
   },
 ];

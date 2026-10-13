@@ -1,21 +1,11 @@
 import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { frontendURL } from '../../../../helper/URLHelper';
-import ChannelFactory from './ChannelFactory.vue';
-
-import SettingsContent from '../Wrapper.vue';
-import SettingsWrapper from '../SettingsWrapper.vue';
-import InboxHome from './Index.vue';
-import Settings from './Settings.vue';
-import InboxChannel from './InboxChannels.vue';
-import ChannelList from './ChannelList.vue';
-import AddAgents from './AddAgents.vue';
-import FinishSetup from './FinishSetup.vue';
 
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/inboxes'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
@@ -26,7 +16,7 @@ export default {
         {
           path: 'list',
           name: 'settings_inbox_list',
-          component: InboxHome,
+          component: () => import('./Index.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
             permissions: ['administrator'],
@@ -36,7 +26,7 @@ export default {
     },
     {
       path: frontendURL('accounts/:accountId/settings/inboxes'),
-      component: SettingsContent,
+      component: () => import('../Wrapper.vue'),
       props: params => {
         const showBackButton = params.name !== 'settings_inbox_list';
         const fullWidth = params.name === 'settings_inbox_show';
@@ -50,12 +40,12 @@ export default {
       children: [
         {
           path: 'new',
-          component: InboxChannel,
+          component: () => import('./InboxChannels.vue'),
           children: [
             {
               path: '',
               name: 'settings_inbox_new',
-              component: ChannelList,
+              component: () => import('./ChannelList.vue'),
               meta: {
                 featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
                 permissions: ['administrator'],
@@ -64,7 +54,7 @@ export default {
             {
               path: ':inbox_id/finish',
               name: 'settings_inbox_finish',
-              component: FinishSetup,
+              component: () => import('./FinishSetup.vue'),
               meta: {
                 featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
                 permissions: ['administrator'],
@@ -73,7 +63,7 @@ export default {
             {
               path: ':sub_page',
               name: 'settings_inboxes_page_channel',
-              component: ChannelFactory,
+              component: () => import('./ChannelFactory.vue'),
               meta: {
                 featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
                 permissions: ['administrator'],
@@ -89,14 +79,14 @@ export default {
                 featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
                 permissions: ['administrator'],
               },
-              component: AddAgents,
+              component: () => import('./AddAgents.vue'),
             },
           ],
         },
         {
           path: ':inboxId/:tab?',
           name: 'settings_inbox_show',
-          component: Settings,
+          component: () => import('./Settings.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.INBOX_MANAGEMENT,
             permissions: ['administrator'],

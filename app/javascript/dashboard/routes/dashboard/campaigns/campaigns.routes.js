@@ -1,10 +1,5 @@
 import { frontendURL } from 'dashboard/helper/URLHelper.js';
 
-import CampaignsPageRouteView from './pages/CampaignsPageRouteView.vue';
-import LiveChatCampaignsPage from './pages/LiveChatCampaignsPage.vue';
-import SMSCampaignsPage from './pages/SMSCampaignsPage.vue';
-import WhatsAppCampaignsPage from './pages/WhatsAppCampaignsPage.vue';
-import WhatsAppCampaignAnalyticsPage from './pages/WhatsAppCampaignAnalyticsPage.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 const meta = {
@@ -16,7 +11,7 @@ const campaignsRoutes = {
   routes: [
     {
       path: frontendURL('accounts/:accountId/campaigns'),
-      component: CampaignsPageRouteView,
+      component: () => import('./pages/CampaignsPageRouteView.vue'),
       children: [
         {
           path: '',
@@ -44,13 +39,13 @@ const campaignsRoutes = {
           path: 'live_chat',
           name: 'campaigns_livechat_index',
           meta,
-          component: LiveChatCampaignsPage,
+          component: () => import('./pages/LiveChatCampaignsPage.vue'),
         },
         {
           path: 'sms',
           name: 'campaigns_sms_index',
           meta,
-          component: SMSCampaignsPage,
+          component: () => import('./pages/SMSCampaignsPage.vue'),
         },
         {
           path: 'whatsapp',
@@ -59,7 +54,7 @@ const campaignsRoutes = {
             ...meta,
             featureFlag: FEATURE_FLAGS.WHATSAPP_CAMPAIGNS,
           },
-          component: WhatsAppCampaignsPage,
+          component: () => import('./pages/WhatsAppCampaignsPage.vue'),
         },
         {
           path: 'whatsapp/:campaignId/analytics',
@@ -68,7 +63,7 @@ const campaignsRoutes = {
             ...meta,
             featureFlag: FEATURE_FLAGS.WHATSAPP_CAMPAIGNS,
           },
-          component: WhatsAppCampaignAnalyticsPage,
+          component: () => import('./pages/WhatsAppCampaignAnalyticsPage.vue'),
         },
       ],
     },

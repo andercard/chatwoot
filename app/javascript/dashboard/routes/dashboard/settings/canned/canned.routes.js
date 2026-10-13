@@ -4,14 +4,12 @@ import {
   ROLES,
   CONVERSATION_PERMISSIONS,
 } from 'dashboard/constants/permissions.js';
-import SettingsWrapper from '../SettingsWrapper.vue';
-import CannedHome from './Index.vue';
 
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/canned-response'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
@@ -26,7 +24,7 @@ export default {
             featureFlag: FEATURE_FLAGS.CANNED_RESPONSES,
             permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
           },
-          component: CannedHome,
+          component: () => import('./Index.vue'),
         },
       ],
     },

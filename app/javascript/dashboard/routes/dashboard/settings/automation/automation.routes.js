@@ -1,13 +1,11 @@
 import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
-import Automation from './Index.vue';
 
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/automation'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
@@ -18,7 +16,7 @@ export default {
         {
           path: 'list',
           name: 'automation_list',
-          component: Automation,
+          component: () => import('./Index.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.AUTOMATIONS,
             permissions: ['administrator'],
