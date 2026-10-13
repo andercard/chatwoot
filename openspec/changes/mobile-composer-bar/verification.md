@@ -67,3 +67,9 @@ Medido en navegador, 390×844 con teclado simulado de 420 px, y 1440×900 para e
 - **Escritorio, botón de adjuntar:** los botones de la fila inferior (emoji, adjuntar, micrófono, firma, plantillas, enviar) comparten `top` 847 / `bottom` 879 (sin desfase).
 - **Mensajes rápidos en notas privadas:** en nota privada `/` abre la lista de 29 respuestas (sin campo de búsqueda en móvil, con foco en el editor; con campo de búsqueda en escritorio) y `@` sigue abriendo agentes y equipos.
 - Nota de prueba: los borradores de nota y de respuesta se guardan por separado; para medir limpio hubo que enviar la nota de prueba (nota privada) y dejar el editor vacío.
+
+---
+
+# Miniaturas de adjuntos (tarea 13), 390×844
+
+Con dos imágenes y un PDF cargados desde los selectores del menú `+`: la fila de miniaturas ocupa de 8 a 382 px de ancho, tiene tarjetas de 96×96 px (8 px de separación) y flota encima de la barra (`bottom` 770 frente a `top` de la barra 777) sin mover `+`, sparkle ni enviar (siguen en 804–836). La imagen llena el cuadro, el PDF es una tarjeta con ícono y nombre truncado, cada una tiene su X (botón de 28×28 px con ícono de 16×16) y las imágenes llevan el chip HD abajo a la izquierda. Se probó quitar los adjuntos con la X. Escritorio no cambia (la lista anterior sigue con `max-sm:hidden`).

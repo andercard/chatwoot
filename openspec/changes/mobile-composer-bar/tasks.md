@@ -75,7 +75,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - commit: `feat(editor): canned responses are suggested in private notes too`
 
 
-- [ ] **13 · Adjuntos como miniaturas tipo app en móvil**
+- [x] **13 · Adjuntos como miniaturas tipo app en móvil**
   - archivos: `app/javascript/dashboard/components/widgets/AttachmentsPreview.vue`, `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue`
   - depende de: ninguna
   - listo cuando: bajo 640 px los adjuntos se ven como una fila horizontal de miniaturas cuadradas (≈ 6 rem) con scroll horizontal: las imágenes llenan el cuadro (`object-cover`, esquinas redondeadas), los demás archivos son una tarjeta con ícono y nombre truncado, cada una con un botón de quitar (X circular) en la esquina superior del final, y el interruptor HD (cuando aplica) como etiqueta pequeña en la esquina inferior del inicio, con el estado de carga; la fila flota sobre la barra (no empuja ni descoloca `+`, sparkle ni enviar) con fondo opaco y borde superior; en >= 640 px la lista actual no cambia
