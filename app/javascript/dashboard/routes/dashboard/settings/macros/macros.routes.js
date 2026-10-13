@@ -5,21 +5,17 @@ import {
   ROLES,
   CONVERSATION_PERMISSIONS,
 } from 'dashboard/constants/permissions.js';
-import SettingsContent from '../Wrapper.vue';
-import SettingsWrapper from '../SettingsWrapper.vue';
-import Macros from './Index.vue';
-import MacroEditor from './MacroEditor.vue';
 
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/macros'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
           name: 'macros_wrapper',
-          component: Macros,
+          component: () => import('./Index.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.MACROS,
             permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
@@ -29,7 +25,7 @@ export default {
     },
     {
       path: frontendURL('accounts/:accountId/settings/macros'),
-      component: SettingsContent,
+      component: () => import('../Wrapper.vue'),
       props: () => {
         return {
           headerTitle: 'MACROS.HEADER',
@@ -41,7 +37,7 @@ export default {
         {
           path: ':macroId/edit',
           name: 'macros_edit',
-          component: MacroEditor,
+          component: () => import('./MacroEditor.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.MACROS,
             permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
@@ -50,7 +46,7 @@ export default {
         {
           path: 'new',
           name: 'macros_new',
-          component: MacroEditor,
+          component: () => import('./MacroEditor.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.MACROS,
             permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],

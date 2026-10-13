@@ -1,7 +1,4 @@
 import { frontendURL } from 'dashboard/helper/URLHelper';
-import InboxListView from './InboxList.vue';
-import InboxDetailView from './InboxView.vue';
-import InboxEmptyStateView from './InboxEmptyState.vue';
 import {
   ROLES,
   CONVERSATION_PERMISSIONS,
@@ -10,12 +7,12 @@ import {
 export const routes = [
   {
     path: frontendURL('accounts/:accountId/inbox-view'),
-    component: InboxListView,
+    component: () => import('./InboxList.vue'),
     children: [
       {
         path: '',
         name: 'inbox_view',
-        component: InboxEmptyStateView,
+        component: () => import('./InboxEmptyState.vue'),
         meta: {
           permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
         },
@@ -23,7 +20,7 @@ export const routes = [
       {
         path: ':type/:id',
         name: 'inbox_view_conversation',
-        component: InboxDetailView,
+        component: () => import('./InboxView.vue'),
         meta: {
           permissions: [...ROLES, ...CONVERSATION_PERMISSIONS],
         },

@@ -2,9 +2,6 @@ import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { INSTALLATION_TYPES } from 'dashboard/constants/installationTypes';
 import { frontendURL } from '../../../../helper/URLHelper';
 
-import SettingsWrapper from '../SettingsWrapper.vue';
-import Index from './Index.vue';
-
 const meta = {
   featureFlag: FEATURE_FLAGS.SLA,
   permissions: ['administrator'],
@@ -15,7 +12,7 @@ export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/sla'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       props: {},
       children: [
         {
@@ -30,7 +27,7 @@ export default {
           path: 'list',
           name: 'sla_list',
           meta,
-          component: Index,
+          component: () => import('./Index.vue'),
         },
       ],
     },

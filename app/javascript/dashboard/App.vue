@@ -21,6 +21,7 @@ import {
 } from './helper/pushHelper';
 import ReconnectService from 'dashboard/helper/ReconnectService';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import { loadLocaleMessages } from 'dashboard/i18n';
 
 export default {
   name: 'App',
@@ -100,8 +101,9 @@ export default {
       const mql = window.matchMedia('(prefers-color-scheme: dark)');
       mql.onchange = e => setColorTheme(e.matches);
     },
-    setLocale(locale) {
+    async setLocale(locale) {
       if (locale) {
+        await loadLocaleMessages(this.$root.$i18n, locale);
         this.$root.$i18n.locale = locale;
         // Tells the browser the page language, so it does not offer to translate it
         document.documentElement.lang = locale.replace('_', '-');

@@ -1,6 +1,4 @@
 import { frontendURL } from '../../../helper/URLHelper';
-import ContactsIndex from './pages/ContactsIndex.vue';
-import ContactManageView from './pages/ContactManageView.vue';
 import { FEATURE_FLAGS } from '../../../featureFlags';
 
 const commonMeta = {
@@ -11,56 +9,56 @@ const commonMeta = {
 export const routes = [
   {
     path: frontendURL('accounts/:accountId/contacts'),
-    component: ContactsIndex,
+    component: () => import('./pages/ContactsIndex.vue'),
     meta: commonMeta,
     children: [
       {
         path: '',
         name: 'contacts_dashboard_index',
-        component: ContactsIndex,
+        component: () => import('./pages/ContactsIndex.vue'),
         meta: commonMeta,
       },
       {
         path: 'segments/:segmentId',
         name: 'contacts_dashboard_segments_index',
-        component: ContactsIndex,
+        component: () => import('./pages/ContactsIndex.vue'),
         meta: commonMeta,
       },
       {
         path: 'labels/:label',
         name: 'contacts_dashboard_labels_index',
-        component: ContactsIndex,
+        component: () => import('./pages/ContactsIndex.vue'),
         meta: commonMeta,
       },
       {
         path: 'active',
         name: 'contacts_dashboard_active',
-        component: ContactsIndex,
+        component: () => import('./pages/ContactsIndex.vue'),
         meta: commonMeta,
       },
     ],
   },
   {
     path: frontendURL('accounts/:accountId/contacts/:contactId'),
-    component: ContactManageView,
+    component: () => import('./pages/ContactManageView.vue'),
     meta: commonMeta,
     children: [
       {
         path: '',
         name: 'contacts_edit',
-        component: ContactManageView,
+        component: () => import('./pages/ContactManageView.vue'),
         meta: commonMeta,
       },
       {
         path: 'segments/:segmentId',
         name: 'contacts_edit_segment',
-        component: ContactManageView,
+        component: () => import('./pages/ContactManageView.vue'),
         meta: commonMeta,
       },
       {
         path: 'labels/:label',
         name: 'contacts_edit_label',
-        component: ContactManageView,
+        component: () => import('./pages/ContactManageView.vue'),
         meta: commonMeta,
       },
     ],

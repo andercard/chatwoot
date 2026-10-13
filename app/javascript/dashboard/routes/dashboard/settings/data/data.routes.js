@@ -1,19 +1,16 @@
 import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
-import Index from './Index.vue';
-import Show from './Show.vue';
 
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/data'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
           name: 'settings_data_imports',
-          component: Index,
+          component: () => import('./Index.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.DATA_IMPORT,
             permissions: ['administrator'],
@@ -22,7 +19,7 @@ export default {
         {
           path: ':dataImportId',
           name: 'settings_data_import_show',
-          component: Show,
+          component: () => import('./Show.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.DATA_IMPORT,
             permissions: ['administrator'],

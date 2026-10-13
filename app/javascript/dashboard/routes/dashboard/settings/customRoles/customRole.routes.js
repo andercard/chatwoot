@@ -2,14 +2,11 @@ import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { INSTALLATION_TYPES } from 'dashboard/constants/installationTypes';
 import { frontendURL } from 'dashboard/helper/URLHelper';
 
-import SettingsWrapper from '../SettingsWrapper.vue';
-import CustomRolesHome from './Index.vue';
-
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/custom-roles'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
@@ -26,7 +23,7 @@ export default {
             ],
             permissions: ['administrator'],
           },
-          component: CustomRolesHome,
+          component: () => import('./Index.vue'),
         },
       ],
     },
