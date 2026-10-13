@@ -62,7 +62,7 @@ describe('AudioRecorder', () => {
     await flushPromises();
     await progressTo(2);
     await wrapper.find('[data-test-id="pause-recording"]').trigger('click');
-    emitRecordEvent('record-pause', new Blob(['a']));
+    emitRecordEvent('record-data-available', new Blob(['a']));
     await nextTick();
     return wrapper;
   };
@@ -96,6 +96,37 @@ describe('AudioRecorder', () => {
     expect(wrapper.find('[data-test-id="recording-duration"]').text()).toBe(
       '00:02'
     );
+  });
+
+  it('rebuilds the preview from all accumulated chunks on every pause', async () => {
+    const first = new Blob(['a']);
+    const second = new Blob(['bb']);
+    const wrapper = await mountPaused();
+    const blobAt = n => URL.createObjectURL.mock.calls[n][0];
+    expect(blobAt(0).size).toBe(1);
+
+    await wrapper.find('[data-test-id="resume-recording"]').trigger('click');
+    await progressTo(5);
+    await wrapper.find('[data-test-id="pause-recording"]').trigger('click');
+    emitRecordEvent('record-data-available', second);
+    await nextTick();
+
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(2);
+    expect(blobAt(1).size).toBe(first.size + second.size);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+    expect(wrapper.find('[data-test-id="recording-duration"]').text()).toBe(
+      '00:05'
+    );
+  });
+
+  it('clears chunks and revokes the preview url when deleted', async () => {
+    const wrapper = await mountPaused();
+
+    await wrapper.find('button[aria-label]').trigger('click');
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+    emitRecordEvent('record-data-available', new Blob(['late']));
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
   });
 
   it('stops a paused recording only when finishing', async () => {

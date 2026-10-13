@@ -43,6 +43,10 @@ const isPlaying = ref(false);
 const currentTime = ref(0);
 const isPaused = ref(false);
 let discarded = false;
+let chunks = [];
+let awaitingLastChunk = false;
+let lastChunkTimer = null;
+const LAST_CHUNK_TIMEOUT_MS = 500;
 
 const formatTimeProgress = time => {
   const duration = intervalToDuration({ start: 0, end: time });
@@ -83,6 +87,23 @@ const releaseAudio = () => {
   recordedAudioUrl.value = null;
 };
 
+const buildPreview = () => {
+  clearTimeout(lastChunkTimer);
+  awaitingLastChunk = false;
+  releaseAudio();
+  recordedAudioUrl.value = URL.createObjectURL(
+    new Blob(chunks, { type: chunks[0]?.type })
+  );
+  audio.value = new Audio(recordedAudioUrl.value);
+  audio.value.addEventListener('timeupdate', () => {
+    currentTime.value = audio.value.currentTime;
+  });
+  audio.value.addEventListener('ended', () => {
+    isPlaying.value = false;
+  });
+  hasRecording.value = true;
+};
+
 const initWaveSurfer = () => {
   wavesurfer.value = WaveSurfer.create({
     container: waveformContainer.value,
@@ -99,18 +120,14 @@ const initWaveSurfer = () => {
 
   record.value = wavesurfer.value.plugins[0];
 
-  // Pausing keeps one MediaRecorder alive; the blob so far feeds the preview
-  record.value.on('record-pause', blob => {
-    releaseAudio();
-    recordedAudioUrl.value = URL.createObjectURL(blob);
-    audio.value = new Audio(recordedAudioUrl.value);
-    audio.value.addEventListener('timeupdate', () => {
-      currentTime.value = audio.value.currentTime;
-    });
-    audio.value.addEventListener('ended', () => {
-      isPlaying.value = false;
-    });
-    hasRecording.value = true;
+  // One MediaRecorder lives the whole session, so all chunks received so far
+  // form a valid, cumulative audio. The plugin's `record-pause` blob can lag
+  // behind the chunk that `requestData()` delivers on pause, so build the
+  // preview ourselves once that last chunk arrives.
+  record.value.on('record-data-available', data => {
+    if (discarded) return;
+    if (data.size > 0) chunks.push(data);
+    if (awaitingLastChunk) buildPreview();
   });
 
   record.value.on('record-end', async blob => {
@@ -160,6 +177,8 @@ const startRecording = async () => {
 
 const pauseRecording = () => {
   if (!isRecording.value) return;
+  awaitingLastChunk = true;
+  lastChunkTimer = setTimeout(buildPreview, LAST_CHUNK_TIMEOUT_MS);
   record.value.pauseRecording();
   isRecording.value = false;
   isPaused.value = true;
@@ -183,6 +202,9 @@ const stopRecording = () => {
 
 const onDelete = () => {
   discarded = true;
+  clearTimeout(lastChunkTimer);
+  chunks = [];
+  releaseAudio();
   record.value?.stopRecording();
   emit('delete');
 };
@@ -226,6 +248,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   discarded = true;
+  clearTimeout(lastChunkTimer);
+  chunks = [];
   releaseAudio();
   if (wavesurfer.value) {
     wavesurfer.value.destroy();
