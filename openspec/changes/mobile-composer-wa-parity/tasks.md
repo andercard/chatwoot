@@ -15,7 +15,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: bajo 640 px el menú `+` ya no tiene la fila «Cámara» ni el `FileUpload` `mobileCameraInput` (se eliminan `cameraFileTypes` y la llave `MOBILE_MENU.CAMERA` si nadie más las usa); «Fotos» sigue abriendo `mobilePhotosInput` (imagen+video del canal) y «Adjuntar archivos» se llama «Documento» (llave nueva `MOBILE_MENU.DOCUMENT`) y abre `conversationAttachment`; `>= 640 px` nada cambia
   - commit: `feat(mobile): plus menu keeps photos and document, drops the redundant camera row`
 
-- [ ] **3 · Maximizar siempre visible y todo centrado con la píldora**
+- [x] **3 · Maximizar siempre visible y todo centrado con la píldora**
   - archivos: `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyTopPanel.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue`
   - depende de: 2
   - listo cuando: bajo 640 px el botón de maximizar se ve siempre (con la píldora vacía y sin foco; en escritorio `showExpand` no cambia); con la píldora de una línea, el centro vertical de `+`, sparkle, enviar, candado y maximizar coincide con el de la píldora (±1 px, medido con `getBoundingClientRect`) y, cuando la píldora crece a varias líneas, los botones de la fila 1 quedan alineados al borde inferior; en expandido el layout de dos filas no cambia; `ReplyBox.spec.js` sigue en verde
