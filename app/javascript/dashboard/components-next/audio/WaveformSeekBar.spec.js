@@ -50,4 +50,19 @@ describe('WaveformSeekBar', () => {
       .trigger('keydown', { key: 'ArrowRight' });
     expect(wrapper.emitted('seek')[0][0]).toBeCloseTo(0.55);
   });
+
+  it('places the knob at the progress position', () => {
+    const { wrapper } = mountBar({ progress: 0.5 });
+    expect(
+      wrapper.find('[data-test-id="seek-knob"]').attributes('style')
+    ).toContain('50%');
+  });
+
+  it('keeps the knob within 0-1', async () => {
+    const { wrapper } = mountBar({ progress: 3 });
+    const knob = () => wrapper.find('[data-test-id="seek-knob"]');
+    expect(knob().attributes('style')).toContain('100%');
+    await wrapper.setProps({ progress: -2 });
+    expect(knob().attributes('style')).toContain('calc(0%');
+  });
 });

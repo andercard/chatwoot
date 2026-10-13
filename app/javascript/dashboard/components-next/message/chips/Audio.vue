@@ -183,13 +183,18 @@ const downloadAudio = async () => {
     class="rounded-xl w-full gap-2 p-1.5 bg-n-alpha-white flex flex-col items-center border border-n-container shadow-[0px_2px_8px_0px_rgba(94,94,94,0.06)]"
   >
     <div class="flex gap-2 w-full flex-1 items-center justify-start">
-      <button class="p-0 border-0 size-10 shrink-0" @click="playOrPause">
+      <button
+        class="p-0 border-0 size-10 shrink-0 grid place-content-center rounded-full bg-n-blue-9 text-white"
+        @click="playOrPause"
+      >
         <Icon
-          v-if="isPlaying"
-          class="size-10"
-          icon="i-teenyicons-pause-small-solid"
+          class="size-6"
+          :icon="
+            isPlaying
+              ? 'i-teenyicons-pause-small-solid'
+              : 'i-teenyicons-play-small-solid'
+          "
         />
-        <Icon v-else class="size-10" icon="i-teenyicons-play-small-solid" />
       </button>
       <div class="flex flex-col flex-1 min-w-0">
         <WaveformSeekBar
@@ -198,35 +203,39 @@ const downloadAudio = async () => {
           :label="$t('CONVERSATION.REPLYBOX.AUDIO.SEEK')"
           @seek="seek"
         />
-        <div class="tabular-nums text-xs text-n-slate-11">
-          {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
-        </div>
-      </div>
-      <div class="flex flex-col items-center shrink-0">
-        <button
-          class="border-0 w-10 h-6 grid place-content-center bg-n-alpha-2 hover:bg-alpha-3 rounded-2xl"
-          @click="changePlaybackSpeed"
-        >
-          <span class="text-xs text-n-slate-11 font-medium">
-            {{ playbackSpeedLabel }}
+        <div class="flex items-center justify-between gap-2">
+          <span class="tabular-nums text-xs text-n-slate-11">
+            {{ formatTime(isPlaying || currentTime ? currentTime : duration) }}
           </span>
-        </button>
-        <div class="flex">
-          <button
-            class="p-0 border-0 size-6 grid place-content-center"
-            @click="toggleMute"
-          >
-            <Icon v-if="isMuted" class="size-4" icon="i-lucide-volume-off" />
-            <Icon v-else class="size-4" icon="i-lucide-volume-2" />
-          </button>
-          <button
-            class="p-0 border-0 size-6 grid place-content-center"
-            @click="downloadAudio"
-          >
-            <Icon class="size-4" icon="i-lucide-download" />
-          </button>
+          <div class="flex items-center">
+            <button
+              class="p-0 border-0 size-5 grid place-content-center text-n-slate-11"
+              @click="toggleMute"
+            >
+              <Icon
+                v-if="isMuted"
+                class="size-3.5"
+                icon="i-lucide-volume-off"
+              />
+              <Icon v-else class="size-3.5" icon="i-lucide-volume-2" />
+            </button>
+            <button
+              class="p-0 border-0 size-5 grid place-content-center text-n-slate-11"
+              @click="downloadAudio"
+            >
+              <Icon class="size-3.5" icon="i-lucide-download" />
+            </button>
+          </div>
         </div>
       </div>
+      <button
+        class="border-0 h-6 px-2 shrink-0 grid place-content-center bg-n-alpha-2 hover:bg-n-alpha-3 rounded-2xl"
+        @click="changePlaybackSpeed"
+      >
+        <span class="text-xs text-n-slate-11 font-medium tabular-nums">
+          {{ playbackSpeedLabel }}
+        </span>
+      </button>
     </div>
 
     <div

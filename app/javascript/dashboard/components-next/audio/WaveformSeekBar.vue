@@ -81,7 +81,7 @@ const onKeydown = event => {
     aria-valuemin="0"
     :aria-valuemax="Math.round(duration)"
     :aria-valuenow="Math.round(currentProgress * duration)"
-    class="flex items-center justify-between gap-px w-full min-w-0 h-10 cursor-pointer touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-n-brand rounded-md"
+    class="flex items-center justify-between gap-px w-full min-w-0 h-8 relative cursor-pointer touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-n-brand rounded-md"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
@@ -92,8 +92,16 @@ const onKeydown = event => {
       v-for="bar in bars"
       :key="bar.index"
       class="flex-1 min-w-px rounded-full"
-      :class="bar.index < playedBars ? 'bg-n-slate-12' : 'bg-n-slate-12/30'"
+      :class="bar.index < playedBars ? 'bg-n-blue-9' : 'bg-n-slate-12/20'"
       :style="{ height: `${bar.height}%` }"
+    />
+    <div
+      data-test-id="seek-knob"
+      class="absolute top-1/2 size-3 -translate-y-1/2 rounded-full bg-n-blue-9 shadow pointer-events-none"
+      :class="isDragging ? 'scale-125' : ''"
+      :style="{
+        insetInlineStart: `calc(${currentProgress * 100}% - 0.375rem)`,
+      }"
     />
   </div>
 </template>
