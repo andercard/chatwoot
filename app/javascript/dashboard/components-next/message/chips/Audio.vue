@@ -195,6 +195,7 @@ const downloadAudio = async () => {
         <WaveformSeekBar
           :progress="progress"
           :duration="duration"
+          :label="$t('CONVERSATION.REPLYBOX.AUDIO.SEEK')"
           @seek="seek"
         />
         <div class="tabular-nums text-xs text-n-slate-11">

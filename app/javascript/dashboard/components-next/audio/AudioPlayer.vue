@@ -130,6 +130,7 @@ const downloadRecording = () => {
     <WaveformSeekBar
       :progress="progress"
       :duration="duration"
+      :label="$t('CONVERSATION.REPLYBOX.AUDIO.SEEK')"
       class="flex-1 min-w-0 lg:grow-0 lg:basis-24"
       @seek="seek"
     />

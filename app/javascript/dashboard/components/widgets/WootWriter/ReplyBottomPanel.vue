@@ -214,15 +214,9 @@ export default {
           action: () => this.pickFile('mobilePhotosInput'),
         },
         {
-          key: 'camera',
-          icon: 'i-lucide-camera',
-          label: this.$t('CONVERSATION.REPLYBOX.MOBILE_MENU.CAMERA'),
-          action: () => this.pickFile('mobileCameraInput'),
-        },
-        {
           key: 'attach',
           icon: 'i-lucide-paperclip',
-          label: this.$t('CONVERSATION.REPLYBOX.TIP_ATTACH_ICON'),
+          label: this.$t('CONVERSATION.REPLYBOX.MOBILE_MENU.DOCUMENT'),
           action: () => this.pickFile('conversationAttachment'),
         },
       ].map(item => ({ ...item, show: this.showAttachButton }));
@@ -327,18 +321,12 @@ export default {
         medium: this.inbox?.medium,
       });
     },
-    // Photos and camera only offer what the channel accepts, so iOS converts HEIC to JPEG
+    // Photos only offer what the channel accepts, so iOS converts HEIC to JPEG
     photoFileTypes() {
       return this.allowedFileTypes
         .split(',')
         .map(type => type.trim())
         .filter(type => /^(image|video)\//.test(type))
-        .join(',');
-    },
-    cameraFileTypes() {
-      return this.photoFileTypes
-        .split(',')
-        .filter(type => type.startsWith('image/'))
         .join(',');
     },
     enableDragAndDrop() {
@@ -458,19 +446,6 @@ export default {
             :size="4096 * 4096"
             :accept="photoFileTypes"
             :multiple="enableMultipleFileUpload"
-            :drop="false"
-            :data="{
-              direct_upload_url: '/rails/active_storage/direct_uploads',
-              direct_upload: true,
-            }"
-            @input-file="onFileUpload"
-          />
-          <FileUpload
-            class="hidden"
-            input-id="mobileCameraInput"
-            :size="4096 * 4096"
-            :accept="cameraFileTypes"
-            capture="environment"
             :drop="false"
             :data="{
               direct_upload_url: '/rails/active_storage/direct_uploads',

@@ -285,6 +285,9 @@
       "WHATSAPP_TEMPLATES": "Plantillas de Whatsapp"
     },
     "REPLYBOX": {
+      "AUDIO": {
+        "SEEK": "Posición del audio"
+      },
       "QUICK_REPLIES": {
         "TITLE": "Respuestas rápidas",
         "EDIT": "Editar"
@@ -292,7 +295,7 @@
       "MOBILE_MENU": {
         "OPEN": "Más opciones",
         "PHOTOS": "Fotos",
-        "CAMERA": "Cámara",
+        "DOCUMENT": "Documento",
         "MACROS": "Macros"
       },
       "REPLY": "Responder",
