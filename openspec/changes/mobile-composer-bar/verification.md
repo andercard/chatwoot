@@ -55,3 +55,15 @@ Vacía mide 44 px; con 8 líneas escritas mide 112 px (7 rem) y hace scroll inte
 - Fila «Pedir datos de contacto»: esta conversación ya tiene teléfono, así que el componente no se muestra; el código reutiliza la misma condición (`showButton`).
 - Sin macros habilitadas la fila «Macros» no aparece: se comprueba por código (`enableMacros`), no con una cuenta sin la función.
 - iPhone real: pendiente.
+
+---
+
+# Ajustes tras la prueba en el celular (tareas 11 y 12)
+
+Medido en navegador, 390×844 con teclado simulado de 420 px, y 1440×900 para escritorio:
+- **Títulos de grupo** («Agentes», «Equipos») en la lista de `@`: 32 px de alto con 8 px de relleno arriba y abajo (5 filas de agentes y equipos).
+- **Candado:** 32×32 px con `border-radius: 9999px` (círculo) en reposo y en nota privada (fondo ámbar).
+- **Espacio sobre la píldora** en la barra compacta: de 13 px a 11 px entre el borde superior del compositor y la píldora.
+- **Escritorio, botón de adjuntar:** los botones de la fila inferior (emoji, adjuntar, micrófono, firma, plantillas, enviar) comparten `top` 847 / `bottom` 879 (sin desfase).
+- **Mensajes rápidos en notas privadas:** en nota privada `/` abre la lista de 29 respuestas (sin campo de búsqueda en móvil, con foco en el editor; con campo de búsqueda en escritorio) y `@` sigue abriendo agentes y equipos.
+- Nota de prueba: los borradores de nota y de respuesta se guardan por separado; para medir limpio hubo que enviar la nota de prueba (nota privada) y dejar el editor vacío.

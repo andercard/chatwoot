@@ -62,13 +62,13 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: `verification.md` registra, con medidas en viewport 390×844 touch y teclado simulado de 420 px: (a) tocar cada fila Fotos/Cámara/Adjuntar dispara el `click()` de su `input[type=file]` (espiando `HTMLInputElement.prototype.click`); (b) `@` en nota privada filtra al escribir más caracteres; (c) con respuestas restringidas el candado está deshabilitado y el compositor está en nota; (d) la píldora crece al escribir varias líneas hasta ≈5 líneas (≈7 rem) y luego hace scroll; (e) `#` abre la lista de macros (en cuenta con macros) y la fila «Macros» no aparece sin macros; (f) en expandido la caja ocupa el ancho completo por encima de la fila de íconos y se anima; (g) «Pedir datos de contacto» aparece como fila cuando la conversación lo permite; el delta ajusta el escenario «Each row opens its action» para listar contacto y macros condicionada y agrega «Expanded editor rises over the buttons»
   - commit: `docs(openspec): record the second round of phone checks for the composer bar`
 
-- [ ] **11 · Ajustes visuales tras probar en el celular**
+- [x] **11 · Ajustes visuales tras probar en el celular**
   - archivos: `app/javascript/dashboard/components-next/preview-picker/PreviewPicker.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyTopPanel.vue`, `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue`
   - depende de: ninguna
   - listo cuando: en la lista móvil los títulos de grupo («Agentes», «Equipos») tienen aire vertical arriba y abajo (≈ 0.5 rem); el contenedor del candado es un círculo (`rounded-full`, mismo ancho y alto) en reposo y en ámbar; el compositor compacto móvil tiene menos espacio superior (la barra se ve como la de la app: ≈ 0.375 rem sobre la píldora en vez de 0.5 rem + la separación actual) sin cambiar la base inferior ni el respiro de `safe-area`; en escritorio el botón de adjuntar queda alineado con los demás botones de la fila (el contenedor del adjuntar no cambia el alineamiento: `contents` desde 640 px)
   - commit: `fix(mobile): polish the group headings, the lock circle, the bar spacing and the desktop attach button`
 
-- [ ] **12 · Mensajes rápidos también en notas privadas**
+- [x] **12 · Mensajes rápidos también en notas privadas**
   - archivos: `app/javascript/dashboard/components/widgets/WootWriter/Editor.vue`
   - depende de: ninguna
   - listo cuando: al escribir `/` en una nota privada se abre la lista de respuestas predefinidas igual que en una respuesta pública (en móvil y en escritorio); el `@` de menciones sigue funcionando en nota privada; elegir una respuesta la inserta como texto en la nota; en respuesta pública nada cambia
