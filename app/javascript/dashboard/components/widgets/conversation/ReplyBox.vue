@@ -1439,7 +1439,7 @@ export default {
 <template>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
   <div
-    class="reply-box max-sm:grid max-sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] max-sm:items-end max-sm:gap-x-2 max-sm:gap-y-0 max-sm:!mx-0 max-sm:!mb-0 max-sm:!rounded-none max-sm:!border-x-0 max-sm:!border-b-0 max-sm:!bg-n-solid-1 max-sm:p-2 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+    class="reply-box max-sm:grid max-sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] max-sm:items-end max-sm:gap-x-2 max-sm:gap-y-0 max-sm:group-data-[expanded]/wrapper:gap-y-2 max-sm:!mx-0 max-sm:!mb-0 max-sm:!rounded-none max-sm:!border-x-0 max-sm:!border-b-0 max-sm:!bg-n-solid-1 max-sm:p-2 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))]"
     :class="replyBoxClass"
   >
     <ReplyTopPanel
@@ -1478,7 +1478,7 @@ export default {
     >
       <div
         :key="copilot.editorTransitionKey.value"
-        class="reply-box__top max-sm:col-start-3 max-sm:row-start-1 max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
+        class="reply-box__top max-sm:col-start-3 max-sm:row-start-1 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4 max-sm:group-data-[expanded]/wrapper:animate-fade-in-up max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
       >
         <ReplyToMessage
           v-if="shouldShowReplyToMessage"

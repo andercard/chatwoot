@@ -409,7 +409,7 @@ export default {
     <div class="flex gap-2 items-center max-sm:contents">
       <div
         v-if="showMobileMenuButton"
-        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-end"
+        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-end max-sm:group-data-[expanded]/wrapper:row-start-2"
       >
         <NextButton
           ref="mobileMenuToggleRef"
@@ -529,7 +529,7 @@ export default {
       />
       <NextButton
         v-if="showAudioPlayStopButton"
-        class="max-sm:col-start-2 max-sm:row-start-1 max-sm:self-end"
+        class="max-sm:col-start-2 max-sm:row-start-1 max-sm:self-end max-sm:group-data-[expanded]/wrapper:row-start-2"
         :icon="audioRecorderPlayStopIcon"
         slate
         faded
@@ -633,7 +633,7 @@ export default {
         type="submit"
         :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
-        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-end"
+        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-end max-sm:group-data-[expanded]/wrapper:row-start-2"
         @click="onSend"
       />
     </div>
