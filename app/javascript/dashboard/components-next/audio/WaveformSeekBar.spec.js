@@ -17,9 +17,9 @@ const fire = (wrapper, type, clientX) => {
 };
 
 describe('WaveformSeekBar', () => {
-  it('renders 48 bars', () => {
+  it('renders 32 bars', () => {
     const { wrapper } = mountBar();
-    expect(wrapper.findAll('span')).toHaveLength(48);
+    expect(wrapper.findAll('span')).toHaveLength(32);
   });
 
   it('emits ~0.5 when dragging to the middle and captures the pointer', () => {

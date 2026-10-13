@@ -10,7 +10,9 @@ const props = defineProps({
 
 const emit = defineEmits(['seek']);
 
-const BAR_COUNT = 48;
+const BAR_COUNT = 32;
+// 1.25rem of the 2rem track when there are no peaks
+const FLAT_BAR_HEIGHT = 0.625;
 const KEYBOARD_STEP = 0.05;
 const MIN_PEAK = 0.2;
 
@@ -23,7 +25,7 @@ const bars = computed(() =>
   Array.from({ length: BAR_COUNT }, (_, index) => {
     const peak = props.peaks.length
       ? props.peaks[Math.floor((index / BAR_COUNT) * props.peaks.length)]
-      : 1;
+      : FLAT_BAR_HEIGHT;
     return { index, height: Math.max(MIN_PEAK, clamp(peak)) * 100 };
   })
 );
@@ -81,7 +83,7 @@ const onKeydown = event => {
     aria-valuemin="0"
     :aria-valuemax="Math.round(duration)"
     :aria-valuenow="Math.round(currentProgress * duration)"
-    class="flex items-center justify-between gap-px w-full min-w-0 h-8 relative cursor-pointer touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-n-brand rounded-md"
+    class="flex items-center justify-between gap-0.5 w-full min-w-0 h-8 relative cursor-pointer touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-n-brand rounded-md"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
@@ -91,8 +93,8 @@ const onKeydown = event => {
     <span
       v-for="bar in bars"
       :key="bar.index"
-      class="flex-1 min-w-px rounded-full"
-      :class="bar.index < playedBars ? 'bg-n-blue-9' : 'bg-n-slate-12/20'"
+      class="w-[0.1875rem] shrink-0 rounded-full"
+      :class="bar.index < playedBars ? 'bg-n-blue-9' : 'bg-n-slate-7'"
       :style="{ height: `${bar.height}%` }"
     />
     <div
