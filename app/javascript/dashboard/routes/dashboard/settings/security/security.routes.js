@@ -1,8 +1,6 @@
 import { frontendURL } from '../../../../helper/URLHelper';
 import { INSTALLATION_TYPES } from 'dashboard/constants/installationTypes';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
-import SettingsWrapper from '../SettingsWrapper.vue';
-import Index from './Index.vue';
 
 export default {
   routes: [
@@ -15,7 +13,7 @@ export default {
           INSTALLATION_TYPES.ENTERPRISE,
         ],
       },
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       props: {
         headerTitle: 'SECURITY_SETTINGS.TITLE',
         icon: 'i-lucide-shield',
@@ -25,7 +23,7 @@ export default {
         {
           path: '',
           name: 'security_settings_index',
-          component: Index,
+          component: () => import('./Index.vue'),
           meta: {
             permissions: ['administrator'],
             featureFlag: FEATURE_FLAGS.SAML,

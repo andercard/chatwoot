@@ -1,7 +1,6 @@
 /* eslint arrow-body-style: 0 */
 import { frontendURL } from '../../../helper/URLHelper';
 import store from '../../../store';
-import ConversationView from './ConversationView.vue';
 
 const CONVERSATION_PERMISSIONS = [
   'administrator',
@@ -50,7 +49,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: () => {
         return { inboxId: 0 };
       },
@@ -61,7 +60,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => {
         return { inboxId: 0, conversationId: route.params.conversation_id };
       },
@@ -72,7 +71,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => {
         return { inboxId: route.params.inbox_id };
       },
@@ -85,7 +84,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => {
         return {
           conversationId: route.params.conversation_id,
@@ -99,7 +98,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => ({ label: route.params.label }),
     },
     {
@@ -110,7 +109,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => ({
         conversationId: route.params.conversation_id,
         label: route.params.label,
@@ -122,7 +121,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => ({ teamId: route.params.teamId }),
     },
     {
@@ -133,7 +132,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => ({
         conversationId: route.params.conversationId,
         teamId: route.params.teamId,
@@ -146,7 +145,7 @@ export default {
         permissions: CONVERSATION_PERMISSIONS,
       },
       beforeEnter: redirectFolderListIfUnavailable,
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => ({ foldersId: route.params.id }),
     },
     {
@@ -157,7 +156,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       beforeEnter: redirectFolderConversationIfUnavailable,
       props: route => ({
         conversationId: route.params.conversation_id,
@@ -170,7 +169,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: () => ({ conversationType: 'mention' }),
     },
     {
@@ -181,7 +180,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => ({
         conversationId: route.params.conversationId,
         conversationType: 'mention',
@@ -193,7 +192,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: () => ({ conversationType: 'unattended' }),
     },
     {
@@ -204,7 +203,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => ({
         conversationId: route.params.conversationId,
         conversationType: 'unattended',
@@ -216,7 +215,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: () => ({ conversationType: 'participating' }),
     },
     {
@@ -227,7 +226,7 @@ export default {
       meta: {
         permissions: CONVERSATION_PERMISSIONS,
       },
-      component: ConversationView,
+      component: () => import('./ConversationView.vue'),
       props: route => ({
         conversationId: route.params.conversationId,
         conversationType: 'participating',

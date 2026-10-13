@@ -1,7 +1,5 @@
 import { FEATURE_FLAGS } from '../../../../featureFlags';
-import Bot from './Index.vue';
 import { frontendURL } from '../../../../helper/URLHelper';
-import SettingsWrapper from '../SettingsWrapper.vue';
 
 export default {
   routes: [
@@ -10,12 +8,12 @@ export default {
       meta: {
         permissions: ['administrator'],
       },
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
           name: 'agent_bots',
-          component: Bot,
+          component: () => import('./Index.vue'),
           meta: {
             featureFlag: FEATURE_FLAGS.AGENT_BOTS,
             permissions: ['administrator'],

@@ -1,6 +1,4 @@
 import { frontendURL } from '../../../../helper/URLHelper';
-import Index from './Index.vue';
-import SettingsWrapper from '../SettingsWrapper.vue';
 
 export default {
   routes: [
@@ -9,12 +7,12 @@ export default {
       meta: {
         permissions: ['administrator'],
       },
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
           name: 'general_settings_index',
-          component: Index,
+          component: () => import('./Index.vue'),
           meta: {
             permissions: ['administrator'],
           },

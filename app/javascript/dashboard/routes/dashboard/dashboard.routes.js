@@ -10,10 +10,6 @@ import helpcenterRoutes from './helpcenter/helpcenter.routes';
 import campaignsRoutes from './campaigns/campaigns.routes';
 import { routes as captainRoutes } from './captain/captain.routes';
 import AppContainer from './Dashboard.vue';
-import Suspended from './suspended/Index.vue';
-import NoAccounts from './noAccounts/Index.vue';
-import OnboardingAccountDetails from './onboarding/Index.vue';
-import OnboardingInboxSetup from './onboarding/InboxSetup.vue';
 
 export default {
   routes: [
@@ -39,7 +35,7 @@ export default {
       meta: {
         permissions: ['administrator', 'agent', 'custom_role'],
       },
-      component: OnboardingAccountDetails,
+      component: () => import('./onboarding/Index.vue'),
     },
     {
       path: frontendURL('accounts/:accountId/onboarding/inbox-setup'),
@@ -47,7 +43,7 @@ export default {
       meta: {
         permissions: ['administrator', 'agent', 'custom_role'],
       },
-      component: OnboardingInboxSetup,
+      component: () => import('./onboarding/InboxSetup.vue'),
     },
     {
       path: frontendURL('accounts/:accountId/suspended'),
@@ -55,12 +51,12 @@ export default {
       meta: {
         permissions: ['administrator', 'agent', 'custom_role'],
       },
-      component: Suspended,
+      component: () => import('./suspended/Index.vue'),
     },
     {
       path: frontendURL('no-accounts'),
       name: 'no_accounts',
-      component: NoAccounts,
+      component: () => import('./noAccounts/Index.vue'),
     },
   ],
 };

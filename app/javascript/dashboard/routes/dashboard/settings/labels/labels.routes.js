@@ -1,14 +1,11 @@
 import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { frontendURL } from '../../../../helper/URLHelper';
 
-import SettingsWrapper from '../SettingsWrapper.vue';
-import Index from './Index.vue';
-
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/labels'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
@@ -27,7 +24,7 @@ export default {
             featureFlag: FEATURE_FLAGS.LABELS,
             permissions: ['administrator'],
           },
-          component: Index,
+          component: () => import('./Index.vue'),
         },
       ],
     },

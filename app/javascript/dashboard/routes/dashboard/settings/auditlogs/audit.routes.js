@@ -2,14 +2,11 @@ import { FEATURE_FLAGS } from '../../../../featureFlags';
 import { INSTALLATION_TYPES } from 'dashboard/constants/installationTypes';
 import { frontendURL } from '../../../../helper/URLHelper';
 
-import SettingsWrapper from '../SettingsWrapper.vue';
-import AuditLogsHome from './Index.vue';
-
 export default {
   routes: [
     {
       path: frontendURL('accounts/:accountId/settings/audit-logs'),
-      component: SettingsWrapper,
+      component: () => import('../SettingsWrapper.vue'),
       children: [
         {
           path: '',
@@ -29,7 +26,7 @@ export default {
             ],
             permissions: ['administrator'],
           },
-          component: AuditLogsHome,
+          component: () => import('./Index.vue'),
         },
       ],
     },
