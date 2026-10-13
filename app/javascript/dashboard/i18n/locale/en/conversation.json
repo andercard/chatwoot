@@ -299,6 +299,7 @@
     },
     "REPLYBOX": {
       "AUDIO": {
+        "RECORD": "Record audio",
         "SEEK": "Seek audio",
         "DELETE": "Delete recording",
         "PAUSE": "Pause recording",

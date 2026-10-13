@@ -124,6 +124,10 @@ export default {
       type: Number,
       required: true,
     },
+    hasContent: {
+      type: Boolean,
+      default: false,
+    },
     // eslint-disable-next-line vue/no-unused-properties
     message: {
       type: String,
@@ -240,15 +244,6 @@ export default {
       return [
         ...photosAndFiles,
         {
-          key: 'audio',
-          show: this.showAudioRecorderButton,
-          icon: this.isRecordingAudio
-            ? 'i-ph-microphone-slash'
-            : 'i-ph-microphone',
-          label: this.$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON'),
-          action: () => this.toggleAudioRecorder(),
-        },
-        {
           key: 'macros',
           show: this.showMacrosRow,
           icon: 'i-lucide-zap',
@@ -314,6 +309,10 @@ export default {
         ) && this.showAudioRecorder
         // !isSafari
       );
+    },
+    // Phone: the round button is a mic while there is nothing to send
+    showMobileMic() {
+      return this.showAudioRecorderButton && !this.hasContent;
     },
     showAudioPlayStopButton() {
       if (this.isEditorDisabled) return false;
@@ -418,7 +417,7 @@ export default {
       <div
         v-if="showMobileMenuButton"
         :class="{ 'max-sm:!hidden': showMobileRecorderControls }"
-        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-end max-sm:mb-2.5 max-sm:group-data-[expanded]/wrapper:mb-0 max-sm:group-data-[expanded]/wrapper:row-start-2"
+        class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-center max-sm:group-data-[expanded]/wrapper:row-start-2"
       >
         <NextButton
           ref="mobileMenuToggleRef"
@@ -653,13 +652,23 @@ export default {
         @click="onSend"
       />
       <NextButton
+        v-if="showMobileMic"
+        :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.RECORD')"
+        icon="i-ph-microphone"
+        :color="isNote ? 'amber' : 'blue'"
+        :class="{ 'max-sm:!hidden': showMobileRecorderControls }"
+        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[expanded]/wrapper:row-start-2"
+        @click="toggleAudioRecorder"
+      />
+      <NextButton
+        v-else
         :aria-label="sendButtonText"
         icon="i-lucide-arrow-up"
         type="submit"
         :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
         :class="{ 'max-sm:!hidden': showMobileRecorderControls }"
-        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-end max-sm:mb-1.5 max-sm:group-data-[expanded]/wrapper:mb-0 max-sm:group-data-[expanded]/wrapper:row-start-2"
+        class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[expanded]/wrapper:row-start-2"
         @click="onSend"
       />
     </div>
