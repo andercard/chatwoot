@@ -268,6 +268,9 @@ export default {
         ? REPLY_EDITOR_MODES.NOTE
         : REPLY_EDITOR_MODES.REPLY;
     },
+    showExpand() {
+      return this.isFocused || this.hasMeaningfulEditorContent;
+    },
     hasMeaningfulEditorContent() {
       const body = this.message || '';
       // Only strip the signature when it's actually being auto-appended.
@@ -1452,7 +1455,7 @@ export default {
       :characters-remaining="charactersRemaining"
       :editor-content="message"
       :has-content="hasMeaningfulEditorContent"
-      :show-expand="isFocused || hasMeaningfulEditorContent"
+      :show-expand="showExpand"
       @set-reply-mode="setReplyMode"
       @toggle-editor-size="toggleEditorSize"
       @toggle-copilot="copilot.toggleEditor"
@@ -1527,10 +1530,13 @@ export default {
           v-model="message"
           :conversation-id="conversationId"
           :editor-id="editorStateId"
-          class="input popover-prosemirror-menu max-sm:rounded-3xl max-sm:ps-4 max-sm:pe-12 max-sm:py-1"
-          :class="
-            isOnPrivateNote ? 'max-sm:bg-n-solid-amber' : 'max-sm:bg-n-alpha-2'
-          "
+          class="input popover-prosemirror-menu max-sm:rounded-3xl max-sm:ps-4 max-sm:py-1 max-sm:[&_p.empty-node]:relative max-sm:[&_p.empty-node::before]:max-w-full max-sm:[&_p.empty-node::before]:truncate"
+          :class="[
+            isOnPrivateNote ? 'max-sm:bg-n-solid-amber' : 'max-sm:bg-n-alpha-2',
+            showExpand
+              ? 'max-sm:pe-[5.5rem] max-sm:group-data-[expanded]/wrapper:pe-12'
+              : 'max-sm:pe-12',
+          ]"
           :is-private="isOnPrivateNote"
           :placeholder="messagePlaceHolder"
           :update-selection-with="updateEditorSelectionWith"

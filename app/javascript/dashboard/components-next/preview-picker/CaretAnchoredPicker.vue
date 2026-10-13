@@ -79,7 +79,9 @@ const selectedIndex = ref(0);
 const isNarrowScreen = useMediaQuery(MOBILE_MEDIA_QUERY);
 const replyBox = shallowRef(null);
 const isMounted = ref(false);
-const isMobile = computed(() => isNarrowScreen.value && Boolean(replyBox.value));
+const isMobile = computed(
+  () => isNarrowScreen.value && Boolean(replyBox.value)
+);
 onMounted(() => {
   replyBox.value =
     caretAnchorRef.value?.parentElement?.closest('.reply-box') ?? null;

@@ -238,7 +238,7 @@ export default {
       ghost
       round
       sm
-      class="sm:hidden text-n-slate-11 max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end max-sm:self-start max-sm:z-10 max-sm:m-1"
+      class="sm:hidden text-n-slate-11 max-sm:col-start-3 max-sm:row-start-1 max-sm:justify-self-end max-sm:self-end max-sm:me-10 max-sm:group-data-[expanded]/wrapper:self-start max-sm:group-data-[expanded]/wrapper:me-1 max-sm:z-10 max-sm:m-1"
       icon="i-lucide-maximize-2"
       @click="$emit('toggleEditorSize')"
     />
