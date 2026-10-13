@@ -145,8 +145,8 @@ defineExpose({ scrollSelectedIntoView });
             <li
               v-if="groupFor(index)"
               role="presentation"
-              class="px-2 pb-1 text-xs font-medium text-n-slate-10"
-              :class="index === 0 ? '' : 'pt-2'"
+              class="px-2 text-xs font-medium text-n-slate-10"
+              :class="compact ? 'py-2' : ['pb-1', index === 0 ? '' : 'pt-2']"
             >
               {{ groupFor(index) }}
             </li>

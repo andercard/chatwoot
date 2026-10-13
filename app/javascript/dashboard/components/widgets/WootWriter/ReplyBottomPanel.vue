@@ -490,7 +490,7 @@ export default {
         sm
         @click="toggleEmojiPicker"
       />
-      <div v-if="showAttachButton" class="max-sm:hidden">
+      <div v-if="showAttachButton" class="max-sm:hidden sm:contents">
         <FileUpload
           v-if="showAttachButton"
           ref="uploadRef"
