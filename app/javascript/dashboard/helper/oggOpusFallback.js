@@ -2,9 +2,20 @@
 // file with a WASM decoder (loaded lazily) and play a WAV instead.
 const OPUS_SUPPORT_TYPE = 'audio/ogg; codecs=opus';
 const TARGET_SAMPLE_RATE = 16000;
+// Safari (and every iOS browser, which is WebKit) answers 'maybe'/'probably' to
+// canPlayType for OGG/Opus but then fails to play it, so we can't trust it.
+const WEBKIT_UA = /iPhone|iPad|iPod/;
+const SAFARI_UA = /Safari/;
+const NOT_SAFARI_UA = /Chrome|Chromium|CriOS|FxiOS|Edg|OPR/;
+
+const isWebKitPlayer = () => {
+  const ua = navigator.userAgent || '';
+  return WEBKIT_UA.test(ua) || (SAFARI_UA.test(ua) && !NOT_SAFARI_UA.test(ua));
+};
 
 export const needsOpusFallback = type => {
   if (!/ogg|opus/i.test(type || '')) return false;
+  if (isWebKitPlayer()) return true;
   const audio = document.createElement('audio');
   return !audio.canPlayType(OPUS_SUPPORT_TYPE);
 };
@@ -70,20 +81,30 @@ export const toPlayableUrl = async url => {
   if (!response.ok)
     throw new Error(`Audio download failed: ${response.status}`);
   const file = new Uint8Array(await response.arrayBuffer());
+  if (!file.length) throw new Error('Audio download returned an empty file');
 
-  const { OggOpusDecoder } = await import('ogg-opus-decoder');
-  const decoder = new OggOpusDecoder();
+  let decoderLoaded = false;
   try {
-    await decoder.ready;
-    const { channelData, samplesDecoded, sampleRate } =
-      await decoder.decodeFile(file);
-    const mono = toMono(channelData, samplesDecoded);
-    const wav = encodeWav(
-      resample(mono, sampleRate, TARGET_SAMPLE_RATE),
-      TARGET_SAMPLE_RATE
-    );
-    return URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
-  } finally {
-    decoder.free();
+    const { OggOpusDecoder } = await import('ogg-opus-decoder');
+    const decoder = new OggOpusDecoder();
+    decoderLoaded = true;
+    try {
+      await decoder.ready;
+      const { channelData, samplesDecoded, sampleRate } =
+        await decoder.decodeFile(file);
+      if (!samplesDecoded)
+        throw new Error('Opus decoder returned no audio samples');
+      const mono = toMono(channelData, samplesDecoded);
+      const wav = encodeWav(
+        resample(mono, sampleRate, TARGET_SAMPLE_RATE),
+        TARGET_SAMPLE_RATE
+      );
+      return URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
+    } finally {
+      decoder.free();
+    }
+  } catch (error) {
+    error.decoderLoaded = decoderLoaded;
+    throw error;
   }
 };

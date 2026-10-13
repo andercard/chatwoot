@@ -17,6 +17,14 @@ vi.mock('ogg-opus-decoder', () => {
   };
 });
 
+const mockUserAgent = ua =>
+  vi.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(ua);
+
+const IPHONE_UA =
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+const CHROME_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
 const mockCanPlay = value =>
   vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue(value);
 
@@ -42,18 +50,54 @@ describe('oggOpusFallback', () => {
       expect(needsOpusFallback('audio/ogg')).toBe(true);
     });
 
+    it('is true on iPhone even when canPlayType says maybe', () => {
+      mockUserAgent(IPHONE_UA);
+      mockCanPlay('maybe');
+      expect(needsOpusFallback('audio/ogg')).toBe(true);
+    });
+
+    it('is false on Chrome when canPlayType says probably, without loading the decoder', () => {
+      mockUserAgent(CHROME_UA);
+      mockCanPlay('probably');
+      expect(needsOpusFallback('audio/ogg')).toBe(false);
+      expect(decoderLoaded).not.toHaveBeenCalled();
+    });
+
     it('is false when the browser plays ogg/opus', () => {
+      mockUserAgent(CHROME_UA);
       mockCanPlay('probably');
       expect(needsOpusFallback('audio/ogg')).toBe(false);
     });
 
     it('is false for other types', () => {
+      mockUserAgent(CHROME_UA);
       mockCanPlay('');
       expect(needsOpusFallback('audio/mpeg')).toBe(false);
     });
   });
 
   describe('toPlayableUrl', () => {
+    it('throws when no samples were decoded', async () => {
+      decodeFile.mockResolvedValue({
+        channelData: [new Float32Array(0)],
+        samplesDecoded: 0,
+        sampleRate: 48000,
+      });
+      await expect(toPlayableUrl('https://example.com/a.ogg')).rejects.toThrow(
+        'no audio samples'
+      );
+    });
+
+    it('throws when the downloaded file is empty', async () => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      });
+      await expect(toPlayableUrl('https://example.com/a.ogg')).rejects.toThrow(
+        'empty file'
+      );
+    });
+
     it('decodes and returns a 16 kHz mono WAV blob url', async () => {
       const url = await toPlayableUrl('https://example.com/a.ogg');
       expect(url).toBe('blob:wav');
@@ -73,12 +117,14 @@ describe('oggOpusFallback', () => {
   });
 
   it('does not load the decoder when the browser supports ogg', () => {
+    mockUserAgent(CHROME_UA);
     mockCanPlay('probably');
     needsOpusFallback('audio/ogg');
     expect(decoderLoaded).not.toHaveBeenCalled();
   });
 
   it('does not download or decode when the browser supports ogg', () => {
+    mockUserAgent(CHROME_UA);
     mockCanPlay('probably');
     if (needsOpusFallback('audio/ogg'))
       toPlayableUrl('https://example.com/a.ogg');

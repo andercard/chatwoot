@@ -284,6 +284,9 @@
       "CLICK_HERE": "Haga clic aquí para actualizar",
       "WHATSAPP_TEMPLATES": "Plantillas de Whatsapp"
     },
+    "AUDIO": {
+      "PLAYBACK_FAILED": "Este audio no se puede reproducir en este navegador. Descárgalo para escucharlo."
+    },
     "REPLYBOX": {
       "AUDIO": {
         "RECORD": "Grabar audio",

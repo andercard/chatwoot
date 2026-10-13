@@ -43,11 +43,10 @@ const fallbackUrl = ref(null);
 const isConverting = ref(false);
 const conversionFailed = ref(false);
 const playableUrl = computed(() => fallbackUrl.value || timeStampURL.value);
-const requiresFallback = computed(
-  () =>
-    attachment.extension?.toLowerCase() === 'ogg' &&
-    needsOpusFallback('audio/ogg')
-);
+const isOgg = attachment.extension?.toLowerCase() === 'ogg';
+const startsWithFallback = isOgg && needsOpusFallback('audio/ogg');
+// Also turned on at runtime when the <audio> reports it can't play the OGG.
+const requiresFallback = ref(startsWithFallback);
 const isPlayDisabled = computed(
   () => conversionFailed.value || (requiresFallback.value && !fallbackUrl.value)
 );
@@ -163,11 +162,26 @@ const convertToPlayable = async () => {
     audioPlayer.value.playbackRate = playbackSpeed.value;
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('OGG/Opus fallback failed', error);
+    console.error('OGG/Opus fallback failed', {
+      name: error.name,
+      message: error.message,
+      decoderLoaded: error.decoderLoaded,
+    });
     conversionFailed.value = true;
   } finally {
     isConverting.value = false;
   }
+};
+
+// Runtime detection: the browser claimed support but the <audio> errored.
+const onMediaError = () => {
+  if (!isOgg) return;
+  if (fallbackUrl.value) {
+    conversionFailed.value = true;
+    return;
+  }
+  requiresFallback.value = true;
+  convertToPlayable();
 };
 
 // Convert before the tap: iOS only allows play() inside the user gesture.
@@ -178,7 +192,7 @@ const stopObserving = () => {
 };
 
 onMounted(() => {
-  if (!requiresFallback.value) return;
+  if (!startsWithFallback) return;
   if (typeof IntersectionObserver === 'undefined') {
     convertToPlayable();
     return;
@@ -208,8 +222,13 @@ const playOrPause = () => {
   // Emit event to pause all other audio
   emitter.emit('pause_playing_audio', uid);
   isPlaying.value = true;
-  audioPlayer.value.play().catch(() => {
+  audioPlayer.value.play().catch(error => {
     isPlaying.value = false;
+    if (error.name === 'AbortError') return;
+    // eslint-disable-next-line no-console
+    console.error('Audio playback failed', error.name, error.message);
+    if (fallbackUrl.value) conversionFailed.value = true;
+    else if (isOgg) onMediaError();
   });
 };
 
@@ -243,8 +262,9 @@ const downloadAudio = async () => {
     @loadedmetadata="onLoadedMetadata"
     @timeupdate="onTimeUpdate"
     @ended="onEnd"
+    @error="onMediaError"
   >
-    <source :src="playableUrl" />
+    <source :src="playableUrl" @error="onMediaError" />
   </audio>
   <div
     v-bind="$attrs"
@@ -314,6 +334,10 @@ const downloadAudio = async () => {
         </span>
       </button>
     </div>
+
+    <p v-if="conversionFailed" class="m-0 w-full text-xs text-n-amber-11">
+      {{ $t('CONVERSATION.AUDIO.PLAYBACK_FAILED') }}
+    </p>
 
     <div
       v-if="attachment.transcribedText && showTranscribedText"
