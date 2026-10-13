@@ -2,23 +2,23 @@
 
 ```yaml
 veredicto: no pasa
-ronda: 1
+ronda: 2
 fecha: 2026-10-12
 vuelve_a: plan
-tareas_a_medias: [5, 6, 7]
-cumplidas: 4/7
-a_medias: 3
-de_mas: 3
-escenarios: 10/14
+tareas_a_medias: [9, 10]
+cumplidas: 8/10
+a_medias: 2
+de_mas: 2
+escenarios: 14/17
 comandos:
   - cmd: F=$(git diff --name-only origin/production | grep -E '\.(js|vue)$' | tr '\n' ' '); docker compose exec -T vite pnpm exec eslint ${=F}
     exit: 0
-    esperado: "sin salida (0 errores)"
-    obtenido: "0 errores, 1 warning: MacroList.vue:89 no-dynamic-keys (ya existía en la base, línea 82)"
-    coincide: false
+    esperado: "0 errores; único aviso admitido MacroList.vue no-dynamic-keys"
+    obtenido: "0 errores, 1 warning: MacroList.vue:89:16 no-dynamic-keys (14 archivos)"
+    coincide: true
   - cmd: docker compose exec -T vite pnpm exec vitest run ReplyBox.spec.js WootWriter preview-picker
     exit: 0
-    esperado: "Test Files >= 3, Failed = 0"
+    esperado: "Failed = 0, Test Files >= 4"
     obtenido: "4 archivos, 262 tests, 0 fallos"
     coincide: true
   - cmd: git diff --name-only origin/production -- app/models app/controllers app/services app/jobs db
@@ -29,38 +29,39 @@ comandos:
   - cmd: calcifer check 2699f65161
     exit: 0
     esperado: "(el plan no lo declara)"
-    obtenido: "19 archivos; ningún validador cubre el diff; sin hallazgos"
+    obtenido: "21 archivos; ningún validador cubre el diff; sin hallazgos"
     coincide: no_verificado
-  - cmd: "B · navegador 390×844 y 1440×900 (chrome-devtools)"
+  - cmd: "B2 · +, sparkle y enviar con el mismo top (±2 px) en la fila 2; candado dentro de la caja"
     exit: null
-    esperado: "4 invariantes de la sección B"
-    obtenido: "no lo corrió el verify; medidas del orquestador en verification.md cubren las 4"
+    esperado: "mismo top ±2 px"
+    obtenido: "top 804 / 804 / 796; comparten el bottom (836); candado dentro de la caja"
+    coincide: false
+  - cmd: "B4 · sin macros habilitadas no existe la fila Macros"
+    exit: null
+    esperado: "no existe"
+    obtenido: "no medido; solo por código"
+    coincide: no_verificado
+  - cmd: "B5 · a 1440×900 el DOM visible es el de hoy"
+    exit: null
+    esperado: "pestañas presentes, sin botón +"
+    obtenido: "solo medido en la ronda 1"
     coincide: no_verificado
   - cmd: "C · iPhone real"
     exit: null
-    esperado: "@ y / con teclado real, envío, candado, cada fila del +"
+    esperado: "@ y /, enviar, candado, expandir/contraer, cada fila del +"
     obtenido: "sin correr"
     coincide: no_verificado
 ```
 
-## Cumplido (4 de 7)
-- **1** Lista de sugerencias móvil (CaretAnchoredPicker, PreviewPicker, TeleportWithDirection, PreviewPicker.spec.js). Desvíos aceptados: prop `compact` en lugar de `hideSearch`; `maxHeight` calculado en línea (40 % de visualViewport). Hueco: la rama móvil de CaretAnchoredPicker no tiene spec propio.
-- **2** Los cinco selectores pasan `:search-key` y sincronizan `searchQuery`.
-- **3** ResizableEditorWrapper: compacto `h-auto` 2.75–7 rem, `data-expanded`, asa solo expandido.
-- **4** ReplyTopPanel: `contents`, candado con `handleModeToggle`, maximizar con `showExpand`.
+## Cumplido (8 de 10)
+Tareas 1 a 8. La 5 (texto corregido), la 6 (`#` abre la lista, vacía en la cuenta local sin macros), la 7 (espía de `click()` en Fotos/Cámara/Adjuntar) y la 8 (contacto como fila con `asRow`, macros con `enableMacros`, videollamada oculta, sin fila 2) quedaron cumplidas.
 
-## A medias (5, 6, 7)
-- **5 · ReplyBottomPanel.** «Pedir datos de contacto» sigue como botón (fila 2) y no como fila del `+`: `RequestContactInfoButton.vue` guarda su condición y acción internas, y el `archivos:` de la tarea no lo incluye (criterio inalcanzable con el cerco). El criterio se contradice: lista «el emoji» entre las filas del menú pero el título y la propuesta dicen que el emoji se quita. La fila «Macros» se muestra siempre en respuesta (el plan decía «si macros habilitados»).
-- **6 · ReplyBox.** `openMacros` inserta `#` con `addIntoEditor`, pero no hay evidencia de que abra la lista de macros (`verification.md`: «no se confirmó»).
-- **7 · verification.md.** Falta evidencia de que cada fila del `+` dispara su selector de archivos (solo se listan filas e inputs).
+## A medias (9, 10)
+- **9:** el criterio «+, sparkle y enviar a la misma altura» y su invariante B2 (mismo `top` ±2 px) no se cumplen como están escritos: miden 32, 32 y 40 px de alto con `top` 804, 804 y 796; comparten el `bottom` (836). El defecto está en el criterio (en la ronda 1 se había escrito «misma base»). Además: el alto de la caja solo se anima en Chromium ≥ 129 (`interpolate-size`); en iOS solo se anima la entrada (`animate-fade-in-up` 0.3 s). «Vuelve a compacta al contraer» no se midió con el layout de la tarea 9.
+- **10:** faltan tres mediciones exigidas: (c) candado deshabilitado con respuestas restringidas, (e) ausencia de la fila «Macros» sin macros, (g) fila «Pedir datos de contacto» visible. El delta añadió escenarios nuevos pero el requisito del menú sigue listando «Macros» sin condición.
 
-## De más (3)
-- ReplyBox: placeholder en una línea con puntos suspensivos (commit 51d91126c4, ajuste visual).
-- ReplyBottomPanel: `VideoCallButton` y `RequestContactInfoButton` quedan en la fila 2 en móvil; la propuesta decía que la videollamada no aparece en la barra móvil.
-- CaretAnchoredPicker: `v-if="isMounted"` en el Teleport también retrasa un tick el selector flotante de escritorio.
+## De más (2, arrastrados)
+Placeholder en una línea con puntos suspensivos (ReplyBox); `v-if="isMounted"` en el Teleport de CaretAnchoredPicker, que retrasa un tick el selector de escritorio. Observación: reproducir/pausa de la grabación y el sparkle comparten celda (col 2) y se solaparían durante una grabación con Captain habilitado; no se probó.
 
-## Escenarios con evidencia: 10 de 14
-Sin evidencia: «Restricted replies force the note» (no se probó el candado deshabilitado), «The pill grows with the text» (solo se midió vacía y expandida), «Each row opens its action» (queda para iPhone), «Macros row opens the macro list».
-
-## Con qué se probó
-Lint: 0 errores y 1 warning preexistente (el plan declaraba «sin salida»; hay que corregir lo esperado, no el código). Vitest 4 archivos / 262 tests / 0 fallos. Backend vacío. `calcifer check` sin cobertura de validadores. B solo con la evidencia de `verification.md`; C sin correr.
+## Escenarios con evidencia: 14 de 17
+Sin evidencia: Restricted replies force the note (candado deshabilitado), Contact request row, Collapsing returns to the bar (con el layout de la tarea 9). Desktop is unchanged solo se midió en la ronda 1.
