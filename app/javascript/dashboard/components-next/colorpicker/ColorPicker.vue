@@ -1,6 +1,5 @@
 <script setup>
-import { ref } from 'vue';
-import { Chrome } from '@lk77/vue3-color';
+import { ref, defineAsyncComponent } from 'vue';
 import { OnClickOutside } from '@vueuse/components';
 
 import Button from 'dashboard/components-next/button/Button.vue';
@@ -13,6 +12,10 @@ defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+const Chrome = defineAsyncComponent(() =>
+  import('@lk77/vue3-color').then(m => m.Chrome)
+);
 
 const isPickerOpen = ref(false);
 
