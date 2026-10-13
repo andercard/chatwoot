@@ -13,6 +13,7 @@ import WaveformSeekBar from 'next/audio/WaveformSeekBar.vue';
 import { timeStampAppendedURL } from 'dashboard/helper/URLHelper';
 import { downloadFile } from '@chatwoot/utils';
 import { useEmitter } from 'dashboard/composables/emitter';
+import { useSmoothPlayback } from 'dashboard/composables/useSmoothPlayback';
 import { emitter } from 'shared/helpers/mitt';
 import {
   needsOpusFallback,
@@ -63,65 +64,23 @@ const audioPlayer = useTemplateRef('audioPlayer');
 
 const isPlaying = ref(false);
 const isMuted = ref(false);
-const currentTime = ref(0);
 const duration = ref(0);
 const playbackSpeed = ref(1);
 
 const { uid } = getCurrentInstance();
 
-// `timeupdate` only fires ~4 times per second, which makes the knob jump.
-// While playing we read the real currentTime on every frame instead.
-// The browser also only updates `currentTime` in coarse steps, so between real
-// updates we interpolate from the last known media time and the wall clock.
-const SEEK_BACK_THRESHOLD = 0.25;
-const MIN_READY_STATE = 3;
-let rafId = null;
-let lastMediaTime = 0;
-let lastStamp = 0;
-let lastRealTime = 0;
-const syncClock = () => {
-  const real = audioPlayer.value?.currentTime ?? 0;
-  lastRealTime = real;
-  lastMediaTime = real;
-  lastStamp = performance.now();
-  return real;
-};
-const stopTracking = () => {
-  if (rafId !== null) cancelAnimationFrame(rafId);
-  rafId = null;
-  if (audioPlayer.value) currentTime.value = syncClock();
-};
-const tick = () => {
-  const el = audioPlayer.value;
-  rafId = requestAnimationFrame(tick);
-  if (!el) return;
-  const now = performance.now();
-  const real = el.currentTime;
-  const canExtrapolate =
-    !el.paused && !el.ended && !el.seeking && el.readyState >= MIN_READY_STATE;
-
-  if (!canExtrapolate) {
-    syncClock();
-    currentTime.value = real;
-    return;
-  }
-
-  if (real !== lastRealTime) {
-    const isSeekBack = real < currentTime.value - SEEK_BACK_THRESHOLD;
-    lastRealTime = real;
-    lastMediaTime = real;
-    lastStamp = now;
-    currentTime.value = isSeekBack ? real : Math.max(real, currentTime.value);
-    return;
-  }
-
-  const estimate = lastMediaTime + ((now - lastStamp) / 1000) * el.playbackRate;
-  const max = Number.isFinite(duration.value) ? duration.value : estimate;
-  currentTime.value = Math.max(currentTime.value, Math.min(estimate, max));
-};
-const startTracking = () => {
-  if (rafId === null) rafId = requestAnimationFrame(tick);
-};
+const {
+  currentTime,
+  start: startTracking,
+  stop: stopTracking,
+  sync: syncClock,
+  jumpTo,
+  rebase,
+  isRunning,
+} = useSmoothPlayback(
+  () => audioPlayer.value,
+  () => duration.value
+);
 
 // MediaRecorder-produced WebM/Opus blobs lack a Duration header → <audio>.duration
 // resolves to Infinity until we seek past the end, which forces the engine to
@@ -191,7 +150,7 @@ const toggleMute = () => {
 };
 
 const onTimeUpdate = () => {
-  if (rafId !== null) return;
+  if (isRunning()) return;
   currentTime.value = audioPlayer.value?.currentTime;
 };
 
@@ -202,10 +161,7 @@ const progress = computed(() =>
 const seek = ratio => {
   const time = ratio * duration.value;
   audioPlayer.value.currentTime = time;
-  currentTime.value = time;
-  lastRealTime = time;
-  lastMediaTime = time;
-  lastStamp = performance.now();
+  jumpTo(time);
 };
 
 const convertToPlayable = async () => {
@@ -307,7 +263,7 @@ const changePlaybackSpeed = () => {
   const nextIndex = (currentIndex + 1) % speeds.length;
   playbackSpeed.value = speeds[nextIndex];
   audioPlayer.value.playbackRate = playbackSpeed.value;
-  syncClock();
+  rebase();
 };
 
 const downloadAudio = async () => {
@@ -324,6 +280,7 @@ const downloadAudio = async () => {
     playsinline
     @loadedmetadata="onLoadedMetadata"
     @timeupdate="onTimeUpdate"
+    @seeking="syncClock"
     @ended="onEnd"
     @error="onMediaError"
   >
