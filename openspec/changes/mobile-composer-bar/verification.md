@@ -26,3 +26,32 @@ Entorno: app local (Docker, rama `picnic/feat/mobile-composer-bar`), Chrome DevT
 - No se vio la fila "Macros": se muestra siempre en respuesta (no depende de `enableMacros`) y `openMacros` inserta `#` en el editor; no se confirmó en ejecución que ese `#` abra la lista de macros.
 - Los botones de reproducir/pausa de la grabación y videollamada quedan en la fila 2 de la cuadrícula; no se probaron.
 - Falta la prueba en iPhone real (teclado real, selectores de archivos nativos).
+
+---
+
+# Ronda 2 (viewport 390×844 touch, teclado simulado de 420 px)
+
+## Caja expandida
+- Con `data-expanded="true"`: `.reply-box__top` mide de 8 a 382 px (374 px; `.reply-box` va de 0 a 390), de 408 a 788 px de alto, y su borde inferior (788) queda **por encima** del borde superior del botón `+` (804). La caja ocupa todo el ancho útil, sin las columnas laterales.
+- Fila de íconos debajo: `+` (804–836), sparkle (804–836) y enviar (796–836): comparten el borde inferior (836); enviar es 8 px más alto (40 px frente a 32 px).
+- Dentro de la caja: candado abajo a la derecha (346–378 / 752–784) y botón de contraer arriba a la derecha (346–378 / 412–444).
+- Animación: la caja lleva `animate-fade-in-up` (0.3 s, funciona también en Safari/iOS) y la transición de alto del editor es `0.2s` (`transition-duration` medido), que solo anima en Chromium ≥ 129 (`interpolate-size`); en iOS el alto cambia de golpe y solo se anima la entrada.
+
+## Selectores de archivo del menú +
+Con `HTMLInputElement.prototype.click` espiado, tocar cada fila llamó una vez al `click()` de su entrada: Fotos → `mobilePhotosInput`, Cámara → `mobileCameraInput`, Adjuntar archivos → `conversationAttachment`. (El selector nativo no se ve en el navegador de escritorio: queda para el iPhone.)
+
+## Menú +
+En respuesta: Fotos, Cámara, Adjuntar archivos, Grabar audio, Macros, Activar firma, Plantillas de Whatsapp. La fila 2 de la cuadrícula ya no existe (0 botones por debajo de la fila de íconos). El botón de videollamada no aparece (`max-sm:hidden`).
+
+## Píldora que crece
+Vacía mide 44 px; con 8 líneas escritas mide 112 px (7 rem) y hace scroll interno (`scrollHeight > clientHeight`); al borrar vuelve a 44 px.
+
+## `@` filtra y `#` abre macros
+- `@` en nota privada: 5 filas; al escribir `jo` queda 1 (John); el foco sigue en el editor.
+- Fila «Macros»: inserta `#` y abre la lista (sin campo de búsqueda); en esta cuenta local no hay macros creadas, así que la lista sale vacía (0 filas).
+
+## No medido en navegador
+- Candado deshabilitado con respuestas restringidas: no se pudo reproducir localmente; el código lo hace (`:disabled="disabled || isReplyRestricted"`) y `ReplyBox.spec.js` cubre que se fuerza la nota.
+- Fila «Pedir datos de contacto»: esta conversación ya tiene teléfono, así que el componente no se muestra; el código reutiliza la misma condición (`showButton`).
+- Sin macros habilitadas la fila «Macros» no aparece: se comprueba por código (`enableMacros`), no con una cuenta sin la función.
+- iPhone real: pendiente.

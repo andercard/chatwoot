@@ -67,8 +67,13 @@ The system SHALL list in the plus menu Photos, Camera, Attach files, Macros and 
 - **WHEN** the agent taps Photos, Camera or Attach files
 - **THEN** the matching native file picker opens and the menu closes
 
+#### Scenario: Contact request row
+- **GIVEN** the plus menu is open on a conversation where a contact info request is available
+- **WHEN** the agent looks at the list
+- **THEN** a Request contact info row is listed and tapping it starts the same request as the desktop button
+
 #### Scenario: Macros row opens the macro list
-- **GIVEN** the plus menu is open and macros are enabled
+- **GIVEN** the plus menu is open and the account has macros enabled
 - **WHEN** the agent taps Macros
 - **THEN** the macro list opens above the bar
 
@@ -76,6 +81,19 @@ The system SHALL list in the plus menu Photos, Camera, Attach files, Macros and 
 - **GIVEN** the editor has a message on a phone viewport
 - **WHEN** the agent taps the round send button
 - **THEN** the message is sent and the editor goes back to the compact pill
+
+### Requirement: The expanded editor rises over the buttons on phones
+On viewports narrower than 640 px the system SHALL show the expanded editor as a box that spans the full width above the row with the plus, AI and send buttons, with the private note lock inside the box at its bottom end and the collapse control at its top end, and SHALL animate its entrance.
+
+#### Scenario: Expanding raises the box over the buttons
+- **GIVEN** the editor has focus on a phone viewport
+- **WHEN** the agent taps the expand icon
+- **THEN** the box spans the full width above the row of buttons, the lock is inside it and the box enters with a short animation
+
+#### Scenario: Collapsing returns to the bar
+- **GIVEN** the editor is expanded on a phone viewport
+- **WHEN** the agent collapses it or sends the message
+- **THEN** the composer goes back to the single-row bar
 
 ### Requirement: Screens of 640 px or wider keep the current composer
 The system SHALL keep the composer layout, the tabs and the floating pickers unchanged on viewports of 640 px or wider.
