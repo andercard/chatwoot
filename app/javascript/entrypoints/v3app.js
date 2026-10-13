@@ -1,7 +1,7 @@
 import { createApp } from 'vue';
 import { createI18n } from 'vue-i18n';
 
-import i18nMessages from 'dashboard/i18n';
+import i18nMessages, { loadLocaleMessages } from 'dashboard/i18n';
 import * as Sentry from '@sentry/vue';
 import {
   initializeAnalyticsEvents,
@@ -22,6 +22,14 @@ const i18n = createI18n({
   locale: 'en',
   messages: i18nMessages,
 });
+
+// The server already knows the UI language: fetch it now so the app mounts translated.
+const { selectedLocale } = window.chatwootConfig;
+const localeReady = loadLocaleMessages(i18n.global, selectedLocale)
+  .then(() => {
+    i18n.global.locale.value = selectedLocale;
+  })
+  .catch(() => {});
 
 const app = createApp(App);
 app.use(i18n);
@@ -61,6 +69,7 @@ initializeChatwootEvents();
 initializeAnalyticsEvents();
 initalizeRouter();
 
-window.onload = () => {
+window.onload = async () => {
+  await localeReady;
   app.mount('#app');
 };
