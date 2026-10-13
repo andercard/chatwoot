@@ -304,7 +304,10 @@
         "DELETE": "Delete recording",
         "PAUSE": "Pause recording",
         "RESUME": "Resume recording",
-        "SEND": "Send voice message"
+        "SEND": "Send voice message",
+        "PLAY": "Play recording",
+        "PAUSE_PLAYBACK": "Pause playback",
+        "RECORD_AGAIN": "Record again"
       },
       "QUICK_REPLIES": {
         "TITLE": "Quick replies",

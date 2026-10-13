@@ -67,9 +67,6 @@ import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { emitter } from 'shared/helpers/mitt';
-const PHONE_MEDIA_QUERY = '(max-width: 639px)';
-const PHONE_WAVEFORM_HEIGHT = 40;
-const DESKTOP_WAVEFORM_HEIGHT = 100;
 const EmojiIconPicker = defineAsyncComponent(
   () =>
     import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
@@ -168,9 +165,6 @@ export default {
       showEmojiPicker: false,
       attachedFiles: [],
       isRecordingAudio: false,
-      recordingAudioState: '',
-      recordingAudioDurationText: '',
-      isRecordingPaused: false,
       sendAfterRecording: false,
       replyType: REPLY_EDITOR_MODES.REPLY,
       draftConversationId: null,
@@ -1103,14 +1097,6 @@ export default {
         this.resetAudioRecorderInput();
       }
     },
-    toggleAudioRecorderPlayPause() {
-      if (!this.$refs.audioRecorderInput) return;
-      if (!this.recordingAudioState) {
-        this.$refs.audioRecorderInput.stopRecording();
-      } else {
-        this.$refs.audioRecorderInput.playPause();
-      }
-    },
     hideEmojiPicker() {
       if (this.showEmojiPicker) {
         this.toggleEmojiPicker();
@@ -1129,11 +1115,7 @@ export default {
     onFocus() {
       this.isFocused = true;
     },
-    onRecordProgressChanged(duration) {
-      this.recordingAudioDurationText = duration;
-    },
     async onFinishRecorder(file) {
-      this.recordingAudioState = 'stopped';
       this.hasRecordedAudio = true;
       // Added a new key isVoiceMessage to the file to identify recorded audio
       // Because to filter and show only non recorded audio and other attachments
@@ -1148,7 +1130,7 @@ export default {
         this.onSendReply();
       }
     },
-    // Phone: stops the recording, waits for the upload and sends the voice note
+    // Stops the recording if needed, waits for the upload and sends once
     sendRecordedAudio() {
       if (this.sendAfterRecording) return;
       if (this.hasRecordedAudio) {
@@ -1158,20 +1140,13 @@ export default {
       this.sendAfterRecording = true;
       this.$refs.audioRecorderInput?.stopRecording();
     },
-    // The phone shows the waveform in a ~2.5rem row, desktop keeps the tall one
-    getAudioWaveformHeight() {
-      return window.matchMedia(PHONE_MEDIA_QUERY).matches
-        ? PHONE_WAVEFORM_HEIGHT
-        : DESKTOP_WAVEFORM_HEIGHT;
-    },
-    toggleRecordingPause() {
-      const recorder = this.$refs.audioRecorderInput;
-      if (!recorder) return;
-      if (this.isRecordingPaused) {
-        recorder.resume();
-      } else {
-        recorder.pause();
-      }
+    // Recording again discards the previous voice note, never concatenates
+    onRecordAgain() {
+      this.hasRecordedAudio = false;
+      this.sendAfterRecording = false;
+      this.attachedFiles = this.attachedFiles.filter(
+        file => !file?.isVoiceMessage
+      );
     },
     onRecordError() {
       this.sendAfterRecording = false;
@@ -1447,10 +1422,7 @@ export default {
       this.showArticleSearchPopover = !this.showArticleSearchPopover;
     },
     resetAudioRecorderInput() {
-      this.recordingAudioDurationText = '00:00';
       this.isRecordingAudio = false;
-      this.recordingAudioState = '';
-      this.isRecordingPaused = false;
       this.sendAfterRecording = false;
       this.hasRecordedAudio = false;
       // Only clear the recorded audio when we click toggle button.
@@ -1478,23 +1450,15 @@ export default {
     :class="[
       replyBoxClass,
       isOnPrivateNote ? 'max-sm:!bg-n-solid-amber' : 'max-sm:!bg-n-slate-3',
-      { 'max-sm:!grid-cols-3': showAudioRecorderEditor },
     ]"
   >
-    <!-- Phone: while recording only the recorder controls remain -->
-    <div
-      :class="
-        showAudioRecorderEditor ? 'max-sm:hidden sm:contents' : 'contents'
-      "
-    >
+    <!-- While recording the recorder bar is the only row of the composer -->
+    <div :class="showAudioRecorderEditor ? 'hidden' : 'contents'">
       <ReplyTopPanel
         :mode="replyType"
         :conversation-id="conversationId"
         :is-reply-restricted="!canSendPublicReply"
-        :disabled="
-          (copilot.isActive.value && copilot.isButtonDisabled.value) ||
-          showAudioRecorderEditor
-        "
+        :disabled="copilot.isActive.value && copilot.isButtonDisabled.value"
         :is-editor-disabled="isEditorDisabled"
         :is-message-length-reaching-threshold="isMessageLengthReachingThreshold"
         :characters-remaining="charactersRemaining"
@@ -1526,7 +1490,7 @@ export default {
         class="reply-box__top max-sm:!static max-sm:row-start-1 max-sm:group-data-[grown]/wrapper:row-span-2 max-sm:group-data-[expanded]/wrapper:row-start-2 max-sm:!bg-transparent max-sm:!rounded-none max-sm:!border-0 max-sm:group-data-[expanded]/wrapper:animate-fade-in-up max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
         :class="
           showAudioRecorderEditor
-            ? 'max-sm:col-start-1 max-sm:col-span-3'
+            ? 'max-sm:col-start-1 max-sm:col-span-4 max-sm:!row-start-1 max-sm:!row-span-1'
             : 'max-sm:col-start-2 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4'
         "
       >
@@ -1555,13 +1519,13 @@ export default {
           v-if="showAudioRecorderEditor"
           ref="audioRecorderInput"
           :audio-record-format="audioRecordFormat"
-          :height="getAudioWaveformHeight()"
-          @recorder-progress-changed="onRecordProgressChanged"
+          :is-sending="sendAfterRecording"
+          :is-note="isOnPrivateNote"
           @finish-record="onFinishRecorder"
           @record-error="onRecordError"
-          @play="recordingAudioState = 'playing'"
-          @pause="recordingAudioState = 'paused'"
-          @record-paused-change="isRecordingPaused = $event"
+          @record-again="onRecordAgain"
+          @delete="toggleAudioRecorder"
+          @send="sendRecordedAudio"
         />
         <CopilotEditorSection
           v-if="copilot.isActive.value && !showAudioRecorderEditor"
@@ -1625,7 +1589,9 @@ export default {
           {{ $t('CONVERSATION.IMAGE_OPTIMIZATION.OPTIMIZING') }}
         </div>
         <div
-          v-if="hasAttachments && isDefaultEditorMode"
+          v-if="
+            hasAttachments && isDefaultEditorMode && !showAudioRecorderEditor
+          "
           class="bg-transparent py-0 sm:mb-2 max-sm:absolute max-sm:inset-x-0 max-sm:bottom-full max-sm:z-10 max-sm:bg-n-surface-1 max-sm:border-t max-sm:border-n-weak max-sm:p-2"
           @paste="onPaste"
         >
@@ -1667,6 +1633,7 @@ export default {
       <ReplyBottomPanel
         v-else
         key="reply-bottom-panel"
+        :class="{ '!hidden': showAudioRecorderEditor }"
         :conversation-id="conversationId"
         :enable-multiple-file-upload="enableMultipleFileUpload"
         :enable-whats-app-templates="showWhatsappTemplates"
@@ -1675,10 +1642,6 @@ export default {
         :inbox="inbox"
         :is-on-private-note="isOnPrivateNote"
         :is-recording-audio="isRecordingAudio"
-        :is-recording-paused="isRecordingPaused"
-        :is-sending-recording="sendAfterRecording"
-        :send-recorded-audio="sendRecordedAudio"
-        :toggle-recording-pause="toggleRecordingPause"
         :is-send-disabled="isReplyButtonDisabled"
         :has-content="hasMeaningfulEditorContent || !!hasAttachments"
         :is-note="isPrivate"
@@ -1686,15 +1649,12 @@ export default {
         :on-file-upload="onFileUpload"
         :on-send="onSendReply"
         :conversation-type="conversationType"
-        :recording-audio-duration-text="recordingAudioDurationText"
-        :recording-audio-state="recordingAudioState"
         :send-button-text="replyButtonLabel"
         :show-audio-recorder="showAudioRecorder"
         :show-emoji-picker="showEmojiPicker"
         :show-file-upload="showFileUpload"
         :show-quoted-reply-toggle="shouldShowQuotedReplyToggle"
         :quoted-reply-enabled="quotedReplyPreference"
-        :toggle-audio-recorder-play-pause="toggleAudioRecorderPlayPause"
         :toggle-audio-recorder="toggleAudioRecorder"
         :toggle-emoji-picker="toggleEmojiPicker"
         :message="message"

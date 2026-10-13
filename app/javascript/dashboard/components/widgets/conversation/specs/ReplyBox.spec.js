@@ -461,6 +461,26 @@ describe('ReplyBox', () => {
       expect(onSendReply).toHaveBeenCalledTimes(1);
     });
 
+    it('sends once from the preview, the attachment already uploaded', async () => {
+      const { wrapper, stopRecording, onSendReply } = mountRecording();
+      await wrapper.vm.onFinishRecorder({ name: 'note.ogg', file: {} });
+
+      wrapper.vm.sendRecordedAudio();
+
+      expect(stopRecording).not.toHaveBeenCalled();
+      expect(onSendReply).toHaveBeenCalledTimes(1);
+    });
+
+    it('drops the previous voice note when recording again', async () => {
+      const { wrapper } = mountRecording();
+      await wrapper.vm.onFinishRecorder({ name: 'note.ogg', file: {} });
+
+      wrapper.vm.onRecordAgain();
+
+      expect(wrapper.vm.attachedFiles).toEqual([]);
+      expect(wrapper.vm.hasRecordedAudio).toBe(false);
+    });
+
     it('does not send when the recording fails', async () => {
       const { wrapper, onSendReply } = mountRecording();
 

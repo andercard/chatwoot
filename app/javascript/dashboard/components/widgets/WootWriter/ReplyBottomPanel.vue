@@ -37,10 +37,6 @@ export default {
       type: String,
       default: '',
     },
-    recordingAudioDurationText: {
-      type: String,
-      default: '00:00',
-    },
     // inbox prop is used in /mixins/inboxMixin,
     // remove this props when refactoring to composable if not needed
     // eslint-disable-next-line vue/no-unused-properties
@@ -68,33 +64,9 @@ export default {
       type: Function,
       default: () => {},
     },
-    toggleAudioRecorderPlayPause: {
-      type: Function,
-      default: () => {},
-    },
     isRecordingAudio: {
       type: Boolean,
       default: false,
-    },
-    recordingAudioState: {
-      type: String,
-      default: '',
-    },
-    isRecordingPaused: {
-      type: Boolean,
-      default: false,
-    },
-    isSendingRecording: {
-      type: Boolean,
-      default: false,
-    },
-    sendRecordedAudio: {
-      type: Function,
-      default: () => {},
-    },
-    toggleRecordingPause: {
-      type: Function,
-      default: () => {},
     },
     isSendDisabled: {
       type: Boolean,
@@ -314,14 +286,6 @@ export default {
     showMobileMic() {
       return this.showAudioRecorderButton && !this.hasContent;
     },
-    showAudioPlayStopButton() {
-      if (this.isEditorDisabled) return false;
-      return this.showAudioRecorder && this.isRecordingAudio;
-    },
-    // Phone: the recorder takes over the bar (trash, pause/resume, send)
-    showMobileRecorderControls() {
-      return this.showAudioPlayStopButton;
-    },
     isInstagramDM() {
       return this.conversationType === 'instagram_direct_message';
     },
@@ -350,19 +314,6 @@ export default {
     },
     enableDragAndDrop() {
       return !this.newConversationModalActive;
-    },
-    audioRecorderPlayStopIcon() {
-      switch (this.recordingAudioState) {
-        // playing paused recording stopped inactive destroyed
-        case 'playing':
-          return 'i-ph-pause';
-        case 'paused':
-          return 'i-ph-play';
-        case 'stopped':
-          return 'i-ph-play';
-        default:
-          return 'i-ph-stop';
-      }
     },
     showMessageSignatureButton() {
       if (this.isEditorDisabled) return false;
@@ -416,7 +367,6 @@ export default {
     <div class="flex gap-2 items-center max-sm:contents">
       <div
         v-if="showMobileMenuButton"
-        :class="{ 'max-sm:!hidden': showMobileRecorderControls }"
         class="relative sm:hidden max-sm:row-start-1 max-sm:col-start-1 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3 max-sm:group-data-[expanded]/wrapper:self-center"
       >
         <NextButton
@@ -522,45 +472,6 @@ export default {
         sm
         @click="toggleAudioRecorder"
       />
-      <template v-if="showMobileRecorderControls">
-        <NextButton
-          class="sm:hidden max-sm:col-start-1 max-sm:row-start-2 max-sm:justify-self-start max-sm:mt-2"
-          icon="i-lucide-trash-2"
-          ruby
-          faded
-          :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.DELETE')"
-          @click="toggleAudioRecorder"
-        />
-        <NextButton
-          class="!rounded-full sm:hidden max-sm:col-start-2 max-sm:row-start-2 max-sm:justify-self-center max-sm:mt-2"
-          :icon="isRecordingPaused ? 'i-ph-microphone-fill' : 'i-ph-pause-fill'"
-          ruby
-          :aria-label="
-            isRecordingPaused
-              ? $t('CONVERSATION.REPLYBOX.AUDIO.RESUME')
-              : $t('CONVERSATION.REPLYBOX.AUDIO.PAUSE')
-          "
-          @click="toggleRecordingPause"
-        />
-        <NextButton
-          class="flex-shrink-0 !rounded-full sm:hidden max-sm:col-start-3 max-sm:row-start-2 max-sm:justify-self-end max-sm:mt-2"
-          icon="i-lucide-arrow-up"
-          :color="isNote ? 'amber' : 'blue'"
-          :disabled="isSendingRecording"
-          :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.SEND')"
-          @click="sendRecordedAudio"
-        />
-      </template>
-      <NextButton
-        v-if="showAudioPlayStopButton"
-        class="max-sm:hidden"
-        :icon="audioRecorderPlayStopIcon"
-        slate
-        faded
-        sm
-        :label="recordingAudioDurationText"
-        @click="toggleAudioRecorderPlayPause"
-      />
       <NextButton
         v-if="showMessageSignatureButton"
         v-tooltip.top-end="signatureToggleTooltip"
@@ -656,7 +567,6 @@ export default {
         :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.RECORD')"
         icon="i-ph-microphone"
         :color="isNote ? 'amber' : 'blue'"
-        :class="{ 'max-sm:!hidden': showMobileRecorderControls }"
         class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3 max-sm:group-data-[expanded]/wrapper:self-center"
         @click="toggleAudioRecorder"
       />
@@ -667,7 +577,6 @@ export default {
         type="submit"
         :color="isNote ? 'amber' : 'blue'"
         :disabled="isSendDisabled"
-        :class="{ 'max-sm:!hidden': showMobileRecorderControls }"
         class="flex-shrink-0 !rounded-full sm:hidden max-sm:row-start-1 max-sm:col-start-4 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3 max-sm:group-data-[expanded]/wrapper:self-center"
         @click="onSend"
       />

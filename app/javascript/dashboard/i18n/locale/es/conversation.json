@@ -291,7 +291,10 @@
         "DELETE": "Eliminar grabación",
         "PAUSE": "Pausar grabación",
         "RESUME": "Reanudar grabación",
-        "SEND": "Enviar nota de voz"
+        "SEND": "Enviar nota de voz",
+        "PLAY": "Reproducir grabación",
+        "PAUSE_PLAYBACK": "Pausar reproducción",
+        "RECORD_AGAIN": "Grabar de nuevo"
       },
       "QUICK_REPLIES": {
         "TITLE": "Respuestas rápidas",
