@@ -1,24 +1,13 @@
-// Safari/iOS cannot play OGG/Opus in <audio>. For those browsers we decode the
-// file with a WASM decoder (loaded lazily) and play a WAV instead.
+// For browsers that cannot play OGG/Opus in <audio> we decode the file with a
+// WASM decoder (loaded lazily) and play a WAV instead.
 const OPUS_SUPPORT_TYPE = 'audio/ogg; codecs=opus';
 const TARGET_SAMPLE_RATE = 16000;
-// Safari (and every iOS browser, which is WebKit) answers 'maybe'/'probably' to
-// canPlayType for OGG/Opus but then fails to play it, so we can't trust it.
-const WEBKIT_UA = /iPhone|iPad|iPod/;
-const SAFARI_UA = /Safari/;
-const NOT_SAFARI_UA = /Chrome|Chromium|CriOS|FxiOS|Edg|OPR/;
 
-const isWebKitPlayer = () => {
-  const ua = navigator.userAgent || '';
-  return WEBKIT_UA.test(ua) || (SAFARI_UA.test(ua) && !NOT_SAFARI_UA.test(ua));
-};
-
-export const needsOpusFallback = type => {
-  if (!/ogg|opus/i.test(type || '')) return false;
-  if (isWebKitPlayer()) return true;
-  const audio = document.createElement('audio');
-  return !audio.canPlayType(OPUS_SUPPORT_TYPE);
-};
+// Only when the browser reports no OGG/Opus support at all do we know upfront
+// that playback is impossible. Anything else is tried natively first.
+export const needsOpusFallback = type =>
+  /ogg|opus/i.test(type || '') &&
+  !document.createElement('audio').canPlayType(OPUS_SUPPORT_TYPE);
 
 const toMono = (channelData, length) => {
   const mono = new Float32Array(length);

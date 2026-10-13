@@ -38,18 +38,15 @@ const timeStampURL = computed(() => {
   return timeStampAppendedURL(attachment.dataUrl);
 });
 
-// Safari can't play OGG/Opus: we convert it to WAV once it is on screen.
+// Native <audio> first. We only convert OGG/Opus to WAV when the browser can't
+// play it (known upfront) or when the native playback actually fails.
 const fallbackUrl = ref(null);
 const isConverting = ref(false);
 const conversionFailed = ref(false);
 const playableUrl = computed(() => fallbackUrl.value || timeStampURL.value);
 const isOgg = attachment.extension?.toLowerCase() === 'ogg';
-const startsWithFallback = isOgg && needsOpusFallback('audio/ogg');
-// Also turned on at runtime when the <audio> reports it can't play the OGG.
-const requiresFallback = ref(startsWithFallback);
-const isPlayDisabled = computed(
-  () => conversionFailed.value || (requiresFallback.value && !fallbackUrl.value)
-);
+const convertsUpfront = isOgg && needsOpusFallback('audio/ogg');
+const isPlayDisabled = computed(() => isConverting.value);
 
 const TRANSCRIPT_PREVIEW_LENGTH = 200;
 const isTranscriptExpanded = ref(false);
@@ -155,6 +152,7 @@ const seek = ratio => {
 const convertToPlayable = async () => {
   if (isConverting.value || fallbackUrl.value) return;
   isConverting.value = true;
+  conversionFailed.value = false;
   try {
     fallbackUrl.value = await toPlayableUrl(attachment.dataUrl);
     await nextTick();
@@ -173,14 +171,13 @@ const convertToPlayable = async () => {
   }
 };
 
-// Runtime detection: the browser claimed support but the <audio> errored.
+// The native <audio> failed: fall back to the WAV (or give up if it was the WAV).
 const onMediaError = () => {
   if (!isOgg) return;
   if (fallbackUrl.value) {
     conversionFailed.value = true;
     return;
   }
-  requiresFallback.value = true;
   convertToPlayable();
 };
 
@@ -192,7 +189,7 @@ const stopObserving = () => {
 };
 
 onMounted(() => {
-  if (!startsWithFallback) return;
+  if (!convertsUpfront) return;
   if (typeof IntersectionObserver === 'undefined') {
     convertToPlayable();
     return;
@@ -227,8 +224,7 @@ const playOrPause = () => {
     if (error.name === 'AbortError') return;
     // eslint-disable-next-line no-console
     console.error('Audio playback failed', error.name, error.message);
-    if (fallbackUrl.value) conversionFailed.value = true;
-    else if (isOgg) onMediaError();
+    onMediaError();
   });
 };
 
@@ -277,7 +273,7 @@ const downloadAudio = async () => {
         @click="playOrPause"
       >
         <Icon
-          v-if="isPlayDisabled && !conversionFailed"
+          v-if="isConverting"
           class="size-5 animate-spin"
           icon="i-lucide-loader-circle"
         />
