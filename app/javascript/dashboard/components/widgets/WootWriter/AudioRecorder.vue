@@ -1,6 +1,6 @@
 <script setup>
 import getUuid from 'widget/helpers/uuid';
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import WaveSurfer from 'wavesurfer.js';
 import RecordPlugin from 'wavesurfer.js/dist/plugins/record.js';
 import { format, intervalToDuration } from 'date-fns';
@@ -28,13 +28,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits([
-  'finishRecord',
-  'recordError',
-  'recordAgain',
-  'delete',
-  'send',
-]);
+const emit = defineEmits(['finishRecord', 'recordError', 'delete', 'send']);
 
 const waveformContainer = ref(null);
 const wavesurfer = ref(null);
@@ -47,6 +41,8 @@ const recordedDuration = ref(0);
 const audio = ref(null);
 const isPlaying = ref(false);
 const currentTime = ref(0);
+const isPaused = ref(false);
+let discarded = false;
 
 const formatTimeProgress = time => {
   const duration = intervalToDuration({ start: 0, end: time });
@@ -78,6 +74,15 @@ const getRecordPluginOptions = audioFormat => {
   return options;
 };
 
+const releaseAudio = () => {
+  audio.value?.pause();
+  audio.value = null;
+  isPlaying.value = false;
+  currentTime.value = 0;
+  if (recordedAudioUrl.value) URL.revokeObjectURL(recordedAudioUrl.value);
+  recordedAudioUrl.value = null;
+};
+
 const initWaveSurfer = () => {
   wavesurfer.value = WaveSurfer.create({
     container: waveformContainer.value,
@@ -94,9 +99,25 @@ const initWaveSurfer = () => {
 
   record.value = wavesurfer.value.plugins[0];
 
+  // Pausing keeps one MediaRecorder alive; the blob so far feeds the preview
+  record.value.on('record-pause', blob => {
+    releaseAudio();
+    recordedAudioUrl.value = URL.createObjectURL(blob);
+    audio.value = new Audio(recordedAudioUrl.value);
+    audio.value.addEventListener('timeupdate', () => {
+      currentTime.value = audio.value.currentTime;
+    });
+    audio.value.addEventListener('ended', () => {
+      isPlaying.value = false;
+    });
+    hasRecording.value = true;
+  });
+
   record.value.on('record-end', async blob => {
+    if (discarded) return;
     try {
       const audioBlob = await convertAudio(blob, props.audioRecordFormat);
+      if (discarded) return;
       // Use the converted blob's actual type, which may differ from the
       // requested format when the browser can't produce it (e.g. Safari falls
       // back to MP3 instead of OGG). This keeps the filename, content type, and
@@ -107,24 +128,13 @@ const initWaveSurfer = () => {
       const file = new File([audioBlob], fileName, {
         type: audioType,
       });
-      if (recordedAudioUrl.value) URL.revokeObjectURL(recordedAudioUrl.value);
-      recordedAudioUrl.value = URL.createObjectURL(audioBlob);
-      audio.value = new Audio(recordedAudioUrl.value);
-      audio.value.addEventListener('timeupdate', () => {
-        currentTime.value = audio.value.currentTime;
-      });
-      audio.value.addEventListener('ended', () => {
-        isPlaying.value = false;
-      });
       emit('finishRecord', {
         name: file.name,
         type: file.type,
         size: file.size,
         file,
       });
-      hasRecording.value = true;
     } catch (error) {
-      hasRecording.value = false;
       emit('recordError', { error });
     }
   });
@@ -133,15 +143,6 @@ const initWaveSurfer = () => {
     recordedDuration.value = time / 1000;
     durationText.value = formatTimeProgress(time);
   });
-};
-
-const releaseAudio = () => {
-  audio.value?.pause();
-  audio.value = null;
-  isPlaying.value = false;
-  currentTime.value = 0;
-  if (recordedAudioUrl.value) URL.revokeObjectURL(recordedAudioUrl.value);
-  recordedAudioUrl.value = null;
 };
 
 const startRecording = async () => {
@@ -157,11 +158,33 @@ const startRecording = async () => {
   }
 };
 
-// Pausing stops the recording: the preview plays the captured audio
-const stopRecording = () => {
+const pauseRecording = () => {
   if (!isRecording.value) return;
+  record.value.pauseRecording();
+  isRecording.value = false;
+  isPaused.value = true;
+};
+
+const resumeRecording = () => {
+  releaseAudio();
+  hasRecording.value = false;
+  record.value.resumeRecording();
+  isPaused.value = false;
+  isRecording.value = true;
+};
+
+// Final stop (send): a paused recorder can be stopped directly
+const stopRecording = () => {
+  if (!isRecording.value && !isPaused.value) return;
   record.value.stopRecording();
   isRecording.value = false;
+  isPaused.value = false;
+};
+
+const onDelete = () => {
+  discarded = true;
+  record.value?.stopRecording();
+  emit('delete');
 };
 
 const playPause = () => {
@@ -180,18 +203,8 @@ const seek = progress => {
   currentTime.value = audio.value.currentTime;
 };
 
-const recordAgain = async () => {
-  releaseAudio();
-  hasRecording.value = false;
-  recordedDuration.value = 0;
-  durationText.value = '00:00';
-  emit('recordAgain');
-  await nextTick();
-  startRecording();
-};
-
 const canSend = computed(() =>
-  isRecording.value ? recordedDuration.value > 0 : hasRecording.value
+  isRecording.value ? recordedDuration.value > 0 : isPaused.value
 );
 
 const progress = computed(() =>
@@ -212,6 +225,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  discarded = true;
   releaseAudio();
   if (wavesurfer.value) {
     wavesurfer.value.destroy();
@@ -230,7 +244,7 @@ defineExpose({ stopRecording, record });
       sm
       class="flex-shrink-0 !rounded-full"
       :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.DELETE')"
-      @click="emit('delete')"
+      @click="onDelete"
     />
     <div class="flex flex-1 gap-2 items-center min-w-0">
       <template v-if="isRecording">
@@ -282,7 +296,7 @@ defineExpose({ stopRecording, record });
       :disabled="!canSend"
       :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.PAUSE')"
       data-test-id="pause-recording"
-      @click="stopRecording"
+      @click="pauseRecording"
     />
     <NextButton
       v-else
@@ -290,9 +304,10 @@ defineExpose({ stopRecording, record });
       ruby
       sm
       class="flex-shrink-0 !rounded-full"
-      :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.RECORD_AGAIN')"
-      data-test-id="record-again"
-      @click="recordAgain"
+      :disabled="isSending"
+      :aria-label="$t('CONVERSATION.REPLYBOX.AUDIO.RESUME')"
+      data-test-id="resume-recording"
+      @click="resumeRecording"
     />
     <NextButton
       icon="i-lucide-arrow-up"

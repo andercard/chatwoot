@@ -449,7 +449,7 @@ describe('ReplyBox', () => {
       return { wrapper, stopRecording, onSendReply };
     };
 
-    it('stops the recording and sends once the attachment is ready', async () => {
+    it('stops the recording (even when paused) and sends once the attachment is ready', async () => {
       const { wrapper, stopRecording, onSendReply } = mountRecording();
 
       wrapper.vm.sendRecordedAudio();
@@ -469,16 +469,6 @@ describe('ReplyBox', () => {
 
       expect(stopRecording).not.toHaveBeenCalled();
       expect(onSendReply).toHaveBeenCalledTimes(1);
-    });
-
-    it('drops the previous voice note when recording again', async () => {
-      const { wrapper } = mountRecording();
-      await wrapper.vm.onFinishRecorder({ name: 'note.ogg', file: {} });
-
-      wrapper.vm.onRecordAgain();
-
-      expect(wrapper.vm.attachedFiles).toEqual([]);
-      expect(wrapper.vm.hasRecordedAudio).toBe(false);
     });
 
     it('does not send when the recording fails', async () => {

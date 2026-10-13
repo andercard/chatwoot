@@ -2,9 +2,16 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import { nextTick } from 'vue';
 import AudioRecorder from './AudioRecorder.vue';
+import { convertAudio } from './utils/audioConversionUtils';
 
 const mocks = vi.hoisted(() => ({
-  record: { startRecording: vi.fn(), stopRecording: vi.fn(), on: vi.fn() },
+  record: {
+    startRecording: vi.fn(),
+    stopRecording: vi.fn(),
+    pauseRecording: vi.fn(),
+    resumeRecording: vi.fn(),
+    on: vi.fn(),
+  },
 }));
 
 vi.mock('wavesurfer.js', () => ({
@@ -34,33 +41,82 @@ const progressTo = async seconds => {
   await nextTick();
 };
 
+const emitRecordEvent = (event, payload) => {
+  const [, handler] = mocks.record.on.mock.calls.find(([e]) => e === event);
+  return handler(payload);
+};
+
 describe('AudioRecorder', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    URL.createObjectURL = vi.fn(() => 'blob:preview');
+    URL.revokeObjectURL = vi.fn();
     Object.defineProperty(navigator, 'mediaDevices', {
       value: { getUserMedia: vi.fn() },
       configurable: true,
     });
   });
 
-  it('pausing stops the recording and shows the preview', async () => {
+  const mountPaused = async () => {
     const wrapper = mountRecorder();
     await flushPromises();
     await progressTo(2);
+    await wrapper.find('[data-test-id="pause-recording"]').trigger('click');
+    emitRecordEvent('record-pause', new Blob(['a']));
+    await nextTick();
+    return wrapper;
+  };
+
+  it('pausing pauses the recording without stopping and shows the preview', async () => {
+    const wrapper = await mountPaused();
+
+    expect(mocks.record.startRecording).toHaveBeenCalledTimes(1);
+    expect(mocks.record.pauseRecording).toHaveBeenCalledTimes(1);
+    expect(mocks.record.stopRecording).not.toHaveBeenCalled();
+    expect(wrapper.emitted('finishRecord')).toBeUndefined();
+    expect(wrapper.find('[data-test-id="pause-recording"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.find('[data-test-id="resume-recording"]').exists()).toBe(
+      true
+    );
+    expect(wrapper.find('[role="slider"]').exists()).toBe(true);
+  });
+
+  it('resumes the same recording from the preview', async () => {
+    const wrapper = await mountPaused();
+
+    await wrapper.find('[data-test-id="resume-recording"]').trigger('click');
+
+    expect(mocks.record.resumeRecording).toHaveBeenCalledTimes(1);
     expect(mocks.record.startRecording).toHaveBeenCalledTimes(1);
     expect(wrapper.find('[data-test-id="pause-recording"]').exists()).toBe(
       true
     );
+    expect(wrapper.find('[data-test-id="recording-duration"]').text()).toBe(
+      '00:02'
+    );
+  });
 
-    await wrapper.find('[data-test-id="pause-recording"]').trigger('click');
-    await nextTick();
+  it('stops a paused recording only when finishing', async () => {
+    const wrapper = await mountPaused();
+
+    wrapper.vm.stopRecording();
 
     expect(mocks.record.stopRecording).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('[data-test-id="pause-recording"]').exists()).toBe(
-      false
-    );
-    expect(wrapper.find('[data-test-id="record-again"]').exists()).toBe(true);
-    expect(wrapper.find('[role="slider"]').exists()).toBe(true);
+  });
+
+  it('does not attach anything when deleted while paused', async () => {
+    const wrapper = await mountPaused();
+
+    await wrapper.find('button[aria-label]').trigger('click');
+    await emitRecordEvent('record-end', new Blob(['a']));
+    await flushPromises();
+
+    expect(wrapper.emitted('delete')).toHaveLength(1);
+    expect(mocks.record.stopRecording).toHaveBeenCalledTimes(1);
+    expect(convertAudio).not.toHaveBeenCalled();
+    expect(wrapper.emitted('finishRecord')).toBeUndefined();
   });
 
   it('emits send and delete from the bar', async () => {

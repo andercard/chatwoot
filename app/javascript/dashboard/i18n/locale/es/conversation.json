@@ -294,7 +294,6 @@
         "SEND": "Enviar nota de voz",
         "PLAY": "Reproducir grabación",
         "PAUSE_PLAYBACK": "Pausar reproducción",
-        "RECORD_AGAIN": "Grabar de nuevo",
         "MIC_UNAVAILABLE": "Micrófono no disponible. Permite el acceso al micrófono y abre la página con HTTPS."
       },
       "QUICK_REPLIES": {

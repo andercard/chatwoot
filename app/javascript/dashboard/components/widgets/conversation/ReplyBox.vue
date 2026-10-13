@@ -1140,14 +1140,6 @@ export default {
       this.sendAfterRecording = true;
       this.$refs.audioRecorderInput?.stopRecording();
     },
-    // Recording again discards the previous voice note, never concatenates
-    onRecordAgain() {
-      this.hasRecordedAudio = false;
-      this.sendAfterRecording = false;
-      this.attachedFiles = this.attachedFiles.filter(
-        file => !file?.isVoiceMessage
-      );
-    },
     onRecordError({ reason } = {}) {
       this.sendAfterRecording = false;
       this.toggleAudioRecorder();
@@ -1527,7 +1519,6 @@ export default {
           :is-note="isOnPrivateNote"
           @finish-record="onFinishRecorder"
           @record-error="onRecordError"
-          @record-again="onRecordAgain"
           @delete="toggleAudioRecorder"
           @send="sendRecordedAudio"
         />
