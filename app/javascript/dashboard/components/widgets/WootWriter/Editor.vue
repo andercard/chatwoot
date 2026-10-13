@@ -258,9 +258,7 @@ const shouldShowVariables = computed(() => {
 });
 
 const shouldShowCannedResponses = computed(() => {
-  return (
-    props.enableCannedResponses && showCannedMenu.value && !props.isPrivate
-  );
+  return props.enableCannedResponses && showCannedMenu.value;
 });
 
 const shouldShowMacros = computed(() => {
@@ -359,7 +357,6 @@ const plugins = computed(() => {
       trigger: '/',
       showMenu: showCannedMenu,
       searchTerm: cannedSearchKey,
-      isAllowed: () => !props.isPrivate,
     }),
     createSuggestionPlugin({
       trigger: '{{',
