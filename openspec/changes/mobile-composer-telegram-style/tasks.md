@@ -3,7 +3,7 @@
 El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, no trabajo de más.
 
 
-- [ ] **1 · Reproductor estilo Telegram**
+- [x] **1 · Reproductor estilo Telegram**
   - archivos: `app/javascript/dashboard/components-next/audio/WaveformSeekBar.vue`, `app/javascript/dashboard/components-next/audio/WaveformSeekBar.spec.js`, `app/javascript/dashboard/components-next/message/chips/Audio.vue`, `app/javascript/dashboard/components-next/audio/AudioPlayer.vue`
   - depende de: ninguna
   - listo cuando: la burbuja de audio muestra en una fila play/pausa **redondo** (≈2.5 rem), la barra de segmentos con **perilla** que se arrastra (progreso lleno, resto tenue) y la duración (transcurrido mientras suena, total en reposo), más el chip de velocidad a la derecha; silencio y descarga quedan accesibles sin ocupar la fila principal (icono pequeño o menú); sin texto fijo; la barra conserva `role="slider"`, arrastre por puntero y teclado; el spec cubre la perilla en la posición del progreso y el límite 0–1; `AudioPlayer.vue` usa la misma barra
@@ -15,7 +15,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: existe `oggOpusFallback.js` con `needsOpusFallback(type)` (verdadero si el tipo es OGG/Opus y `canPlayType('audio/ogg; codecs=opus')` es vacío) y `toPlayableUrl(url)` (descarga el archivo, decodifica con `ogg-opus-decoder` importado dinámicamente, devuelve la URL de un WAV mono 16 kHz/16 bits); `chips/Audio.vue` lo usa solo si `needsOpusFallback` y mientras convierte muestra el botón de play con estado de carga, y si falla muestra el botón de descargar; en navegadores que reproducen OGG el módulo y el decodificador **no se descargan** (import dinámico); `package.json` fija `ogg-opus-decoder` con versión exacta; el spec cubre: sin soporte llama al decodificador y devuelve un WAV con cabecera `RIFF`, con soporte no lo carga
   - commit: `feat(audio): play OGG/Opus voice notes in Safari`
 
-- [ ] **3 · Cápsula única en móvil: + / texto / candado / mic-enviar**
+- [x] **3 · Cápsula única en móvil: + / texto / candado / mic-enviar**
   - archivos: `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyTopPanel.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue`, `app/javascript/dashboard/i18n/locale/en/conversation.json`, `app/javascript/dashboard/i18n/locale/es/conversation.json`
   - depende de: ninguna
   - listo cuando: bajo 640 px y en reposo (una línea) existe una **única cápsula** (`.reply-box`, fondo propio, radio completo, ámbar en nota privada) y dentro de ella, en una misma fila y con el mismo centro vertical (±1 px): `+`, el editor, el candado y el botón redondo de la derecha; ✨ IA, maximizar, emoji y atajos no se ven; con el editor vacío y sin adjuntos el botón redondo es un **micrófono** que empieza la grabación (`toggleAudioRecorder`, solo si `showAudioRecorderButton`), con texto o adjuntos es la flecha de enviar; «Grabar audio» ya no está en el menú `+` en móvil; la cápsula ocupa el ancho disponible con el respiro de `env(safe-area-inset-bottom)` y no tiene borde ni margen extra fuera de la cápsula; en >= 640 px nada cambia; `ReplyBox.spec.js` sigue en verde
