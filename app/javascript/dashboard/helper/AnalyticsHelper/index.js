@@ -1,5 +1,3 @@
-import * as amplitude from '@amplitude/analytics-browser';
-
 /**
  * AnalyticsHelper class to initialize and track user analytics
  * @class AnalyticsHelper
@@ -26,6 +24,7 @@ export class AnalyticsHelper {
       return;
     }
 
+    const amplitude = await import('@amplitude/analytics-browser');
     amplitude.init(this.analyticsToken, {
       defaultTracking: false,
     });
@@ -45,7 +44,7 @@ export class AnalyticsHelper {
     this.user = user;
     this.analytics.setUserId(`user-${this.user.id.toString()}`);
 
-    const identifyEvent = new amplitude.Identify();
+    const identifyEvent = new this.analytics.Identify();
     identifyEvent.set('email', this.user.email);
     identifyEvent.set('name', this.user.name);
     identifyEvent.set('avatar', this.user.avatar_url);
@@ -60,7 +59,7 @@ export class AnalyticsHelper {
 
       this.analytics.setGroup('company', groupId);
 
-      const groupIdentify = new amplitude.Identify();
+      const groupIdentify = new this.analytics.Identify();
       groupIdentify.set('name', currentAccount.name);
       this.analytics.groupIdentify('company', groupId, groupIdentify);
     }

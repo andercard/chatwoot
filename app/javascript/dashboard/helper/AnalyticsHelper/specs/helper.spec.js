@@ -44,6 +44,7 @@ describe('AnalyticsHelper', () => {
         identify: vi.fn(),
         setGroup: vi.fn(),
         groupIdentify: vi.fn(),
+        Identify: vi.fn(() => ({ set: vi.fn() })),
       };
     });
 
