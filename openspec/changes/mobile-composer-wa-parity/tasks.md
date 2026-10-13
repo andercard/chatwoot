@@ -9,7 +9,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: bajo 640 px y con `compact`, cada fila muestra el título arriba (`text-xs`, `text-n-slate-11`) y el subtítulo abajo (`text-sm`, `text-n-slate-12`, una línea con `truncate`), a ancho completo y con el separador actual; `CannedResponse` muestra el atajo **sin `/`** como título (la etiqueta con `/` sigue en `label` de escritorio) y un encabezado fijo «Respuestas rápidas» con un enlace «Editar» a `settings/canned-response` (nueva prop opcional `heading`/`editTo` en `PreviewPicker`, solo visible en `compact`); en escritorio el selector es idéntico a hoy; el spec cubre: en `compact` el título va sobre el subtítulo y aparece el encabezado cuando se pasa, y en escritorio no aparece
   - commit: `feat(mobile): quick replies as two-line rows with a heading`
 
-- [ ] **2 · Menú +: Fotos nativo y Documento, sin Cámara**
+- [x] **2 · Menú +: Fotos nativo y Documento, sin Cámara**
   - archivos: `app/javascript/dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue`, `app/javascript/dashboard/i18n/locale/en/conversation.json`, `app/javascript/dashboard/i18n/locale/es/conversation.json`
   - depende de: ninguna
   - listo cuando: bajo 640 px el menú `+` ya no tiene la fila «Cámara» ni el `FileUpload` `mobileCameraInput` (se eliminan `cameraFileTypes` y la llave `MOBILE_MENU.CAMERA` si nadie más las usa); «Fotos» sigue abriendo `mobilePhotosInput` (imagen+video del canal) y «Adjuntar archivos» se llama «Documento» (llave nueva `MOBILE_MENU.DOCUMENT`) y abre `conversationAttachment`; `>= 640 px` nada cambia
