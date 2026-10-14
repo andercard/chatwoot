@@ -5,12 +5,20 @@ import {
   useTemplateRef,
   ref,
   getCurrentInstance,
+  onBeforeUnmount,
+  nextTick,
 } from 'vue';
 import Icon from 'next/icon/Icon.vue';
+import WaveformSeekBar from 'next/audio/WaveformSeekBar.vue';
 import { timeStampAppendedURL } from 'dashboard/helper/URLHelper';
 import { downloadFile } from '@chatwoot/utils';
 import { useEmitter } from 'dashboard/composables/emitter';
+import { useSmoothPlayback } from 'dashboard/composables/useSmoothPlayback';
 import { emitter } from 'shared/helpers/mitt';
+import {
+  needsOpusFallback,
+  toPlayableUrl,
+} from 'dashboard/helper/oggOpusFallback';
 
 const { attachment } = defineProps({
   attachment: {
@@ -31,6 +39,16 @@ const timeStampURL = computed(() => {
   return timeStampAppendedURL(attachment.dataUrl);
 });
 
+// Native <audio> first. We only convert OGG/Opus to WAV when the browser can't
+// play it (known upfront) or when the native playback actually fails.
+const fallbackUrl = ref(null);
+const isConverting = ref(false);
+const conversionFailed = ref(false);
+const playableUrl = computed(() => fallbackUrl.value || timeStampURL.value);
+const isOgg = attachment.extension?.toLowerCase() === 'ogg';
+const convertsUpfront = isOgg && needsOpusFallback('audio/ogg');
+const isPlayDisabled = computed(() => isConverting.value);
+
 const TRANSCRIPT_PREVIEW_LENGTH = 200;
 const isTranscriptExpanded = ref(false);
 const isTranscriptLong = computed(
@@ -46,11 +64,23 @@ const audioPlayer = useTemplateRef('audioPlayer');
 
 const isPlaying = ref(false);
 const isMuted = ref(false);
-const currentTime = ref(0);
 const duration = ref(0);
 const playbackSpeed = ref(1);
 
 const { uid } = getCurrentInstance();
+
+const {
+  currentTime,
+  start: startTracking,
+  stop: stopTracking,
+  sync: syncClock,
+  jumpTo,
+  rebase,
+  isRunning,
+} = useSmoothPlayback(
+  () => audioPlayer.value,
+  () => duration.value
+);
 
 // MediaRecorder-produced WebM/Opus blobs lack a Duration header → <audio>.duration
 // resolves to Infinity until we seek past the end, which forces the engine to
@@ -103,6 +133,7 @@ useEmitter('pause_playing_audio', currentPlayingId => {
       /* ignore pause errors */
     }
     isPlaying.value = false;
+    stopTracking();
   }
 });
 
@@ -119,28 +150,107 @@ const toggleMute = () => {
 };
 
 const onTimeUpdate = () => {
+  if (isRunning()) return;
   currentTime.value = audioPlayer.value?.currentTime;
 };
 
-const seek = event => {
-  const time = Number(event.target.value);
+const progress = computed(() =>
+  duration.value ? currentTime.value / duration.value : 0
+);
+
+const seek = ratio => {
+  const time = ratio * duration.value;
   audioPlayer.value.currentTime = time;
-  currentTime.value = time;
+  jumpTo(time);
 };
 
-const playOrPause = () => {
-  if (isPlaying.value) {
-    audioPlayer.value.pause();
-    isPlaying.value = false;
-  } else {
-    // Emit event to pause all other audio
-    emitter.emit('pause_playing_audio', uid);
-    audioPlayer.value.play();
-    isPlaying.value = true;
+const convertToPlayable = async () => {
+  if (isConverting.value || fallbackUrl.value) return;
+  isConverting.value = true;
+  conversionFailed.value = false;
+  try {
+    fallbackUrl.value = await toPlayableUrl(attachment.dataUrl);
+    await nextTick();
+    audioPlayer.value.load();
+    audioPlayer.value.playbackRate = playbackSpeed.value;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('OGG/Opus fallback failed', {
+      name: error.name,
+      message: error.message,
+      decoderLoaded: error.decoderLoaded,
+    });
+    conversionFailed.value = true;
+  } finally {
+    isConverting.value = false;
   }
 };
 
+// The native <audio> failed: fall back to the WAV (or give up if it was the WAV).
+const onMediaError = () => {
+  stopTracking();
+  isPlaying.value = false;
+  if (!isOgg) return;
+  if (fallbackUrl.value) {
+    conversionFailed.value = true;
+    return;
+  }
+  convertToPlayable();
+};
+
+// Convert before the tap: iOS only allows play() inside the user gesture.
+let visibilityObserver = null;
+const stopObserving = () => {
+  visibilityObserver?.disconnect();
+  visibilityObserver = null;
+};
+
+onMounted(() => {
+  if (!convertsUpfront) return;
+  if (typeof IntersectionObserver === 'undefined') {
+    convertToPlayable();
+    return;
+  }
+  visibilityObserver = new IntersectionObserver(entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return;
+    stopObserving();
+    convertToPlayable();
+  });
+  visibilityObserver.observe(
+    audioPlayer.value.parentElement ?? audioPlayer.value
+  );
+});
+
+onBeforeUnmount(() => {
+  stopTracking();
+  stopObserving();
+  if (fallbackUrl.value) URL.revokeObjectURL(fallbackUrl.value);
+});
+
+const playOrPause = () => {
+  if (isPlayDisabled.value) return;
+  if (isPlaying.value) {
+    audioPlayer.value.pause();
+    isPlaying.value = false;
+    stopTracking();
+    return;
+  }
+  // Emit event to pause all other audio
+  emitter.emit('pause_playing_audio', uid);
+  isPlaying.value = true;
+  startTracking();
+  audioPlayer.value.play().catch(error => {
+    isPlaying.value = false;
+    stopTracking();
+    if (error.name === 'AbortError') return;
+    // eslint-disable-next-line no-console
+    console.error('Audio playback failed', error.name, error.message);
+    onMediaError();
+  });
+};
+
 const onEnd = () => {
+  stopTracking();
   isPlaying.value = false;
   currentTime.value = 0;
   playbackSpeed.value = 1;
@@ -153,6 +263,7 @@ const changePlaybackSpeed = () => {
   const nextIndex = (currentIndex + 1) % speeds.length;
   playbackSpeed.value = speeds[nextIndex];
   audioPlayer.value.playbackRate = playbackSpeed.value;
+  rebase();
 };
 
 const downloadAudio = async () => {
@@ -169,58 +280,84 @@ const downloadAudio = async () => {
     playsinline
     @loadedmetadata="onLoadedMetadata"
     @timeupdate="onTimeUpdate"
+    @seeking="syncClock"
     @ended="onEnd"
+    @error="onMediaError"
   >
-    <source :src="timeStampURL" />
+    <source :src="playableUrl" @error="onMediaError" />
   </audio>
   <div
     v-bind="$attrs"
     class="rounded-xl w-full gap-2 p-1.5 bg-n-alpha-white flex flex-col items-center border border-n-container shadow-[0px_2px_8px_0px_rgba(94,94,94,0.06)]"
   >
-    <div class="flex gap-1 w-full flex-1 items-center justify-start">
-      <button class="p-0 border-0 size-8" @click="playOrPause">
+    <div class="flex gap-2 w-full flex-1 items-center justify-start">
+      <button
+        class="p-0 border-0 size-10 shrink-0 grid place-content-center rounded-full bg-n-blue-9 text-white"
+        :disabled="isPlayDisabled"
+        @click="playOrPause"
+      >
         <Icon
-          v-if="isPlaying"
-          class="size-8"
-          icon="i-teenyicons-pause-small-solid"
+          v-if="isConverting"
+          class="size-5 animate-spin"
+          icon="i-lucide-loader-circle"
         />
-        <Icon v-else class="size-8" icon="i-teenyicons-play-small-solid" />
+        <Icon
+          v-else
+          class="size-6"
+          :icon="
+            isPlaying
+              ? 'i-teenyicons-pause-small-solid'
+              : 'i-teenyicons-play-small-solid'
+          "
+        />
       </button>
-      <div class="tabular-nums text-xs">
-        {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
-      </div>
-      <div class="flex-1 items-center flex px-2">
-        <input
-          type="range"
-          min="0"
-          :max="duration"
-          :value="currentTime"
-          class="w-full h-1 bg-n-slate-12/40 rounded-lg appearance-none cursor-pointer accent-current"
-          @input="seek"
-        />
+      <div class="flex flex-col flex-1 min-w-0">
+        <div class="w-56 max-w-full">
+          <WaveformSeekBar
+            :progress="progress"
+            :duration="duration"
+            :label="$t('CONVERSATION.REPLYBOX.AUDIO.SEEK')"
+            @seek="seek"
+          />
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="tabular-nums text-xs text-n-slate-11">
+            {{ formatTime(isPlaying || currentTime ? currentTime : duration) }}
+          </span>
+          <div class="flex items-center">
+            <button
+              class="p-0 border-0 size-5 grid place-content-center text-n-slate-11"
+              @click="toggleMute"
+            >
+              <Icon
+                v-if="isMuted"
+                class="size-3.5"
+                icon="i-lucide-volume-off"
+              />
+              <Icon v-else class="size-3.5" icon="i-lucide-volume-2" />
+            </button>
+            <button
+              class="p-0 border-0 size-5 grid place-content-center text-n-slate-11"
+              @click="downloadAudio"
+            >
+              <Icon class="size-3.5" icon="i-lucide-download" />
+            </button>
+          </div>
+        </div>
       </div>
       <button
-        class="border-0 w-10 h-6 grid place-content-center bg-n-alpha-2 hover:bg-alpha-3 rounded-2xl"
+        class="border-0 h-6 px-2 shrink-0 grid place-content-center bg-n-alpha-2 hover:bg-n-alpha-3 rounded-2xl"
         @click="changePlaybackSpeed"
       >
-        <span class="text-xs text-n-slate-11 font-medium">
+        <span class="text-xs text-n-slate-11 font-medium tabular-nums">
           {{ playbackSpeedLabel }}
         </span>
       </button>
-      <button
-        class="p-0 border-0 size-8 grid place-content-center"
-        @click="toggleMute"
-      >
-        <Icon v-if="isMuted" class="size-4" icon="i-lucide-volume-off" />
-        <Icon v-else class="size-4" icon="i-lucide-volume-2" />
-      </button>
-      <button
-        class="p-0 border-0 size-8 grid place-content-center"
-        @click="downloadAudio"
-      >
-        <Icon class="size-4" icon="i-lucide-download" />
-      </button>
     </div>
+
+    <p v-if="conversionFailed" class="m-0 w-full text-xs text-n-amber-11">
+      {{ $t('CONVERSATION.AUDIO.PLAYBACK_FAILED') }}
+    </p>
 
     <div
       v-if="attachment.transcribedText && showTranscribedText"

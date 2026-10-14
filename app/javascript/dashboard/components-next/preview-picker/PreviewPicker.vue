@@ -20,6 +20,24 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Phone layout: no search field, no preview and one-line rows, driven by the host input
+  compact: {
+    type: Boolean,
+    default: false,
+  },
+  // Phone layout only: fixed title above the list, with an optional edit link
+  heading: {
+    type: String,
+    default: '',
+  },
+  editLabel: {
+    type: String,
+    default: '',
+  },
+  editTo: {
+    type: [Object, String],
+    default: null,
+  },
   previewLayout: {
     type: String,
     default: 'side',
@@ -46,7 +64,8 @@ const selectedItem = computed(() => props.items[selectedIndex.value]);
 const isStacked = computed(() => props.previewLayout === 'stacked');
 
 const hasPreview = computed(
-  () => props.previewLayout !== 'none' && props.items.length > 0
+  () =>
+    !props.compact && props.previewLayout !== 'none' && props.items.length > 0
 );
 
 const listClass = computed(() => {
@@ -84,7 +103,14 @@ const scrollSelectedIntoView = () => {
   });
 };
 
-onMounted(() => searchRef.value?.focus());
+onMounted(() => {
+  if (!props.compact) searchRef.value?.focus();
+});
+
+// Keeps the editor focused (and the on-screen keyboard open) when a row is tapped
+const keepEditorFocus = event => {
+  if (props.compact) event.preventDefault();
+};
 
 defineExpose({ scrollSelectedIntoView });
 </script>
@@ -96,6 +122,7 @@ defineExpose({ scrollSelectedIntoView });
   >
     <div class="flex flex-col min-h-0" :class="listClass">
       <div
+        v-if="!compact"
         class="relative flex items-center flex-shrink-0 h-11 px-3 border-b border-n-strong"
       >
         <Icon icon="i-lucide-search" class="size-4 text-n-slate-10" />
@@ -114,20 +141,40 @@ defineExpose({ scrollSelectedIntoView });
         />
       </div>
       <div
-        v-if="$slots.filters"
+        v-if="compact && heading"
+        class="flex items-center justify-between flex-shrink-0 gap-2 px-3 py-2 border-b border-n-weak"
+      >
+        <span class="min-w-0 text-xs font-medium truncate text-n-slate-11">
+          {{ heading }}
+        </span>
+        <router-link
+          v-if="editTo && editLabel"
+          :to="editTo"
+          class="flex-shrink-0 text-xs font-medium text-n-brand"
+        >
+          {{ editLabel }}
+        </router-link>
+      </div>
+      <div
+        v-if="$slots.filters && !compact"
         class="flex-shrink-0 min-w-0 px-1 pt-1 pb-1.5"
         @mousedown.prevent
       >
         <slot name="filters" />
       </div>
-      <div ref="listRef" class="flex-1 p-1 overflow-y-auto">
+      <div
+        ref="listRef"
+        class="flex-1 overflow-y-auto"
+        :class="compact ? '' : 'p-1'"
+        @mousedown="keepEditorFocus"
+      >
         <ul :id="listboxId" role="listbox" class="m-0 list-none">
           <template v-for="(item, index) in items" :key="item.id">
             <li
               v-if="groupFor(index)"
               role="presentation"
-              class="px-2 pb-1 text-xs font-medium text-n-slate-10"
-              :class="index === 0 ? '' : 'pt-2'"
+              class="px-2 text-xs font-medium text-n-slate-10"
+              :class="compact ? 'py-2' : ['pb-1', index === 0 ? '' : 'pt-2']"
             >
               {{ groupFor(index) }}
             </li>
@@ -136,8 +183,13 @@ defineExpose({ scrollSelectedIntoView });
               :data-index="index"
               role="option"
               :aria-selected="index === selectedIndex"
-              class="flex items-center w-full gap-2 px-2 py-1 overflow-hidden rounded-lg cursor-pointer text-start"
-              :class="index === selectedIndex ? 'bg-n-alpha-black2' : ''"
+              class="flex items-center w-full gap-2 overflow-hidden cursor-pointer text-start"
+              :class="[
+                compact
+                  ? 'px-3 py-2.5 border-b border-n-weak last:border-b-0'
+                  : 'px-2 py-1 rounded-lg',
+                index === selectedIndex ? 'bg-n-alpha-black2' : '',
+              ]"
               @mousemove="selectedIndex = index"
               @click="emit('select', index)"
             >
@@ -146,15 +198,28 @@ defineExpose({ scrollSelectedIntoView });
                 :item="item"
                 :selected="index === selectedIndex"
               />
-              <span class="flex flex-col min-w-0 gap-0.5">
+              <span
+                class="flex flex-col min-w-0 gap-0.5"
+                :class="{ 'flex-1': compact }"
+              >
                 <span
                   v-dompurify-html="item.title"
-                  class="max-w-full min-w-0 text-sm font-medium truncate text-n-slate-12"
+                  class="max-w-full min-w-0 font-medium truncate"
+                  :class="
+                    compact
+                      ? 'text-xs text-n-slate-11'
+                      : 'text-sm text-n-slate-12'
+                  "
                 />
                 <span
                   v-if="item.subtitle"
                   v-dompurify-html="item.subtitle"
-                  class="max-w-full min-w-0 text-xs truncate text-n-slate-11"
+                  class="min-w-0 max-w-full truncate"
+                  :class="
+                    compact
+                      ? 'text-sm text-n-slate-12'
+                      : 'text-xs text-n-slate-11'
+                  "
                 />
               </span>
             </li>

@@ -284,11 +284,30 @@
       "CLICK_HERE": "Haga clic aquí para actualizar",
       "WHATSAPP_TEMPLATES": "Plantillas de Whatsapp"
     },
+    "AUDIO": {
+      "PLAYBACK_FAILED": "Este audio no se puede reproducir en este navegador. Descárgalo para escucharlo."
+    },
     "REPLYBOX": {
+      "AUDIO": {
+        "RECORD": "Grabar audio",
+        "SEEK": "Posición del audio",
+        "DELETE": "Eliminar grabación",
+        "PAUSE": "Pausar grabación",
+        "RESUME": "Reanudar grabación",
+        "SEND": "Enviar nota de voz",
+        "PLAY": "Reproducir grabación",
+        "PAUSE_PLAYBACK": "Pausar reproducción",
+        "MIC_UNAVAILABLE": "Micrófono no disponible. Permite el acceso al micrófono y abre la página con HTTPS."
+      },
+      "QUICK_REPLIES": {
+        "TITLE": "Respuestas rápidas",
+        "EDIT": "Editar"
+      },
       "MOBILE_MENU": {
         "OPEN": "Más opciones",
         "PHOTOS": "Fotos",
-        "CAMERA": "Cámara"
+        "DOCUMENT": "Documento",
+        "MACROS": "Macros"
       },
       "REPLY": "Responder",
       "PRIVATE_NOTE": "Nota privada",

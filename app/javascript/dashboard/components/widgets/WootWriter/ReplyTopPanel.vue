@@ -60,8 +60,8 @@ export default {
   },
   emits: ['setReplyMode', 'toggleEditorSize', 'executeCopilotAction'],
   setup(props, { emit }) {
-    const setReplyMode = mode => {
-      emit('setReplyMode', mode);
+    const setReplyMode = (mode, options) => {
+      emit('setReplyMode', mode, options);
     };
     const handleReplyClick = () => {
       if (props.isReplyRestricted) return;
@@ -75,7 +75,8 @@ export default {
         props.mode === REPLY_EDITOR_MODES.REPLY
           ? REPLY_EDITOR_MODES.NOTE
           : REPLY_EDITOR_MODES.REPLY;
-      setReplyMode(newMode);
+      // The lock only switches the mode: it must not open the keyboard
+      setReplyMode(newMode, { keepFocus: true });
     };
 
     const { captainTasksEnabled } = useCaptain();
@@ -152,23 +153,31 @@ export default {
 
 <template>
   <div
-    class="flex justify-between gap-2 h-[3.25rem] items-center ltr:pl-3 ltr:pr-2 rtl:pr-3 rtl:pl-2"
+    class="flex justify-between gap-2 h-[3.25rem] items-center ltr:pl-3 ltr:pr-2 rtl:pr-3 rtl:pl-2 max-sm:contents"
   >
     <EditorModeToggle
+      class="max-sm:hidden"
       :mode="mode"
       :disabled="disabled"
       :is-reply-restricted="isReplyRestricted"
       @toggle-mode="handleModeToggle"
     />
-    <div class="flex items-center mx-4 my-0">
+    <div
+      class="flex items-center mx-4 my-0 max-sm:col-start-3 max-sm:row-start-2 max-sm:justify-self-end max-sm:group-data-[expanded]/wrapper:row-start-3"
+    >
       <div v-if="isMessageLengthReachingThreshold" class="text-xs">
         <span :class="charLengthClass">
           {{ characterLengthWarning }}
         </span>
       </div>
     </div>
-    <div v-if="captainTasksEnabled" class="flex items-center gap-2">
-      <div class="relative">
+    <div
+      v-if="captainTasksEnabled"
+      class="flex items-center gap-2 max-sm:contents"
+    >
+      <div
+        class="relative max-sm:hidden max-sm:group-data-[grown]/wrapper:block max-sm:group-data-[expanded]/wrapper:block max-sm:col-start-1 max-sm:row-start-1 max-sm:self-start"
+      >
         <NextButton
           ref="copilotToggleRef"
           ghost
@@ -178,6 +187,7 @@ export default {
             'text-n-violet-9 bg-n-violet-3': showCopilotMenu,
           }"
           sm
+          class="max-sm:!size-10"
           icon="i-ph-sparkle-fill"
           @click="toggleCopilotMenu"
         />
@@ -190,17 +200,53 @@ export default {
           :has-selection="false"
           :has-content="hasContent"
           :conversation-id="conversationId"
-          class="ltr:right-0 rtl:left-0 bottom-full mb-2"
+          class="ltr:right-0 rtl:left-0 max-sm:ltr:!right-auto max-sm:ltr:!left-0 max-sm:rtl:!left-auto max-sm:rtl:!right-0 bottom-full mb-2"
           @execute-copilot-action="handleCopilotAction"
         />
       </div>
       <NextButton
         ghost
-        class="text-n-slate-11"
+        class="text-n-slate-11 max-sm:hidden"
         sm
         icon="i-lucide-maximize-2"
         @click="$emit('toggleEditorSize')"
       />
     </div>
+    <NextButton
+      ghost
+      round
+      sm
+      class="sm:hidden !rounded-full !size-8 max-sm:!size-10 max-sm:col-start-3 max-sm:row-start-1 max-sm:self-center max-sm:group-data-[grown]/wrapper:row-start-2 max-sm:group-data-[grown]/wrapper:self-end max-sm:group-data-[expanded]/wrapper:row-start-3"
+      :class="
+        mode === REPLY_EDITOR_MODES.NOTE
+          ? 'text-n-amber-11 bg-n-amber-3 hover:enabled:!bg-n-amber-4'
+          : 'text-n-slate-11'
+      "
+      :icon="
+        mode === REPLY_EDITOR_MODES.NOTE
+          ? 'i-lucide-lock-keyhole'
+          : 'i-lucide-lock-keyhole-open'
+      "
+      :disabled="disabled || isReplyRestricted"
+      :aria-label="$t('CONVERSATION.REPLYBOX.PRIVATE_NOTE')"
+      @mousedown.prevent
+      @click="handleModeToggle"
+    />
+    <NextButton
+      ghost
+      round
+      sm
+      class="sm:hidden max-sm:hidden !rounded-full !size-8 max-sm:!size-10 text-n-slate-11 max-sm:col-start-4 max-sm:row-start-1 max-sm:self-start max-sm:justify-self-end max-sm:group-data-[grown]/wrapper:flex"
+      icon="i-lucide-maximize-2"
+      @click="$emit('toggleEditorSize')"
+    />
+    <NextButton
+      ghost
+      round
+      sm
+      class="sm:hidden max-sm:hidden !rounded-full !size-8 max-sm:!size-10 text-n-slate-11 max-sm:col-start-4 max-sm:row-start-1 max-sm:self-start max-sm:justify-self-end max-sm:group-data-[expanded]/wrapper:flex"
+      icon="i-lucide-minimize-2"
+      @click="$emit('toggleEditorSize')"
+    />
   </div>
 </template>

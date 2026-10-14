@@ -5,6 +5,13 @@ import { useAlert } from 'dashboard/composables';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
+defineProps({
+  asRow: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 const emit = defineEmits(['requestTemplate']);
 
 const store = useStore();
@@ -74,8 +81,18 @@ const requestContactInfo = async () => {
 </script>
 
 <template>
+  <button
+    v-if="showButton && asRow"
+    type="button"
+    class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-50"
+    :disabled="isDisabled"
+    @click="requestContactInfo"
+  >
+    <span class="i-ph-address-book size-5 text-n-slate-11" />
+    <span class="flex-1">{{ tooltip }}</span>
+  </button>
   <NextButton
-    v-if="showButton"
+    v-else-if="showButton"
     v-tooltip.top-end="tooltip"
     icon="i-ph-address-book"
     slate

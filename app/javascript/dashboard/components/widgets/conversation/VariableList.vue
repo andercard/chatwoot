@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { MESSAGE_VARIABLES } from 'shared/constants/messages';
 import { useMapGetter } from 'dashboard/composables/store';
@@ -29,6 +29,12 @@ const { t } = useI18n();
 const customAttributes = useMapGetter('attributes/getAttributes');
 
 const searchQuery = ref(sanitizeVariableSearchKey(props.searchKey));
+watch(
+  () => props.searchKey,
+  key => {
+    searchQuery.value = sanitizeVariableSearchKey(key);
+  }
+);
 
 const searchTerm = computed(() => searchQuery.value.trim().toLowerCase());
 
@@ -76,6 +82,7 @@ const onSelect = item => emit('selectVariable', item.key);
 <template>
   <CaretAnchoredPicker
     v-model:search="searchQuery"
+    :search-key="searchKey"
     :caret-position="caretPosition"
     :items="items"
     :search-placeholder="t('CONVERSATION.PICKER.VARIABLE.SEARCH_PLACEHOLDER')"

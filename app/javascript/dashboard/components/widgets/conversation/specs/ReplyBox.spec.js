@@ -431,4 +431,54 @@ describe('ReplyBox', () => {
       );
     });
   });
+
+  describe('sending a voice note while recording', () => {
+    const mountRecording = () => {
+      window.matchMedia = vi.fn(() => ({ matches: true }));
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::WebWidget' },
+      });
+      const stopRecording = vi.fn();
+      wrapper.vm.isRecordingAudio = true;
+      wrapper.vm.$.refs.audioRecorderInput = { stopRecording };
+      const onSendReply = vi.fn();
+      wrapper.vm.onSendReply = onSendReply;
+      wrapper.vm.onFileUpload = vi.fn(async () => {
+        wrapper.vm.attachedFiles.push({ isVoiceMessage: true });
+      });
+      return { wrapper, stopRecording, onSendReply };
+    };
+
+    it('stops the recording (even when paused) and sends once the attachment is ready', async () => {
+      const { wrapper, stopRecording, onSendReply } = mountRecording();
+
+      wrapper.vm.sendRecordedAudio();
+      wrapper.vm.sendRecordedAudio();
+      expect(stopRecording).toHaveBeenCalledTimes(1);
+      expect(onSendReply).not.toHaveBeenCalled();
+
+      await wrapper.vm.onFinishRecorder({ name: 'note.ogg', file: {} });
+      expect(onSendReply).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends once from the preview, the attachment already uploaded', async () => {
+      const { wrapper, stopRecording, onSendReply } = mountRecording();
+      await wrapper.vm.onFinishRecorder({ name: 'note.ogg', file: {} });
+
+      wrapper.vm.sendRecordedAudio();
+
+      expect(stopRecording).not.toHaveBeenCalled();
+      expect(onSendReply).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not send when the recording fails', async () => {
+      const { wrapper, onSendReply } = mountRecording();
+
+      wrapper.vm.sendRecordedAudio();
+      wrapper.vm.onRecordError();
+      await wrapper.vm.onFinishRecorder({ name: 'note.ogg', file: {} });
+
+      expect(onSendReply).not.toHaveBeenCalled();
+    });
+  });
 });

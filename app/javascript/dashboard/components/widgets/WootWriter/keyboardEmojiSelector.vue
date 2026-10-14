@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, shallowRef, onMounted } from 'vue';
+import { computed, ref, shallowRef, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import emojiGroups from 'shared/components/emoji/emojisGroup.json';
 import CaretAnchoredPicker from 'dashboard/components-next/preview-picker/CaretAnchoredPicker.vue';
@@ -22,6 +22,12 @@ const { t } = useI18n();
 const allEmojis = shallowRef([]);
 
 const searchQuery = ref(props.searchKey);
+watch(
+  () => props.searchKey,
+  key => {
+    searchQuery.value = key;
+  }
+);
 
 // Names are spaced and shortcodes are underscored, so both sides drop the separators
 // and `grinning face`, `grinningface` and `grinning_face` all reach the same emoji.
@@ -62,6 +68,7 @@ const onSelect = item => emit('selectEmoji', item.emoji);
 <template>
   <CaretAnchoredPicker
     v-model:search="searchQuery"
+    :search-key="searchKey"
     :caret-position="caretPosition"
     :items="items"
     :search-placeholder="t('CONVERSATION.PICKER.EMOJI.SEARCH_PLACEHOLDER')"

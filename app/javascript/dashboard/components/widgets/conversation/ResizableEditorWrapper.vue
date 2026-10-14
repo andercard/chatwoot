@@ -20,6 +20,8 @@ const MIN_HEIGHT = 80;
 const MIN_MESSAGES_HEIGHT = 200;
 const EXPAND_RATIO = 0.5;
 const RESET_DELAY_MS = 120;
+// On phones the bar grows once there is text, or content taller than this (px)
+const SINGLE_LINE_MAX_PX = 30;
 
 const wrapperRef = useTemplateRef('wrapperRef');
 const surroundingHeight = ref(0);
@@ -28,7 +30,10 @@ const isResizing = ref(false);
 const startY = ref(0);
 const startHeight = ref(0);
 const requestedHeight = ref(0);
+const hasMultipleLines = ref(false);
 let resetTimeoutId = null;
+let contentObserver = null;
+let sizeObserver = null;
 
 const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
 
@@ -57,6 +62,10 @@ const appliedHeight = computed(() => {
     : 0;
   return clampToBounds(Math.max(requested, editorHeight.value));
 });
+
+const isExpanded = computed(
+  () => appliedHeight.value > sizeBounds.value.default
+);
 
 // Measure height of elements surrounding the editor (top panel, email fields, bottom panel)
 const measureSurroundingHeight = () => {
@@ -116,11 +125,27 @@ const resetEditorHeight = () => {
 const toggleEditorExpand = () => {
   measureSurroundingHeight();
   const { expanded, max, default: defaultHeight } = sizeBounds.value;
-  const isExpanded = appliedHeight.value > defaultHeight;
+  const wasExpanded = isExpanded.value;
   requestedHeight.value = 0;
   // If expanded is too close to default, use max so the toggle is always noticeable
   const target = expanded - defaultHeight < 100 ? max : expanded;
-  editorHeight.value = isExpanded ? defaultHeight : target;
+  editorHeight.value = wasExpanded ? defaultHeight : target;
+};
+
+// The body keeps a min height, so measure the content blocks instead of the box
+const measureContentLines = () => {
+  const body = wrapperRef.value?.querySelector('.resizable-editor-body');
+  const first = body?.firstElementChild;
+  const last = body?.lastElementChild;
+  if (!first || !last) {
+    hasMultipleLines.value = false;
+    return;
+  }
+  // The ProseMirror placeholder is a CSS pseudo element, so an empty editor has no text
+  const hasContent = body.textContent.trim().length > 0;
+  const contentHeight =
+    last.getBoundingClientRect().bottom - first.getBoundingClientRect().top;
+  hasMultipleLines.value = hasContent || contentHeight > SINGLE_LINE_MAX_PX;
 };
 
 const handleMessageSent = () => {
@@ -130,11 +155,22 @@ const handleMessageSent = () => {
 
 onMounted(() => {
   emitter.on(BUS_EVENTS.MESSAGE_SENT, handleMessageSent);
+  contentObserver = new MutationObserver(measureContentLines);
+  contentObserver.observe(wrapperRef.value, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+  sizeObserver = new ResizeObserver(measureContentLines);
+  sizeObserver.observe(wrapperRef.value);
+  measureContentLines();
 });
 
 onBeforeUnmount(() => {
   emitter.off(BUS_EVENTS.MESSAGE_SENT, handleMessageSent);
   clearTimeout(resetTimeoutId);
+  contentObserver?.disconnect();
+  sizeObserver?.disconnect();
   if (isResizing.value) {
     isResizing.value = false;
     clearDragStyles();
@@ -154,7 +190,9 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
 <template>
   <div
     ref="wrapperRef"
-    class="relative resizable-editor-wrapper"
+    class="relative resizable-editor-wrapper group/wrapper max-sm:[&_.resizable-editor-body]:[interpolate-size:allow-keywords] max-sm:[&:not([data-expanded])_.resizable-editor-body]:!h-auto max-sm:[&:not([data-expanded])_.resizable-editor-body]:!min-h-[1.3125rem] max-sm:[&:not([data-expanded])_.resizable-editor-body]:!max-h-28 max-sm:[&:not([data-expanded])_.resizable-editor-body_p]:!my-0 max-sm:[&:not([data-expanded])_.resizable-editor-body_p:last-child]:!mb-0"
+    :data-expanded="isExpanded || undefined"
+    :data-grown="(hasMultipleLines && !isExpanded) || undefined"
     :style="{
       '--editor-height': appliedHeight + 'px',
       '--editor-min-allowed': sizeBounds.min + 'px',
@@ -165,7 +203,7 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
     }"
   >
     <div
-      class="group absolute inset-x-0 -top-4 z-10 flex h-4 cursor-row-resize select-none items-center justify-center bg-gradient-to-b from-transparent from-10% dark:to-n-surface-1/80 to-n-surface-1/90 backdrop-blur-[0.01875rem]"
+      class="group absolute inset-x-0 -top-4 z-10 flex max-sm:hidden max-sm:group-data-[expanded]/wrapper:flex h-4 cursor-row-resize select-none items-center justify-center bg-gradient-to-b from-transparent from-10% dark:to-n-surface-1/80 to-n-surface-1/90 backdrop-blur-[0.01875rem]"
       @mousedown="onResizeStart"
       @touchstart.prevent="onResizeStart"
       @dblclick="resetEditorHeight"

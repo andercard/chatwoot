@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { picoSearch } from '@chatwoot/pico-search';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
@@ -43,6 +43,12 @@ const cannedResponses = useMapGetter('getCannedResponses');
 const uiFlags = useMapGetter('getUIFlags');
 // The trigger can already be followed by text, from a draft or a caret moved back onto it
 const searchQuery = ref(props.searchKey);
+watch(
+  () => props.searchKey,
+  key => {
+    searchQuery.value = key;
+  }
+);
 
 const searchTerm = computed(() => searchQuery.value.trim());
 
@@ -100,7 +106,7 @@ const items = computed(() =>
     content: record.content,
     resolved: record.resolved,
     label: `/${record.shortCode}`,
-    title: highlightMatches(`/${record.shortCode}`),
+    title: highlightMatches(record.shortCode),
     subtitle: highlightMatches(buildSnippet(record.plainText)),
   }))
 );
@@ -113,9 +119,13 @@ onMounted(() => store.dispatch('getCannedResponse'));
 <template>
   <CaretAnchoredPicker
     v-model:search="searchQuery"
+    :search-key="searchKey"
     :caret-position="caretPosition"
     :items="items"
     :search-placeholder="t('COMBOBOX.SEARCH_PLACEHOLDER')"
+    :heading="t('CONVERSATION.REPLYBOX.QUICK_REPLIES.TITLE')"
+    :edit-label="t('CONVERSATION.REPLYBOX.QUICK_REPLIES.EDIT')"
+    :edit-to="{ name: 'canned_list' }"
     :is-loading="uiFlags.fetchingList"
     :empty-label="
       searchTerm

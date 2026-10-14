@@ -297,11 +297,30 @@
       "CLICK_HERE": "Click here to update",
       "WHATSAPP_TEMPLATES": "Whatsapp Templates"
     },
+    "AUDIO": {
+      "PLAYBACK_FAILED": "This audio can't be played in this browser. Download it to listen."
+    },
     "REPLYBOX": {
+      "AUDIO": {
+        "RECORD": "Record audio",
+        "SEEK": "Seek audio",
+        "DELETE": "Delete recording",
+        "PAUSE": "Pause recording",
+        "RESUME": "Resume recording",
+        "SEND": "Send voice message",
+        "PLAY": "Play recording",
+        "PAUSE_PLAYBACK": "Pause playback",
+        "MIC_UNAVAILABLE": "Microphone unavailable. Allow microphone access and open the page over HTTPS."
+      },
+      "QUICK_REPLIES": {
+        "TITLE": "Quick replies",
+        "EDIT": "Edit"
+      },
       "MOBILE_MENU": {
         "OPEN": "More options",
         "PHOTOS": "Photos",
-        "CAMERA": "Camera"
+        "DOCUMENT": "Document",
+        "MACROS": "Macros"
       },
       "REPLY": "Reply",
       "PRIVATE_NOTE": "Private Note",

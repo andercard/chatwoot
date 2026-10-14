@@ -67,6 +67,14 @@ import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { emitter } from 'shared/helpers/mitt';
+// On a phone the keyboard must only open when the agent taps the input
+const isPhoneViewport = () =>
+  !!window.matchMedia?.('(max-width: 639px)').matches;
+
+// [@Name](mention://user/1/Name) → captured group is the visible "@Name"
+const MENTION_LINK_REGEX =
+  /\[(@[^\]]+)\]\(mention:\/\/(?:user|team)\/\d+\/[^)]*\)/g;
+
 const EmojiIconPicker = defineAsyncComponent(
   () =>
     import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
@@ -165,9 +173,10 @@ export default {
       showEmojiPicker: false,
       attachedFiles: [],
       isRecordingAudio: false,
-      recordingAudioState: '',
-      recordingAudioDurationText: '',
+      sendAfterRecording: false,
       replyType: REPLY_EDITOR_MODES.REPLY,
+      focusEditorOnMount: !isPhoneViewport(),
+      carryOnNextModeSwitch: false,
       draftConversationId: null,
       draftReplyMode: null,
       bccEmails: '',
@@ -759,6 +768,18 @@ export default {
         return;
       }
 
+      // Only an explicit switch by the agent carries the text over; automatic
+      // ones (a bot handing over the conversation) restore each mode's draft.
+      const carryOver = this.carryOnNextModeSwitch;
+      this.carryOnNextModeSwitch = false;
+      if (
+        carryOver &&
+        this.draftConversationId === conversationId &&
+        this.carryMessageToMode(replyMode)
+      ) {
+        return;
+      }
+
       if (this.draftConversationId) {
         this.setToDraft(this.draftConversationId, this.draftReplyMode);
       }
@@ -766,6 +787,33 @@ export default {
       this.draftConversationId = conversationId;
       this.draftReplyMode = replyMode;
       this.getFromDraft();
+    },
+    // Switching between reply and private note keeps what the agent typed.
+    // Returns false when there is nothing to carry, so the target mode's own
+    // draft is loaded instead.
+    carryMessageToMode(replyMode) {
+      const channelType = getEffectiveChannelType(
+        this.channelType,
+        this.inbox?.medium || ''
+      );
+      let carried = this.message || '';
+      if (this.messageSignature) {
+        carried = removeSignature(carried, this.messageSignature, channelType);
+      }
+      if (!carried.trim()) return false;
+
+      // Mentions only notify inside private notes; in a public reply they
+      // would reach the customer as a raw mention link, so keep just the name.
+      if (replyMode === REPLY_EDITOR_MODES.REPLY) {
+        carried = carried.replace(MENTION_LINK_REGEX, '$1');
+      }
+
+      this.$store.dispatch('draftMessages/delete', {
+        key: this.getDraftKey(this.draftConversationId, this.draftReplyMode),
+      });
+      this.draftReplyMode = replyMode;
+      this.message = this.toggleSignatureForDraft(carried);
+      return true;
     },
     getFromDraft() {
       if (this.conversationIdByRoute) {
@@ -1039,13 +1087,22 @@ export default {
       });
       this.hideContentTemplatesModal();
     },
-    setReplyMode(mode = REPLY_EDITOR_MODES.REPLY) {
-      // Clear attachments when switching between private note and reply modes
-      // This is to prevent from breaking the upload rules
-      if (this.attachedFiles.length > 0) this.attachedFiles = [];
-
+    // The editor is rebuilt when the mode changes, and it takes focus on mount.
+    // Skipping that leaves it as the agent had it: focused (keyboard stays
+    // open) only if it was focused already.
+    keepEditorFocusState(isFocused = this.isFocused) {
+      this.focusEditorOnMount = isFocused;
+      setTimeout(() => {
+        this.focusEditorOnMount = !isPhoneViewport();
+      }, 500);
+    },
+    setReplyMode(mode = REPLY_EDITOR_MODES.REPLY, { keepFocus = false } = {}) {
+      if (keepFocus) this.keepEditorFocusState();
       this.$store.dispatch('draftMessages/setReplyEditorMode', { mode });
-      if (this.canSendPublicReply) this.replyType = mode;
+      if (this.canSendPublicReply) {
+        this.carryOnNextModeSwitch = mode !== this.replyType;
+        this.replyType = mode;
+      }
       if (this.isRecordingAudio) {
         this.toggleAudioRecorder();
       }
@@ -1056,6 +1113,9 @@ export default {
     addIntoEditor(content) {
       this.updateEditorSelectionWith = content;
       this.onFocus();
+    },
+    openMacros() {
+      this.addIntoEditor('#');
     },
     executeCopilotAction(action, data) {
       this.copilot.execute(action, data);
@@ -1092,15 +1152,9 @@ export default {
     toggleAudioRecorder() {
       this.isRecordingAudio = !this.isRecordingAudio;
       if (!this.isRecordingAudio) {
+        // Closing the recorder rebuilds the editor: don't let it grab focus
+        this.keepEditorFocusState(false);
         this.resetAudioRecorderInput();
-      }
-    },
-    toggleAudioRecorderPlayPause() {
-      if (!this.$refs.audioRecorderInput) return;
-      if (!this.recordingAudioState) {
-        this.$refs.audioRecorderInput.stopRecording();
-      } else {
-        this.$refs.audioRecorderInput.playPause();
       }
     },
     hideEmojiPicker() {
@@ -1121,11 +1175,7 @@ export default {
     onFocus() {
       this.isFocused = true;
     },
-    onRecordProgressChanged(duration) {
-      this.recordingAudioDurationText = duration;
-    },
-    onFinishRecorder(file) {
-      this.recordingAudioState = 'stopped';
+    async onFinishRecorder(file) {
       this.hasRecordedAudio = true;
       // Added a new key isVoiceMessage to the file to identify recorded audio
       // Because to filter and show only non recorded audio and other attachments
@@ -1133,10 +1183,30 @@ export default {
         ...file,
         isVoiceMessage: true,
       };
-      return file && this.onFileUpload(autoRecordedFile);
+      if (file) await this.onFileUpload(autoRecordedFile);
+      if (!this.sendAfterRecording) return;
+      this.sendAfterRecording = false;
+      if (this.attachedFiles.some(attached => attached.isVoiceMessage)) {
+        this.onSendReply();
+      }
     },
-    onRecordError() {
+    // Stops the recording if needed, waits for the upload and sends once
+    sendRecordedAudio() {
+      if (this.sendAfterRecording) return;
+      if (this.hasRecordedAudio) {
+        this.onSendReply();
+        return;
+      }
+      this.sendAfterRecording = true;
+      this.$refs.audioRecorderInput?.stopRecording();
+    },
+    onRecordError({ reason } = {}) {
+      this.sendAfterRecording = false;
       this.toggleAudioRecorder();
+      if (reason === 'microphone') {
+        useAlert(this.$t('CONVERSATION.REPLYBOX.AUDIO.MIC_UNAVAILABLE'));
+        return;
+      }
       useAlert(this.$t('CONVERSATION.REPLYBOX.AUDIO_CONVERSION_FAILED'));
     },
     toggleTyping(status) {
@@ -1239,7 +1309,14 @@ export default {
       }
     },
     removeAttachment(attachments) {
+      const wasFocused = this.isFocused;
       this.attachedFiles = attachments;
+      // Taking a file off the list must not bring the keyboard up
+      if (!wasFocused) {
+        this.$nextTick(() => {
+          if (!this.isFocused) document.activeElement?.blur?.();
+        });
+      }
     },
     setReplyToInPayload(payload) {
       if (this.inReplyTo?.id) {
@@ -1408,9 +1485,8 @@ export default {
       this.showArticleSearchPopover = !this.showArticleSearchPopover;
     },
     resetAudioRecorderInput() {
-      this.recordingAudioDurationText = '00:00';
       this.isRecordingAudio = false;
-      this.recordingAudioState = '';
+      this.sendAfterRecording = false;
       this.hasRecordedAudio = false;
       // Only clear the recorded audio when we click toggle button.
       this.attachedFiles = this.attachedFiles.filter(
@@ -1432,25 +1508,31 @@ export default {
 
 <template>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
-  <div class="reply-box" :class="replyBoxClass">
-    <ReplyTopPanel
-      :mode="replyType"
-      :conversation-id="conversationId"
-      :is-reply-restricted="!canSendPublicReply"
-      :disabled="
-        (copilot.isActive.value && copilot.isButtonDisabled.value) ||
-        showAudioRecorderEditor
-      "
-      :is-editor-disabled="isEditorDisabled"
-      :is-message-length-reaching-threshold="isMessageLengthReachingThreshold"
-      :characters-remaining="charactersRemaining"
-      :editor-content="message"
-      :has-content="hasMeaningfulEditorContent"
-      @set-reply-mode="setReplyMode"
-      @toggle-editor-size="toggleEditorSize"
-      @toggle-copilot="copilot.toggleEditor"
-      @execute-copilot-action="executeCopilotAction"
-    />
+  <div
+    class="reply-box max-sm:grid max-sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] max-sm:items-center max-sm:gap-x-1 max-sm:gap-y-0 max-sm:group-data-[grown]/wrapper:gap-y-1 max-sm:group-data-[expanded]/wrapper:gap-y-2 max-sm:!mx-2 max-sm:!mb-[max(0.5rem,env(safe-area-inset-bottom))] max-sm:!rounded-3xl max-sm:!border-0 max-sm:p-1 max-sm:shadow-sm"
+    :class="[
+      replyBoxClass,
+      isOnPrivateNote ? 'max-sm:!bg-n-solid-amber' : 'max-sm:!bg-n-slate-3',
+    ]"
+  >
+    <!-- While recording the recorder bar is the only row of the composer -->
+    <div :class="showAudioRecorderEditor ? 'hidden' : 'contents'">
+      <ReplyTopPanel
+        :mode="replyType"
+        :conversation-id="conversationId"
+        :is-reply-restricted="!canSendPublicReply"
+        :disabled="copilot.isActive.value && copilot.isButtonDisabled.value"
+        :is-editor-disabled="isEditorDisabled"
+        :is-message-length-reaching-threshold="isMessageLengthReachingThreshold"
+        :characters-remaining="charactersRemaining"
+        :editor-content="message"
+        :has-content="hasMeaningfulEditorContent"
+        @set-reply-mode="setReplyMode"
+        @toggle-editor-size="toggleEditorSize"
+        @toggle-copilot="copilot.toggleEditor"
+        @execute-copilot-action="executeCopilotAction"
+      />
+    </div>
     <ArticleSearchPopover
       v-if="showArticleSearchPopover && connectedPortalSlug"
       :selected-portal-slug="connectedPortalSlug"
@@ -1466,7 +1548,15 @@ export default {
       leave-from-class="opacity-100 translate-y-0 scale-100"
       leave-to-class="opacity-0 translate-y-2 scale-[0.98]"
     >
-      <div :key="copilot.editorTransitionKey.value" class="reply-box__top">
+      <div
+        :key="copilot.editorTransitionKey.value"
+        class="reply-box__top max-sm:!static max-sm:row-start-1 max-sm:group-data-[grown]/wrapper:row-span-2 max-sm:group-data-[expanded]/wrapper:row-start-2 max-sm:!bg-transparent max-sm:!rounded-none max-sm:!border-0 max-sm:group-data-[expanded]/wrapper:animate-fade-in-up max-sm:min-w-0 max-sm:!px-0 max-sm:!mt-0"
+        :class="
+          showAudioRecorderEditor
+            ? 'max-sm:col-start-1 max-sm:col-span-4 max-sm:!row-start-1 max-sm:!row-span-1'
+            : 'max-sm:col-start-2 max-sm:group-data-[expanded]/wrapper:col-start-1 max-sm:group-data-[expanded]/wrapper:col-span-4'
+        "
+      >
         <ReplyToMessage
           v-if="shouldShowReplyToMessage"
           :message="inReplyTo"
@@ -1492,11 +1582,12 @@ export default {
           v-if="showAudioRecorderEditor"
           ref="audioRecorderInput"
           :audio-record-format="audioRecordFormat"
-          @recorder-progress-changed="onRecordProgressChanged"
+          :is-sending="sendAfterRecording"
+          :is-note="isOnPrivateNote"
           @finish-record="onFinishRecorder"
           @record-error="onRecordError"
-          @play="recordingAudioState = 'playing'"
-          @pause="recordingAudioState = 'paused'"
+          @delete="toggleAudioRecorder"
+          @send="sendRecordedAudio"
         />
         <CopilotEditorSection
           v-if="copilot.isActive.value && !showAudioRecorderEditor"
@@ -1517,11 +1608,12 @@ export default {
           v-model="message"
           :conversation-id="conversationId"
           :editor-id="editorStateId"
-          class="input popover-prosemirror-menu"
+          class="input popover-prosemirror-menu max-sm:!bg-transparent max-sm:rounded-none max-sm:ps-2 max-sm:pe-2 max-sm:py-2 max-sm:text-base max-sm:leading-[1.3125rem] max-sm:[&_p.empty-node]:relative max-sm:[&_p.empty-node::before]:max-w-full max-sm:[&_p.empty-node::before]:truncate"
           :is-private="isOnPrivateNote"
           :placeholder="messagePlaceHolder"
           :update-selection-with="updateEditorSelectionWith"
           :min-height="4"
+          :focus-on-mount="focusEditorOnMount"
           :disabled="isEditorDisabled"
           enable-insert-events
           :enable-macros="isMacrosEnabled"
@@ -1560,12 +1652,14 @@ export default {
           {{ $t('CONVERSATION.IMAGE_OPTIMIZATION.OPTIMIZING') }}
         </div>
         <div
-          v-if="hasAttachments && isDefaultEditorMode"
-          class="bg-transparent py-0 mb-2"
+          v-if="
+            hasAttachments && isDefaultEditorMode && !showAudioRecorderEditor
+          "
+          class="bg-transparent py-0 sm:mb-2 max-sm:absolute max-sm:inset-x-0 max-sm:bottom-full max-sm:z-10 max-sm:bg-n-surface-1 max-sm:border-t max-sm:border-n-weak max-sm:p-2"
           @paste="onPaste"
         >
           <AttachmentPreview
-            class="mt-2"
+            class="sm:mt-2"
             :attachments="attachedFiles"
             :show-hd-toggle="supportsHdToggle"
             @remove-attachment="removeAttachment"
@@ -1602,28 +1696,28 @@ export default {
       <ReplyBottomPanel
         v-else
         key="reply-bottom-panel"
+        :class="{ '!hidden': showAudioRecorderEditor }"
         :conversation-id="conversationId"
         :enable-multiple-file-upload="enableMultipleFileUpload"
         :enable-whats-app-templates="showWhatsappTemplates"
         :enable-content-templates="showContentTemplates"
+        :enable-macros="isMacrosEnabled"
         :inbox="inbox"
         :is-on-private-note="isOnPrivateNote"
         :is-recording-audio="isRecordingAudio"
         :is-send-disabled="isReplyButtonDisabled"
+        :has-content="hasMeaningfulEditorContent || !!hasAttachments"
         :is-note="isPrivate"
         :is-editor-disabled="isEditorDisabled"
         :on-file-upload="onFileUpload"
         :on-send="onSendReply"
         :conversation-type="conversationType"
-        :recording-audio-duration-text="recordingAudioDurationText"
-        :recording-audio-state="recordingAudioState"
         :send-button-text="replyButtonLabel"
         :show-audio-recorder="showAudioRecorder"
         :show-emoji-picker="showEmojiPicker"
         :show-file-upload="showFileUpload"
         :show-quoted-reply-toggle="shouldShowQuotedReplyToggle"
         :quoted-reply-enabled="quotedReplyPreference"
-        :toggle-audio-recorder-play-pause="toggleAudioRecorderPlayPause"
         :toggle-audio-recorder="toggleAudioRecorder"
         :toggle-emoji-picker="toggleEmojiPicker"
         :message="message"
@@ -1634,6 +1728,7 @@ export default {
         @toggle-insert-article="toggleInsertArticle"
         @toggle-quoted-reply="toggleQuotedReply"
         @request-contact-info-template="openContactInfoTemplateModal"
+        @open-macros="openMacros"
       />
     </Transition>
 

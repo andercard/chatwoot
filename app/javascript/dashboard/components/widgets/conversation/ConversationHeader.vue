@@ -110,15 +110,16 @@ const copyConversationId = async () => {
 <template>
   <div
     ref="conversationHeader"
-    class="flex flex-col gap-3 items-center justify-between flex-1 w-full min-w-0 xl:flex-row px-3 pt-3 pb-2 h-24 xl:h-12"
+    class="flex flex-col gap-3 items-center justify-between flex-1 w-full min-w-0 xl:flex-row px-3 pt-3 pb-2 h-24 xl:h-12 max-sm:flex-row max-sm:gap-1 max-sm:h-14 max-sm:py-2 max-sm:ps-1"
   >
     <div
-      class="flex items-center justify-start w-full xl:w-auto max-w-full min-w-0 xl:flex-1"
+      class="flex items-center justify-start w-full xl:w-auto max-w-full min-w-0 xl:flex-1 max-sm:flex-1 max-sm:w-auto"
     >
       <BackButton
         v-if="showBackButton"
         :back-url="backButtonUrl"
-        class="me-2"
+        icon-only
+        class="me-1"
       />
       <Avatar
         :name="currentContact.name"
@@ -153,8 +154,12 @@ const copyConversationId = async () => {
           >
             {{ `#${chat.id}` }}
           </button>
-          <span v-if="hasMultipleInboxes">•</span>
-          <InboxName v-if="hasMultipleInboxes" :inbox="inbox" class="!mx-0" />
+          <span v-if="hasMultipleInboxes" class="max-sm:hidden">•</span>
+          <InboxName
+            v-if="hasMultipleInboxes"
+            :inbox="inbox"
+            class="!mx-0 max-sm:hidden"
+          />
           <span v-if="isSnoozed">•</span>
           <span v-if="isSnoozed" class="font-medium text-n-amber-10">
             {{ snoozedDisplayText }}
@@ -163,7 +168,7 @@ const copyConversationId = async () => {
       </div>
     </div>
     <div
-      class="flex flex-row items-center justify-start xl:justify-end flex-shrink-0 gap-2 w-full xl:w-auto header-actions-wrap"
+      class="flex flex-row items-center justify-start xl:justify-end flex-shrink-0 gap-2 w-full xl:w-auto header-actions-wrap max-sm:w-auto"
     >
       <SLACardLabel
         v-if="hasSlaPolicyId"
