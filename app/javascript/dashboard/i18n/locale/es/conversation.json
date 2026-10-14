@@ -643,7 +643,23 @@
       "SEND": "Enviar",
       "BACK": "Atrás",
       "NEXT": "Siguiente",
-      "CLOSE": "Cerrar"
+      "CLOSE": "Cerrar",
+      "SELECT": "Seleccionar",
+      "CANCEL_SELECTION": "Cancelar selección",
+      "SEE_MORE": "Ver más",
+      "REFRESH": "Actualizar",
+      "CONTINUE": "Siguiente: formato ({count})"
+    },
+    "SEARCH": {
+      "PLACEHOLDER": "Buscar productos",
+      "NO_RESULTS": "Ningún producto coincide con tu búsqueda"
+    },
+    "FILTERS": {
+      "ALL": "Todos"
+    },
+    "FORMAT": {
+      "LABEL": "Formato de envío",
+      "UNAVAILABLE": "No disponible: {reason}"
     },
     "STATES": {
       "LOADING": "Cargando catálogo...",

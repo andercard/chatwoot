@@ -73,3 +73,50 @@ export const groupProductsBySection = (products = []) => {
   });
   return [...sections].map(([title, items]) => ({ title, products: items }));
 };
+
+export const CATALOG_MAX_SELECTION = 30;
+
+const normalizeText = value =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+
+// Filters by collection (snake_case or camelCase ids) and by a free text
+// query matched against name and description, ignoring case and accents.
+export const filterCatalogProducts = (
+  products = [],
+  { query = '', collectionId = null } = {}
+) => {
+  const text = normalizeText(query).trim();
+  return products.filter(product => {
+    const ids = product.collection_ids || product.collectionIds || [];
+    if (collectionId && !ids.includes(collectionId)) return false;
+    if (!text) return true;
+    return normalizeText(`${product.name} ${product.description}`).includes(
+      text
+    );
+  });
+};
+
+// For each format tells whether the current selection size fits it and,
+// if not, the i18n reason.
+export const getAvailableFormats = count =>
+  Object.values(CATALOG_KINDS).map(kind => {
+    const { min, max } = CATALOG_ITEM_LIMITS[kind];
+    if (count < min) {
+      return {
+        kind,
+        available: false,
+        reason: { key: CATALOG_ERRORS.MIN_ITEMS, params: { min } },
+      };
+    }
+    if (count > max) {
+      return {
+        kind,
+        available: false,
+        reason: { key: CATALOG_ERRORS.MAX_ITEMS, params: { max } },
+      };
+    }
+    return { kind, available: true };
+  });

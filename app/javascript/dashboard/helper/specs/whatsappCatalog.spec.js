@@ -2,7 +2,10 @@ import {
   CATALOG_ERRORS,
   CATALOG_ITEM_LIMITS,
   CATALOG_KINDS,
+  CATALOG_MAX_SELECTION,
   CATALOG_TEXT_LIMITS,
+  filterCatalogProducts,
+  getAvailableFormats,
   groupProductsBySection,
   validateCatalogForm,
 } from '../whatsappCatalog';
@@ -123,5 +126,71 @@ describe('groupProductsBySection', () => {
         products: [{ retailer_id: 'b', section: long }],
       },
     ]);
+  });
+});
+
+describe('filterCatalogProducts', () => {
+  const products = [
+    { name: 'Camiseta Roja', description: 'Algodón', collection_ids: ['a'] },
+    { name: 'Taza', description: null, collection_ids: ['b'] },
+  ];
+
+  it('ignores case and accents in name and description', () => {
+    expect(filterCatalogProducts(products, { query: 'ALGODON' })).toEqual([
+      products[0],
+    ]);
+    expect(filterCatalogProducts(products, { query: ' taza ' })).toEqual([
+      products[1],
+    ]);
+  });
+
+  it('filters by collection and returns all when empty', () => {
+    expect(filterCatalogProducts(products, { collectionId: 'b' })).toEqual([
+      products[1],
+    ]);
+    expect(filterCatalogProducts(products, { collectionId: '' })).toEqual(
+      products
+    );
+    expect(filterCatalogProducts(products)).toEqual(products);
+  });
+});
+
+describe('getAvailableFormats', () => {
+  const availability = count =>
+    Object.fromEntries(
+      getAvailableFormats(count).map(f => [f.kind, f.available])
+    );
+
+  it('exposes the global selection cap', () => {
+    expect(CATALOG_MAX_SELECTION).toBe(30);
+  });
+
+  it('marks every format unavailable by minimum with 0', () => {
+    getAvailableFormats(0).forEach(format => {
+      expect(format.available).toBe(false);
+      expect(format.reason.key).toBe(CATALOG_ERRORS.MIN_ITEMS);
+    });
+  });
+
+  it.each([
+    [1, { carousel: false, product: true, product_list: true }],
+    [2, { carousel: true, product: false, product_list: true }],
+    [10, { carousel: true, product: false, product_list: true }],
+    [11, { carousel: false, product: false, product_list: true }],
+    [30, { carousel: false, product: false, product_list: true }],
+    [31, { carousel: false, product: false, product_list: false }],
+  ])('with %i selected', (count, expected) => {
+    expect(availability(count)).toEqual(expected);
+  });
+
+  it('explains why with the number', () => {
+    const [carousel, product, list] = getAvailableFormats(31);
+    expect(carousel.reason).toEqual({
+      key: CATALOG_ERRORS.MAX_ITEMS,
+      params: { max: 10 },
+    });
+    expect(product.reason.params).toEqual({ max: 1 });
+    expect(list.reason.params).toEqual({ max: 30 });
+    expect(getAvailableFormats(1)[0].reason.params).toEqual({ min: 2 });
   });
 });

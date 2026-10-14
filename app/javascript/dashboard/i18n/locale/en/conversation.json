@@ -656,7 +656,23 @@
       "SEND": "Send",
       "BACK": "Back",
       "NEXT": "Next",
-      "CLOSE": "Close"
+      "CLOSE": "Close",
+      "SELECT": "Select",
+      "CANCEL_SELECTION": "Cancel selection",
+      "SEE_MORE": "See more",
+      "REFRESH": "Refresh",
+      "CONTINUE": "Next: format ({count})"
+    },
+    "SEARCH": {
+      "PLACEHOLDER": "Search products",
+      "NO_RESULTS": "No products match your search"
+    },
+    "FILTERS": {
+      "ALL": "All"
+    },
+    "FORMAT": {
+      "LABEL": "Delivery format",
+      "UNAVAILABLE": "Not available: {reason}"
     },
     "STATES": {
       "LOADING": "Loading catalog...",
