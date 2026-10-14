@@ -82,7 +82,7 @@ const firstImage = item => item?.imageUrls?.[0];
               :src="firstImage(item)"
               :alt="item.name"
               loading="lazy"
-              class="object-cover size-full"
+              class="object-cover w-full aspect-square"
             />
           </button>
           <div class="flex flex-col gap-0.5 p-2 min-w-0">

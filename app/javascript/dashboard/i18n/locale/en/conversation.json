@@ -646,7 +646,7 @@
     },
     "ERRORS": {
       "MIN_ITEMS": "Select at least {min} products",
-      "MAX_ITEMS": "You can select up to {max} products",
+      "MAX_ITEMS": "Up to {max} product | Up to {max} products",
       "REQUIRED": "This field is required",
       "TOO_LONG": "The text is too long",
       "SEND_FAILED": "Could not send the catalog message. Please try again."
@@ -658,10 +658,9 @@
       "NEXT": "Next",
       "CLOSE": "Close",
       "SELECT": "Select",
-      "CANCEL_SELECTION": "Cancel selection",
       "SEE_MORE": "See more",
       "REFRESH": "Refresh",
-      "CONTINUE": "Next: format ({count})"
+      "CANCEL": "Cancel"
     },
     "SEARCH": {
       "PLACEHOLDER": "Search products",

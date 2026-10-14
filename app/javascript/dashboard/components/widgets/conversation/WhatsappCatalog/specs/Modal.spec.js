@@ -110,6 +110,19 @@ describe('WhatsappCatalog Modal', () => {
     expect(detail.text()).toContain('Red Shirt');
   });
 
+  it('renders refresh and close as icon-only buttons', async () => {
+    const w = await mountModal();
+    expect(q(w, 'catalog-refresh').text()).toBe('');
+    expect(q(w, 'catalog-refresh').attributes('aria-label')).toBe(
+      'CATALOG.ACTIONS.REFRESH'
+    );
+    expect(q(w, 'catalog-close').text()).toBe('');
+    expect(q(w, 'catalog-close').attributes('aria-label')).toBe(
+      'CATALOG.ACTIONS.CLOSE'
+    );
+    expect(q(w, 'catalog-counter').exists()).toBe(false);
+  });
+
   it('forces a reload with Refresh', async () => {
     const w = await mountModal();
     await q(w, 'catalog-refresh').trigger('click');
@@ -123,10 +136,19 @@ describe('WhatsappCatalog Modal', () => {
     expect(q(w, 'catalog-next').element.disabled).toBe(true);
     await rows(w)[0].trigger('click');
     expect(q(w, 'catalog-counter').text()).toContain('CATALOG.COUNTER');
+    expect(w.find('footer').text()).not.toContain('CATALOG.COUNTER');
+    expect(
+      w.find('header').find('[data-testid="catalog-counter"]').exists()
+    ).toBe(true);
+    expect(q(w, 'catalog-cancel-selection').text()).toBe(
+      'CATALOG.ACTIONS.CANCEL'
+    );
+    expect(q(w, 'catalog-next').text()).toBe('CATALOG.ACTIONS.NEXT');
     await q(w, 'catalog-next').trigger('click');
     expect(q(w, 'catalog-format-carousel').element.disabled).toBe(true);
     expect(q(w, 'catalog-format-product_list').element.disabled).toBe(false);
     expect(q(w, 'catalog-format-reason-carousel').exists()).toBe(true);
+    expect(q(w, 'catalog-back-link').exists()).toBe(false);
     await q(w, 'catalog-back').trigger('click');
     expect(rows(w)[0].find('input').element.checked).toBe(true);
   });

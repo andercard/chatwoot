@@ -127,11 +127,12 @@ const errorText = field =>
     ? t(errors.value[field], {
         min: limits.value.min,
         max: limits.value.max,
-        count: items.value.length,
+        count: limits.value.max,
       })
     : '';
 
-const reasonText = reason => (reason ? t(reason.key, reason.params) : '');
+const reasonText = reason =>
+  reason ? t(reason.key, { ...reason.params, count: reason.params.max }) : '';
 
 const isSelected = product => selectedIds.value.includes(product.retailer_id);
 
@@ -274,11 +275,12 @@ watch(
             </h3>
             <Button
               type="button"
-              variant="ghost"
+              variant="faded"
               color="slate"
-              size="sm"
               icon="i-lucide-x"
-              :label="$t('CATALOG.ACTIONS.CLOSE')"
+              class="!rounded-full"
+              :aria-label="$t('CATALOG.ACTIONS.CLOSE')"
+              data-testid="catalog-close"
               @click="close"
             />
           </div>
@@ -297,7 +299,7 @@ watch(
                 color="slate"
                 size="sm"
                 icon="i-lucide-refresh-cw"
-                :label="$t('CATALOG.ACTIONS.REFRESH')"
+                :aria-label="$t('CATALOG.ACTIONS.REFRESH')"
                 :is-loading="isRefreshing"
                 :disabled="isRefreshing"
                 data-testid="catalog-refresh"
@@ -347,6 +349,18 @@ watch(
                 {{ `${collection.name} (${collection.count})` }}
               </button>
             </div>
+            <span
+              v-if="selectionMode"
+              class="text-sm font-medium text-start text-n-slate-12"
+              data-testid="catalog-counter"
+            >
+              {{
+                $t('CATALOG.COUNTER', {
+                  count: selectedCount,
+                  max: CATALOG_MAX_SELECTION,
+                })
+              }}
+            </span>
           </template>
         </header>
 
@@ -406,24 +420,14 @@ watch(
 
           <div v-else class="flex flex-col gap-4">
             <div class="flex flex-col gap-2">
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-sm font-medium text-n-slate-12">
-                  {{
-                    $t('CATALOG.COUNTER', {
-                      count: selectedCount,
-                      max: CATALOG_MAX_SELECTION,
-                    })
-                  }}
-                </span>
-                <button
-                  type="button"
-                  class="text-sm text-n-brand hover:underline"
-                  data-testid="catalog-back-link"
-                  @click="goBack"
-                >
-                  {{ $t('CATALOG.ACTIONS.BACK') }}
-                </button>
-              </div>
+              <span class="text-sm font-medium text-n-slate-12">
+                {{
+                  $t('CATALOG.COUNTER', {
+                    count: selectedCount,
+                    max: CATALOG_MAX_SELECTION,
+                  })
+                }}
+              </span>
               <div class="flex gap-1 overflow-x-auto">
                 <img
                   v-for="product in selectedProducts"
@@ -538,31 +542,18 @@ watch(
           v-if="view === 'products' && selectionMode && catalog && !needsGuide"
           class="flex items-center justify-between gap-3 p-4 border-t border-n-weak shrink-0"
         >
-          <div class="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="faded"
-              color="slate"
-              :label="$t('CATALOG.ACTIONS.CANCEL_SELECTION')"
-              data-testid="catalog-cancel-selection"
-              @click="exitSelection"
-            />
-            <span
-              class="text-sm font-medium text-n-slate-12"
-              data-testid="catalog-counter"
-            >
-              {{
-                $t('CATALOG.COUNTER', {
-                  count: selectedCount,
-                  max: CATALOG_MAX_SELECTION,
-                })
-              }}
-            </span>
-          </div>
+          <Button
+            type="button"
+            variant="faded"
+            color="slate"
+            :label="$t('CATALOG.ACTIONS.CANCEL')"
+            data-testid="catalog-cancel-selection"
+            @click="exitSelection"
+          />
           <Button
             type="button"
             color="blue"
-            :label="$t('CATALOG.ACTIONS.CONTINUE', { count: selectedCount })"
+            :label="$t('CATALOG.ACTIONS.NEXT')"
             :disabled="!selectedCount"
             data-testid="catalog-next"
             @click="goToFormat"

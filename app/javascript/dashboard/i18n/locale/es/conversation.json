@@ -633,7 +633,7 @@
     },
     "ERRORS": {
       "MIN_ITEMS": "Selecciona al menos {min} productos",
-      "MAX_ITEMS": "Puedes seleccionar hasta {max} productos",
+      "MAX_ITEMS": "Máximo {max} producto | Máximo {max} productos",
       "REQUIRED": "Este campo es obligatorio",
       "TOO_LONG": "El texto es demasiado largo",
       "SEND_FAILED": "No se pudo enviar el mensaje de catálogo. Inténtalo de nuevo."
@@ -645,10 +645,9 @@
       "NEXT": "Siguiente",
       "CLOSE": "Cerrar",
       "SELECT": "Seleccionar",
-      "CANCEL_SELECTION": "Cancelar selección",
       "SEE_MORE": "Ver más",
       "REFRESH": "Actualizar",
-      "CONTINUE": "Siguiente: formato ({count})"
+      "CANCEL": "Cancelar"
     },
     "SEARCH": {
       "PLACEHOLDER": "Buscar productos",
