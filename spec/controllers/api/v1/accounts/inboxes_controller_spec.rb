@@ -1787,4 +1787,41 @@ RSpec.describe 'Inboxes API', type: :request do
       expect(webhook_service).to have_received(:perform)
     end
   end
+
+  describe 'GET /api/v1/accounts/{account.id}/inboxes/{id}/whatsapp_catalog' do
+    let(:whatsapp_inbox) do
+      create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false).inbox
+    end
+    let(:catalog_result) { { status: 'ok', catalog_id: 'cat_1', collections: [] } }
+
+    it 'returns unauthorized for unauthenticated user' do
+      get "/api/v1/accounts/#{account.id}/inboxes/#{whatsapp_inbox.id}/whatsapp_catalog"
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'returns the catalog for an agent with inbox access' do
+      create(:inbox_member, user: agent, inbox: whatsapp_inbox)
+      service = instance_double(Whatsapp::CatalogService, perform: catalog_result)
+      allow(Whatsapp::CatalogService).to receive(:new).with(channel: whatsapp_inbox.channel).and_return(service)
+
+      get "/api/v1/accounts/#{account.id}/inboxes/#{whatsapp_inbox.id}/whatsapp_catalog", headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include('status' => 'ok', 'catalog_id' => 'cat_1')
+    end
+
+    it 'returns unauthorized for an agent without inbox access' do
+      get "/api/v1/accounts/#{account.id}/inboxes/#{whatsapp_inbox.id}/whatsapp_catalog", headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'returns unprocessable entity for a non WhatsApp Cloud inbox' do
+      inbox = create(:inbox, account: account)
+      get "/api/v1/accounts/#{account.id}/inboxes/#{inbox.id}/whatsapp_catalog", headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
 end
