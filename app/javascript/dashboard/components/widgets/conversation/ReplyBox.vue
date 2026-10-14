@@ -245,6 +245,10 @@ export default {
     showWhatsappCatalog() {
       return this.isAWhatsAppCloudChannel && !this.isPrivate;
     },
+    whatsappCatalogLink() {
+      const digits = (this.inbox.phone_number || '').replace(/\D/g, '');
+      return digits ? `https://wa.me/c/${digits}` : '';
+    },
     catalogPrefetchInboxId() {
       return this.showWhatsappCatalog && this.inbox.id;
     },
@@ -943,6 +947,9 @@ export default {
     },
     openWhatsappCatalog() {
       this.showWhatsappCatalogModal = true;
+    },
+    insertWhatsappCatalogLink(link) {
+      this.message = this.message ? `${this.message}\n${link}` : link;
     },
     onWhatsappCatalogSent() {
       this.message = '';
@@ -1775,6 +1782,8 @@ export default {
       :inbox-id="inbox.id"
       :conversation-id="conversationId"
       :initial-body="message"
+      :catalog-link="whatsappCatalogLink"
+      @insert-link="insertWhatsappCatalogLink"
       @sent="onWhatsappCatalogSent"
     />
 

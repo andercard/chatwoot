@@ -304,6 +304,42 @@ describe('ReplyBox', () => {
       expect(catalog(wrapper)).toBe(false);
     });
 
+    it('passes the digits-only business number as the catalog link', () => {
+      const { wrapper } = mountWith({
+        inbox: { ...cloud, phone_number: '+57 300 123-4567' },
+      });
+      expect(
+        wrapper.findComponent({ name: 'WhatsappCatalogModal' }).props()
+          .catalogLink
+      ).toBe('https://wa.me/c/573001234567');
+    });
+
+    it('appends the catalog link to the editor text without sending', async () => {
+      const { wrapper } = mountWith({
+        inbox: { ...cloud, phone_number: '+573001234567' },
+        drafts: { 'draft-1-REPLY': 'texto previo' },
+      });
+      await nextTick();
+      wrapper
+        .findComponent({ name: 'WhatsappCatalogModal' })
+        .vm.$emit('insertLink', 'https://wa.me/c/573001234567');
+      await nextTick();
+      expect(editor(wrapper).modelValue).toBe(
+        'texto previo\nhttps://wa.me/c/573001234567'
+      );
+    });
+
+    it('inserts only the link when the editor is empty', async () => {
+      const { wrapper } = mountWith({
+        inbox: { ...cloud, phone_number: '+573001234567' },
+      });
+      wrapper
+        .findComponent({ name: 'WhatsappCatalogModal' })
+        .vm.$emit('insertLink', 'https://wa.me/c/573001234567');
+      await nextTick();
+      expect(editor(wrapper).modelValue).toBe('https://wa.me/c/573001234567');
+    });
+
     it('prefetches the catalog only on WhatsApp Cloud', () => {
       prefetchCatalog.mockClear();
       [

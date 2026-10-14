@@ -25,9 +25,10 @@ const props = defineProps({
   inboxId: { type: Number, default: undefined },
   conversationId: { type: Number, default: undefined },
   initialBody: { type: String, default: '' },
+  catalogLink: { type: String, default: '' },
 });
 
-const emit = defineEmits(['update:show', 'sent', 'close']);
+const emit = defineEmits(['update:show', 'sent', 'close', 'insertLink']);
 
 const { t } = useI18n();
 const { isAdmin } = useAdmin();
@@ -187,6 +188,11 @@ const close = () => {
   emit('close');
 };
 
+const insertLink = () => {
+  emit('insertLink', props.catalogLink);
+  close();
+};
+
 const exitSelection = () => {
   selectionMode.value = false;
   selectedIds.value = [];
@@ -289,7 +295,7 @@ watch(
               <input
                 v-model="query"
                 type="search"
-                class="flex-1 min-w-0 mb-0"
+                class="flex-1 h-10 min-w-0 mb-0 rounded-lg"
                 :placeholder="$t('CATALOG.SEARCH.PLACEHOLDER')"
                 data-testid="catalog-search"
               />
@@ -297,7 +303,6 @@ watch(
                 type="button"
                 variant="faded"
                 color="slate"
-                size="sm"
                 icon="i-lucide-refresh-cw"
                 :aria-label="$t('CATALOG.ACTIONS.REFRESH')"
                 :is-loading="isRefreshing"
@@ -310,10 +315,19 @@ watch(
                 type="button"
                 variant="faded"
                 color="blue"
-                size="sm"
                 :label="$t('CATALOG.ACTIONS.SELECT')"
                 data-testid="catalog-select"
                 @click="selectionMode = true"
+              />
+              <Button
+                v-if="catalogLink"
+                type="button"
+                variant="faded"
+                color="slate"
+                icon="i-lucide-link"
+                :aria-label="$t('CATALOG.ACTIONS.INSERT_LINK')"
+                data-testid="catalog-insert-link"
+                @click="insertLink"
               />
             </div>
             <div

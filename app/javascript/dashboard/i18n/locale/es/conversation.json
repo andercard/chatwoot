@@ -205,7 +205,8 @@
     "CUSTOM_SNOOZE": {
       "TITLE": "Posponer hasta",
       "APPLY": "Posponer",
-      "CANCEL": "Cancelar"
+      "CANCEL": "Cancelar",
+      "INSERT_LINK": "Insertar enlace del catálogo"
     },
     "PRIORITY": {
       "TITLE": "Prioridad",

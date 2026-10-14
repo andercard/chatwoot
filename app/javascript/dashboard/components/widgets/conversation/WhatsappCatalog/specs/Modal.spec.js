@@ -207,6 +207,21 @@ describe('WhatsappCatalog Modal', () => {
     expect(w.emitted('close')).toBeTruthy();
   });
 
+  it('shows the link button only with a catalog link and emits it', async () => {
+    loadCatalog.mockResolvedValue(catalogData());
+    const without = await mountModal();
+    expect(q(without, 'catalog-insert-link').exists()).toBe(false);
+
+    const w = await mountModal({ catalogLink: 'https://wa.me/c/573001234567' });
+    await q(w, 'catalog-insert-link').trigger('click');
+    expect(w.emitted('insertLink')[0]).toEqual([
+      'https://wa.me/c/573001234567',
+    ]);
+    expect(w.emitted('update:show')[0]).toEqual([false]);
+    expect(w.emitted('close')).toBeTruthy();
+    expect(whatsappCatalogMessages.create).not.toHaveBeenCalled();
+  });
+
   it('shows the setup guide for no_catalog', async () => {
     loadCatalog.mockResolvedValue({
       status: 'no_catalog',

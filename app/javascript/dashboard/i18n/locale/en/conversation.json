@@ -218,7 +218,8 @@
     "CUSTOM_SNOOZE": {
       "TITLE": "Snooze until",
       "APPLY": "Snooze",
-      "CANCEL": "Cancel"
+      "CANCEL": "Cancel",
+      "INSERT_LINK": "Insert catalog link"
     },
     "PRIORITY": {
       "TITLE": "Priority",
