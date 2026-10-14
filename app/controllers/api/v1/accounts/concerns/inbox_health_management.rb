@@ -57,6 +57,12 @@ module Api::V1::Accounts::Concerns::InboxHealthManagement
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def whatsapp_catalog
+    return head(:unprocessable_entity) unless whatsapp_cloud_channel?
+
+    render json: Whatsapp::CatalogService.new(channel: @inbox.channel, refresh: params[:refresh]).perform
+  end
+
   def whatsapp_business_management_token
     Whatsapp::BusinessManagementTokenService.new(whatsapp_channel).update!(params.require(:business_management_token))
 

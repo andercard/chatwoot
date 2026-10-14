@@ -62,7 +62,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
 
 Esta ronda **reemplaza el flujo del modal de las tareas 5 y 6** (formato primero) por: ver el catálogo → seleccionar → formato. Las tareas 1–4, 7 y 9 no cambian de comportamiento; la 4 cambia la forma de su respuesta (la consume solo el modal).
 
-- [ ] **10 · Catálogo en una sola llamada, sin «All Products» y con caché**
+- [x] **10 · Catálogo en una sola llamada, sin «All Products» y con caché**
   - archivos: `app/services/whatsapp/catalog_service.rb`, `app/controllers/api/v1/accounts/inboxes_controller.rb`, `spec/services/whatsapp/catalog_service_spec.rb`, `spec/controllers/api/v1/accounts/inboxes_controller_spec.rb`
   - depende de: ninguna
   - listo cuando: `GET …/inboxes/:id/whatsapp_catalog` hace como máximo **una** lectura de `product_catalogs` (el ID del catálogo se cachea 24 h por bandeja) y **una** lectura paginada de `/{catalog_id}/products` pidiendo `product_sets{id,name}` en cada producto (sin leer cada colección por separado); responde `{ status, catalog_id, collections: [{ id, name, count }], products: [{ retailer_id, name, price, image_urls, description, url, collection_ids: [] }] }` con cada producto **una sola vez**, y la colección por defecto de Meta llamada «All Products» **no** aparece en `collections` ni en `collection_ids`; el resultado `ok` se cachea 15 min por bandeja y `?refresh=1` lo salta y lo vuelve a guardar; los errores siguen sin cachearse y los estados `no_catalog`/`missing_permission`/`error` no cambian; los specs cubren la lectura en una llamada, el producto en dos colecciones (una sola fila con dos `collection_ids`), la exclusión de «All Products», la caché y `refresh`

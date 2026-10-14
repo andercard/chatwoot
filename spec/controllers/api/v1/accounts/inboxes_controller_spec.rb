@@ -1803,12 +1803,22 @@ RSpec.describe 'Inboxes API', type: :request do
     it 'returns the catalog for an agent with inbox access' do
       create(:inbox_member, user: agent, inbox: whatsapp_inbox)
       service = instance_double(Whatsapp::CatalogService, perform: catalog_result)
-      allow(Whatsapp::CatalogService).to receive(:new).with(channel: whatsapp_inbox.channel).and_return(service)
+      allow(Whatsapp::CatalogService).to receive(:new).with(channel: whatsapp_inbox.channel, refresh: nil).and_return(service)
 
       get "/api/v1/accounts/#{account.id}/inboxes/#{whatsapp_inbox.id}/whatsapp_catalog", headers: agent.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:success)
       expect(response.parsed_body).to include('status' => 'ok', 'catalog_id' => 'cat_1')
+    end
+
+    it 'passes the refresh param to the service' do
+      create(:inbox_member, user: agent, inbox: whatsapp_inbox)
+      service = instance_double(Whatsapp::CatalogService, perform: catalog_result)
+      allow(Whatsapp::CatalogService).to receive(:new).with(channel: whatsapp_inbox.channel, refresh: '1').and_return(service)
+
+      get "/api/v1/accounts/#{account.id}/inboxes/#{whatsapp_inbox.id}/whatsapp_catalog?refresh=1", headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
     end
 
     it 'returns unauthorized for an agent without inbox access' do

@@ -1,7 +1,10 @@
 class Whatsapp::CatalogService
-  PRODUCT_FIELDS = 'retailer_id,name,description,price,image_url,additional_image_urls,url'.freeze
+  PRODUCT_FIELDS = 'retailer_id,name,description,price,image_url,additional_image_urls,url,product_sets{id,name}'.freeze
   PAGE_SIZE = 100
-  CACHE_TTL = 5.minutes
+  MAX_PAGES = 20
+  CACHE_TTL = 15.minutes
+  CATALOG_ID_CACHE_TTL = 24.hours
+  DEFAULT_COLLECTION_NAME = 'all products'.freeze
   PERMISSION_ERROR_CODE = 200
 
   class ApiError < StandardError
@@ -13,14 +16,14 @@ class Whatsapp::CatalogService
     end
   end
 
-  pattr_initialize [:channel!]
+  pattr_initialize [:channel!, :refresh]
 
   def perform
     catalog_id = resolve_catalog_id
     return { status: 'no_catalog' } if catalog_id.blank?
 
-    Rails.cache.fetch("whatsapp_catalog/#{channel.id}/#{catalog_id}", expires_in: CACHE_TTL) do
-      { status: 'ok', catalog_id: catalog_id, collections: build_collections(catalog_id) }
+    Rails.cache.fetch("whatsapp_catalog/#{channel.id}/#{catalog_id}", expires_in: CACHE_TTL, force: refresh?) do
+      build_catalog(catalog_id)
     end
   rescue ApiError => e
     Rails.logger.warn "[WHATSAPP CATALOG] channel=#{channel.id} #{e.message}"
@@ -32,46 +35,51 @@ class Whatsapp::CatalogService
 
   private
 
+  def refresh?
+    %w[1 true].include?(refresh.to_s)
+  end
+
   def resolve_catalog_id
-    channel.provider_config['catalog_id'].presence || graph_get("#{channel.provider_config['business_account_id']}/product_catalogs").first&.dig('id')
+    channel.provider_config['catalog_id'].presence ||
+      Rails.cache.fetch("whatsapp_catalog_id/#{channel.id}", expires_in: CATALOG_ID_CACHE_TTL, force: refresh?, skip_nil: true) do
+        request("#{channel.provider_config['business_account_id']}/product_catalogs", limit: PAGE_SIZE)['data']&.first&.dig('id')
+      end
   end
 
-  def build_collections(catalog_id)
-    seen = Set.new
-    collections = graph_get("#{catalog_id}/product_sets", fields: 'id,name').map do |set|
-      products = fetch_products(set['id'])
-      seen.merge(products.pluck(:retailer_id))
-      { id: set['id'], name: set['name'], products: products }
+  def build_catalog(catalog_id)
+    collections = {}
+    products = fetch_products(catalog_id).map do |product|
+      sets = product.dig('product_sets', 'data').to_a.reject { |set| set['name'].to_s.casecmp?(DEFAULT_COLLECTION_NAME) }
+      sets.each { |set| (collections[set['id']] ||= { id: set['id'], name: set['name'], count: 0 })[:count] += 1 }
+      format_product(product, sets.pluck('id'))
     end
-    uncollected = fetch_products(catalog_id).reject { |product| seen.include?(product[:retailer_id]) }
-    collections << { id: nil, name: nil, products: uncollected } if uncollected.present?
-    collections
+    { status: 'ok', catalog_id: catalog_id, collections: collections.values, products: products }
   end
 
-  def fetch_products(node_id)
-    graph_get("#{node_id}/products", fields: PRODUCT_FIELDS).map do |product|
-      {
-        retailer_id: product['retailer_id'],
-        name: product['name'],
-        price: product['price'],
-        image_urls: [product['image_url'], *product['additional_image_urls']].compact,
-        description: product['description'],
-        url: product['url']
-      }
-    end
+  def format_product(product, collection_ids)
+    {
+      retailer_id: product['retailer_id'],
+      name: product['name'],
+      price: product['price'],
+      image_urls: [product['image_url'], *product['additional_image_urls']].compact,
+      description: product['description'],
+      url: product['url'],
+      collection_ids: collection_ids
+    }
   end
 
-  # Follows Graph cursors and returns the concatenated `data` of every page.
-  def graph_get(path, query = {})
-    items = []
+  # Follows Graph cursors; stops on a short page or an empty one.
+  def fetch_products(catalog_id)
+    products = []
     after = nil
-    loop do
-      body = request(path, query.merge(limit: PAGE_SIZE, after: after).compact)
-      items.concat(body['data'] || [])
-      after = body.dig('paging', 'next') && body.dig('paging', 'cursors', 'after')
-      break if after.blank?
+    MAX_PAGES.times do
+      body = request("#{catalog_id}/products", { fields: PRODUCT_FIELDS, limit: PAGE_SIZE, after: after }.compact)
+      page = body['data'].to_a
+      products.concat(page)
+      after = body.dig('paging', 'cursors', 'after')
+      break if page.size < PAGE_SIZE || after.blank?
     end
-    items
+    products
   end
 
   def request(path, query)
