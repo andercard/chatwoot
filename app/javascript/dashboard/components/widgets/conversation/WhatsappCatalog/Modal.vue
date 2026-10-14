@@ -2,17 +2,21 @@
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import inboxesAPI from 'dashboard/api/inboxes';
 import whatsappCatalogMessages from 'dashboard/api/whatsappCatalogMessages';
+import { loadCatalog } from 'dashboard/helper/whatsappCatalogCache';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import {
+  CATALOG_MAX_SELECTION,
   CATALOG_KINDS,
   CATALOG_ITEM_LIMITS,
   CATALOG_TEXT_LIMITS,
   validateCatalogForm,
+  filterCatalogProducts,
+  getAvailableFormats,
 } from 'dashboard/helper/whatsappCatalog';
 
 import Button from 'dashboard/components-next/button/Button.vue';
+import WhatsappCatalogDetail from 'dashboard/components-next/message/bubbles/WhatsappCatalogDetail.vue';
 import ProductRow from './ProductRow.vue';
 import SetupGuide from './SetupGuide.vue';
 
@@ -28,12 +32,11 @@ const emit = defineEmits(['update:show', 'sent', 'close']);
 const { t } = useI18n();
 const { isAdmin } = useAdmin();
 
-const STEPS = ['FORMAT', 'PRODUCTS', 'DETAILS'];
-const FORMAT_OPTIONS = [
-  { kind: CATALOG_KINDS.CAROUSEL, key: 'CAROUSEL' },
-  { kind: CATALOG_KINDS.PRODUCT, key: 'PRODUCT' },
-  { kind: CATALOG_KINDS.PRODUCT_LIST, key: 'PRODUCT_LIST' },
-];
+const FORMAT_KEYS = {
+  [CATALOG_KINDS.CAROUSEL]: 'CAROUSEL',
+  [CATALOG_KINDS.PRODUCT]: 'PRODUCT',
+  [CATALOG_KINDS.PRODUCT_LIST]: 'PRODUCT_LIST',
+};
 const FIELDS_BY_KIND = {
   [CATALOG_KINDS.CAROUSEL]: [{ name: 'body', required: true }],
   [CATALOG_KINDS.PRODUCT]: [
@@ -47,44 +50,62 @@ const FIELDS_BY_KIND = {
   ],
 };
 
-const step = ref(0);
-const kind = ref(null);
+const view = ref('products');
 const catalog = ref(null);
 const isLoading = ref(false);
+const isRefreshing = ref(false);
 const loadFailed = ref(false);
-const selected = ref([]);
+const query = ref('');
+const collectionId = ref(null);
+const selectionMode = ref(false);
+const selectedIds = ref([]);
+const detailItem = ref(null);
+const kind = ref(null);
 const form = ref({ header: '', body: '', footer: '' });
 const submitted = ref(false);
 const isSending = ref(false);
 const sendError = ref('');
 
-const limits = computed(() => CATALOG_ITEM_LIMITS[kind.value] || {});
-const fields = computed(() => FIELDS_BY_KIND[kind.value] || []);
-const isMultiple = computed(() => limits.value.max > 1);
-const atMax = computed(() => selected.value.length >= limits.value.max);
-
-const sections = computed(() =>
-  (catalog.value?.collections || []).map(collection => ({
-    id: collection.id,
-    title: collection.name || t('CATALOG.NO_COLLECTION'),
-    products: collection.products || [],
-  }))
-);
-const hasProducts = computed(() =>
-  sections.value.some(section => section.products.length)
-);
+const allProducts = computed(() => catalog.value?.products || []);
+const collections = computed(() => catalog.value?.collections || []);
 const needsGuide = computed(
   () => catalog.value && catalog.value.status !== 'ok'
 );
+const visibleProducts = computed(() =>
+  filterCatalogProducts(allProducts.value, {
+    query: query.value,
+    collectionId: collectionId.value,
+  })
+);
+const selectedProducts = computed(() =>
+  selectedIds.value
+    .map(id => allProducts.value.find(p => p.retailer_id === id))
+    .filter(Boolean)
+);
+const selectedCount = computed(() => selectedProducts.value.length);
+const atMax = computed(() => selectedCount.value >= CATALOG_MAX_SELECTION);
+const formats = computed(() => getAvailableFormats(selectedCount.value));
+
+const fields = computed(() => FIELDS_BY_KIND[kind.value] || []);
+const hasField = name => fields.value.some(f => f.name === name);
+
+// First collection (in catalog order) that holds the product.
+const sectionFor = product => {
+  const collection = collections.value.find(c =>
+    (product.collection_ids || []).includes(c.id)
+  );
+  return collection?.name || t('CATALOG.NO_COLLECTION');
+};
 
 const items = computed(() =>
-  selected.value.map(({ product, section }) => ({
+  selectedProducts.value.map(product => ({
     retailer_id: product.retailer_id,
     name: product.name,
     price: product.price,
     description: product.description,
     url: product.url,
-    section,
+    section:
+      kind.value === CATALOG_KINDS.PRODUCT_LIST ? sectionFor(product) : null,
     image_urls: product.image_urls,
   }))
 );
@@ -93,12 +114,13 @@ const validationPayload = computed(() => ({
   kind: kind.value,
   items: items.value,
   body: form.value.body,
-  header: fields.value.some(f => f.name === 'header') ? form.value.header : '',
-  footer: fields.value.some(f => f.name === 'footer') ? form.value.footer : '',
+  header: hasField('header') ? form.value.header : '',
+  footer: hasField('footer') ? form.value.footer : '',
 }));
 const errors = computed(() =>
   kind.value ? validateCatalogForm(validationPayload.value) : {}
 );
+const limits = computed(() => CATALOG_ITEM_LIMITS[kind.value] || {});
 
 const errorText = field =>
   submitted.value && errors.value[field]
@@ -109,44 +131,54 @@ const errorText = field =>
       })
     : '';
 
-const isSelected = product =>
-  selected.value.some(item => item.product.retailer_id === product.retailer_id);
+const reasonText = reason => (reason ? t(reason.key, reason.params) : '');
 
-const toggleProduct = (product, section) => {
+const isSelected = product => selectedIds.value.includes(product.retailer_id);
+
+const toggleProduct = product => {
   if (isSelected(product)) {
-    selected.value = selected.value.filter(
-      item => item.product.retailer_id !== product.retailer_id
+    selectedIds.value = selectedIds.value.filter(
+      id => id !== product.retailer_id
     );
-  } else if (!isMultiple.value) {
-    selected.value = [{ product, section }];
   } else if (!atMax.value) {
-    selected.value = [...selected.value, { product, section }];
+    selectedIds.value = [...selectedIds.value, product.retailer_id];
   }
 };
 
-const loadCatalog = async () => {
-  if (catalog.value || isLoading.value) return;
-  isLoading.value = true;
+const openDetail = product => {
+  detailItem.value = { ...product, imageUrls: product.image_urls };
+};
+
+const fetchCatalog = async ({ force = false } = {}) => {
   loadFailed.value = false;
+  if (force) isRefreshing.value = true;
+  else if (!catalog.value) isLoading.value = true;
   try {
-    const { data } = await inboxesAPI.getWhatsappCatalog(props.inboxId);
-    catalog.value = data;
+    catalog.value = await loadCatalog(props.inboxId, { force });
+    const known = new Set(allProducts.value.map(p => p.retailer_id));
+    selectedIds.value = selectedIds.value.filter(id => known.has(id));
   } catch (error) {
     loadFailed.value = true;
   } finally {
     isLoading.value = false;
+    isRefreshing.value = false;
   }
 };
 
 const reset = () => {
-  step.value = 0;
-  kind.value = null;
+  view.value = 'products';
   catalog.value = null;
   loadFailed.value = false;
-  selected.value = [];
+  query.value = '';
+  collectionId.value = null;
+  selectionMode.value = false;
+  selectedIds.value = [];
+  detailItem.value = null;
+  kind.value = null;
   form.value = { header: '', body: props.initialBody, footer: '' };
   submitted.value = false;
   sendError.value = '';
+  fetchCatalog();
 };
 
 const close = () => {
@@ -154,36 +186,40 @@ const close = () => {
   emit('close');
 };
 
-const chooseKind = value => {
-  if (kind.value !== value) selected.value = [];
-  kind.value = value;
-  step.value = 1;
-  loadCatalog();
+const exitSelection = () => {
+  selectionMode.value = false;
+  selectedIds.value = [];
 };
 
-const retryLoad = () => {
-  catalog.value = null;
-  loadCatalog();
+const suggestHeader = () => {
+  if (form.value.header || kind.value !== CATALOG_KINDS.PRODUCT_LIST) return;
+  const first = selectedProducts.value[0];
+  if (first) {
+    form.value.header = sectionFor(first).slice(0, CATALOG_TEXT_LIMITS.header);
+  }
+};
+
+const chooseKind = value => {
+  kind.value = value;
+  sendError.value = '';
+  suggestHeader();
+};
+
+const goToFormat = () => {
+  if (!selectedCount.value) return;
+  const current = formats.value.find(f => f.kind === kind.value);
+  if (!current?.available) {
+    chooseKind(formats.value.find(f => f.available).kind);
+  } else {
+    suggestHeader();
+  }
+  submitted.value = false;
+  view.value = 'format';
 };
 
 const goBack = () => {
   sendError.value = '';
-  step.value = Math.max(0, step.value - 1);
-};
-
-const goNext = () => {
-  if (step.value === 1) {
-    submitted.value = true;
-    if (errors.value.items) return;
-    submitted.value = false;
-    if (!form.value.header && kind.value === CATALOG_KINDS.PRODUCT_LIST) {
-      form.value.header = (sections.value[0]?.title || '').slice(
-        0,
-        CATALOG_TEXT_LIMITS.header
-      );
-    }
-  }
-  step.value += 1;
+  view.value = 'products';
 };
 
 const send = async () => {
@@ -246,41 +282,76 @@ watch(
               @click="close"
             />
           </div>
-          <ol class="flex gap-4 mb-0 text-xs list-none">
-            <li
-              v-for="(name, index) in STEPS"
-              :key="name"
-              :class="
-                index === step
-                  ? 'font-medium text-n-slate-12'
-                  : 'text-n-slate-10'
-              "
+          <template v-if="view === 'products' && catalog && !needsGuide">
+            <div class="flex items-center gap-2">
+              <input
+                v-model="query"
+                type="search"
+                class="flex-1 min-w-0 mb-0"
+                :placeholder="$t('CATALOG.SEARCH.PLACEHOLDER')"
+                data-testid="catalog-search"
+              />
+              <Button
+                type="button"
+                variant="faded"
+                color="slate"
+                size="sm"
+                icon="i-lucide-refresh-cw"
+                :label="$t('CATALOG.ACTIONS.REFRESH')"
+                :is-loading="isRefreshing"
+                :disabled="isRefreshing"
+                data-testid="catalog-refresh"
+                @click="fetchCatalog({ force: true })"
+              />
+              <Button
+                v-if="!selectionMode"
+                type="button"
+                variant="faded"
+                color="blue"
+                size="sm"
+                :label="$t('CATALOG.ACTIONS.SELECT')"
+                data-testid="catalog-select"
+                @click="selectionMode = true"
+              />
+            </div>
+            <div
+              class="flex gap-2 pb-1 overflow-x-auto"
+              data-testid="catalog-chips"
             >
-              {{ index + 1 }}. {{ $t(`CATALOG.STEPS.${name}`) }}
-            </li>
-          </ol>
+              <button
+                type="button"
+                class="px-3 py-1 text-xs whitespace-nowrap rounded-full shrink-0 outline outline-1 -outline-offset-1"
+                :class="
+                  collectionId === null
+                    ? 'outline-n-brand bg-n-alpha-2 text-n-slate-12'
+                    : 'outline-n-container text-n-slate-11'
+                "
+                data-testid="catalog-chip-all"
+                @click="collectionId = null"
+              >
+                {{ $t('CATALOG.FILTERS.ALL') }}
+              </button>
+              <button
+                v-for="collection in collections"
+                :key="collection.id"
+                type="button"
+                class="px-3 py-1 text-xs whitespace-nowrap rounded-full shrink-0 outline outline-1 -outline-offset-1"
+                :class="
+                  collectionId === collection.id
+                    ? 'outline-n-brand bg-n-alpha-2 text-n-slate-12'
+                    : 'outline-n-container text-n-slate-11'
+                "
+                :data-testid="`catalog-chip-${collection.id}`"
+                @click="collectionId = collection.id"
+              >
+                {{ `${collection.name} (${collection.count})` }}
+              </button>
+            </div>
+          </template>
         </header>
 
         <div class="flex-1 min-h-0 p-4 overflow-y-auto">
-          <div v-if="step === 0" class="flex flex-col gap-2">
-            <button
-              v-for="option in FORMAT_OPTIONS"
-              :key="option.kind"
-              type="button"
-              class="flex flex-col items-start gap-1 p-3 text-start rounded-lg outline outline-1 -outline-offset-1 outline-n-container hover:bg-n-alpha-2"
-              :data-testid="`catalog-format-${option.kind}`"
-              @click="chooseKind(option.kind)"
-            >
-              <span class="text-sm font-medium text-n-slate-12">
-                {{ $t(`CATALOG.FORMATS.${option.key}.NAME`) }}
-              </span>
-              <span class="text-xs text-n-slate-11">
-                {{ $t(`CATALOG.FORMATS.${option.key}.RULE`) }}
-              </span>
-            </button>
-          </div>
-
-          <template v-else-if="step === 1">
+          <template v-if="view === 'products'">
             <p v-if="isLoading" class="mb-0 text-sm text-n-slate-11">
               {{ $t('CATALOG.STATES.LOADING') }}
             </p>
@@ -293,8 +364,9 @@ watch(
                   type="button"
                   variant="faded"
                   color="slate"
-                  :label="$t('CATALOG.SETUP_GUIDE.ERROR.TITLE')"
-                  @click="retryLoad"
+                  :label="$t('CATALOG.ACTIONS.REFRESH')"
+                  data-testid="catalog-retry"
+                  @click="fetchCatalog({ force: true })"
                 />
               </div>
             </div>
@@ -305,48 +377,114 @@ watch(
               :inbox-id="inboxId"
               @close="close"
             />
-            <p v-else-if="!hasProducts" class="mb-0 text-sm text-n-slate-11">
+            <p
+              v-else-if="catalog && !allProducts.length"
+              class="mb-0 text-sm text-n-slate-11"
+            >
               {{ $t('CATALOG.STATES.EMPTY') }}
             </p>
-            <div v-else class="flex flex-col gap-4">
-              <div class="flex flex-col gap-1">
-                <span
-                  class="text-sm font-medium text-n-slate-12"
-                  data-testid="catalog-counter"
-                >
-                  {{
-                    $t('CATALOG.COUNTER', {
-                      count: selected.length,
-                      max: limits.max,
-                    })
-                  }}
-                </span>
-                <span v-if="errorText('items')" class="text-xs text-n-ruby-11">
-                  {{ errorText('items') }}
-                </span>
-              </div>
-              <section
-                v-for="(section, sectionIndex) in sections"
-                :key="section.id ?? `none-${sectionIndex}`"
-                class="flex flex-col gap-2"
-              >
-                <h5 class="mb-0 text-xs font-medium uppercase text-n-slate-11">
-                  {{ section.title }}
-                </h5>
-                <ProductRow
-                  v-for="product in section.products"
-                  :key="product.retailer_id"
-                  :product="product"
-                  :multiple="isMultiple"
-                  :checked="isSelected(product)"
-                  :disabled="!isSelected(product) && isMultiple && atMax"
-                  @toggle="toggleProduct($event, section.title)"
-                />
-              </section>
+            <p
+              v-else-if="catalog && !visibleProducts.length"
+              class="mb-0 text-sm text-n-slate-11"
+              data-testid="catalog-no-results"
+            >
+              {{ $t('CATALOG.SEARCH.NO_RESULTS') }}
+            </p>
+            <div v-else class="flex flex-col gap-2">
+              <ProductRow
+                v-for="product in visibleProducts"
+                :key="product.retailer_id"
+                :product="product"
+                :selectable="selectionMode"
+                :checked="isSelected(product)"
+                :disabled="!isSelected(product) && atMax"
+                @toggle="toggleProduct"
+                @view="openDetail"
+              />
             </div>
           </template>
 
           <div v-else class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-sm font-medium text-n-slate-12">
+                  {{
+                    $t('CATALOG.COUNTER', {
+                      count: selectedCount,
+                      max: CATALOG_MAX_SELECTION,
+                    })
+                  }}
+                </span>
+                <button
+                  type="button"
+                  class="text-sm text-n-brand hover:underline"
+                  data-testid="catalog-back-link"
+                  @click="goBack"
+                >
+                  {{ $t('CATALOG.ACTIONS.BACK') }}
+                </button>
+              </div>
+              <div class="flex gap-1 overflow-x-auto">
+                <img
+                  v-for="product in selectedProducts"
+                  :key="product.retailer_id"
+                  :src="product.image_urls?.[0]"
+                  :alt="product.name"
+                  loading="lazy"
+                  decoding="async"
+                  class="object-cover rounded-md size-8 shrink-0 bg-n-alpha-2"
+                />
+              </div>
+            </div>
+
+            <fieldset class="flex flex-col gap-2 p-0 m-0 border-0">
+              <legend class="mb-1 text-sm font-medium text-n-slate-12">
+                {{ $t('CATALOG.FORMAT.LABEL') }}
+              </legend>
+              <label
+                v-for="format in formats"
+                :key="format.kind"
+                class="flex items-start gap-3 p-3 rounded-lg outline outline-1 -outline-offset-1"
+                :class="[
+                  kind === format.kind
+                    ? 'outline-n-brand bg-n-alpha-2'
+                    : 'outline-n-container',
+                  format.available
+                    ? 'cursor-pointer'
+                    : 'opacity-60 cursor-not-allowed',
+                ]"
+              >
+                <input
+                  type="radio"
+                  name="catalog-format"
+                  class="mt-1 mb-0 shrink-0"
+                  :checked="kind === format.kind"
+                  :disabled="!format.available"
+                  :data-testid="`catalog-format-${format.kind}`"
+                  @change="chooseKind(format.kind)"
+                />
+                <span class="flex flex-col gap-0.5">
+                  <span class="text-sm font-medium text-n-slate-12">
+                    {{ $t(`CATALOG.FORMATS.${FORMAT_KEYS[format.kind]}.NAME`) }}
+                  </span>
+                  <span class="text-xs text-n-slate-11">
+                    {{ $t(`CATALOG.FORMATS.${FORMAT_KEYS[format.kind]}.RULE`) }}
+                  </span>
+                  <span
+                    v-if="!format.available"
+                    class="text-xs text-n-ruby-11"
+                    :data-testid="`catalog-format-reason-${format.kind}`"
+                  >
+                    {{
+                      $t('CATALOG.FORMAT.UNAVAILABLE', {
+                        reason: reasonText(format.reason),
+                      })
+                    }}
+                  </span>
+                </span>
+              </label>
+            </fieldset>
+
             <div
               v-for="field in fields"
               :key="field.name"
@@ -397,7 +535,41 @@ watch(
         </div>
 
         <footer
-          v-if="step > 0"
+          v-if="view === 'products' && selectionMode && catalog && !needsGuide"
+          class="flex items-center justify-between gap-3 p-4 border-t border-n-weak shrink-0"
+        >
+          <div class="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="faded"
+              color="slate"
+              :label="$t('CATALOG.ACTIONS.CANCEL_SELECTION')"
+              data-testid="catalog-cancel-selection"
+              @click="exitSelection"
+            />
+            <span
+              class="text-sm font-medium text-n-slate-12"
+              data-testid="catalog-counter"
+            >
+              {{
+                $t('CATALOG.COUNTER', {
+                  count: selectedCount,
+                  max: CATALOG_MAX_SELECTION,
+                })
+              }}
+            </span>
+          </div>
+          <Button
+            type="button"
+            color="blue"
+            :label="$t('CATALOG.ACTIONS.CONTINUE', { count: selectedCount })"
+            :disabled="!selectedCount"
+            data-testid="catalog-next"
+            @click="goToFormat"
+          />
+        </footer>
+        <footer
+          v-else-if="view === 'format'"
           class="flex items-center justify-between gap-3 p-4 border-t border-n-weak shrink-0"
         >
           <Button
@@ -405,19 +577,10 @@ watch(
             variant="faded"
             color="slate"
             :label="$t('CATALOG.ACTIONS.BACK')"
+            data-testid="catalog-back"
             @click="goBack"
           />
           <Button
-            v-if="step === 1"
-            type="button"
-            color="blue"
-            :label="$t('CATALOG.ACTIONS.NEXT')"
-            :disabled="needsGuide || isLoading || loadFailed"
-            data-testid="catalog-next"
-            @click="goNext"
-          />
-          <Button
-            v-else
             type="button"
             color="blue"
             :label="$t('CATALOG.ACTIONS.SEND')"
@@ -429,5 +592,10 @@ watch(
         </footer>
       </div>
     </div>
+    <WhatsappCatalogDetail
+      v-if="detailItem"
+      :item="detailItem"
+      @close="detailItem = null"
+    />
   </Teleport>
 </template>
