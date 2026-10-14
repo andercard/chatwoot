@@ -1,6 +1,6 @@
 <script setup>
 import getUuid from 'widget/helpers/uuid';
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import WaveSurfer from 'wavesurfer.js';
 import RecordPlugin from 'wavesurfer.js/dist/plugins/record.js';
 import { format, intervalToDuration } from 'date-fns';
@@ -56,6 +56,9 @@ let chunks = [];
 let awaitingLastChunk = false;
 let lastChunkTimer = null;
 const LAST_CHUNK_TIMEOUT_MS = 500;
+// The live wave scrolls at a fixed speed whatever the width of the bar, or it
+// would crawl on a phone (the plugin spreads a fixed 5 s over the container).
+const WAVE_SCROLL_PX_PER_SECOND = 120;
 
 const formatTimeProgress = time => {
   const duration = intervalToDuration({ start: 0, end: time });
@@ -177,6 +180,12 @@ const startRecording = async () => {
     }
     await record.value.startRecording();
     isRecording.value = true;
+    await nextTick();
+    const width = waveformContainer.value?.clientWidth;
+    if (width) {
+      record.value.options.scrollingWaveformWindow =
+        width / WAVE_SCROLL_PX_PER_SECOND;
+    }
   } catch (error) {
     isRecording.value = false;
     emit('recordError', { error, reason: 'microphone' });
