@@ -13,6 +13,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Only the chevron, in a button big enough for a thumb
+  iconOnly: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const goBack = () => {
@@ -28,11 +33,22 @@ const buttonStyleClass = props.compact ? 'text-sm' : 'text-base';
 
 <template>
   <button
-    class="flex items-center p-0 font-normal cursor-pointer text-n-slate-11"
-    :class="buttonStyleClass"
+    type="button"
+    class="flex items-center font-normal cursor-pointer text-n-slate-11"
+    :class="
+      iconOnly
+        ? 'justify-center size-10 shrink-0 rounded-full hover:bg-n-alpha-2'
+        : ['p-0', buttonStyleClass]
+    "
+    :aria-label="iconOnly ? $t('GENERAL_SETTINGS.BACK') : undefined"
     @click.capture="goBack"
   >
-    <i class="i-lucide-chevron-left -ml-1 text-lg" />
-    {{ buttonLabel || $t('GENERAL_SETTINGS.BACK') }}
+    <i
+      class="i-lucide-chevron-left text-lg"
+      :class="iconOnly ? 'text-2xl' : '-ml-1'"
+    />
+    <template v-if="!iconOnly">
+      {{ buttonLabel || $t('GENERAL_SETTINGS.BACK') }}
+    </template>
   </button>
 </template>
