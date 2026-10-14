@@ -715,7 +715,8 @@
       "PRICE": "Price",
       "DESCRIPTION": "Description",
       "LINK": "Link",
-      "PHOTO_OF": "Photo {current} of {total}"
+      "PHOTO_OF": "Photo {current} of {total}",
+      "DETAILS_TITLE": "Details"
     }
   }
 }

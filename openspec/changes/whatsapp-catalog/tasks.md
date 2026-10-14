@@ -96,7 +96,7 @@ Esta ronda **reemplaza el flujo del modal de las tareas 5 y 6** (formato primero
 
 ## Ronda 4 · detalle estilo WhatsApp, alineación y enlace del catálogo
 
-- [ ] **15 · Detalle del producto estilo WhatsApp**
+- [x] **15 · Detalle del producto estilo WhatsApp**
   - archivos: `app/javascript/dashboard/components-next/message/bubbles/WhatsappCatalogDetail.vue`, `app/javascript/dashboard/components-next/message/bubbles/specs/WhatsappCatalog.spec.js`, `app/javascript/dashboard/i18n/locale/en/conversation.json`, `app/javascript/dashboard/i18n/locale/es/conversation.json`
   - depende de: ninguna
   - listo cuando: el detalle tiene una barra superior fija (no se va al hacer scroll) con el botón «Cerrar» a la izquierda (icono de flecha/X + texto o solo icono con `aria-label`, como la barra «Cerrar · Detalles» de WhatsApp) y el título «Detalles» centrado; las fotos se pasan deslizando con el dedo (desplazamiento horizontal con `snap-x snap-mandatory`, una foto por pantalla) manteniendo los botones anterior/siguiente en escritorio y el indicador «Foto n de m» sincronizado con la foto visible; el enlace del producto se ve como en WhatsApp: el texto de la URL completa en verde, que rompe línea sin desbordar, y abre en una pestaña nueva; título, precio, descripción y enlace alineados al mismo margen izquierdo; el spec de la burbuja sigue en verde y cubre la barra con Cerrar y el enlace con la URL visible

@@ -702,7 +702,8 @@
       "PRICE": "Precio",
       "DESCRIPTION": "Descripción",
       "LINK": "Enlace",
-      "PHOTO_OF": "Foto {current} de {total}"
+      "PHOTO_OF": "Foto {current} de {total}",
+      "DETAILS_TITLE": "Detalles"
     }
   }
 }

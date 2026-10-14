@@ -58,6 +58,7 @@ const mountCatalog = (kind, catalogItems = items) => {
             DESCRIPTION: 'Description',
             LINK: 'Link',
             PHOTO_OF: '{current} of {total}',
+            DETAILS_TITLE: 'Details',
           },
           NO_COLLECTION: 'Collection',
           ACTIONS: { CLOSE: 'Close' },
@@ -96,6 +97,16 @@ describe('WhatsappCatalog', () => {
     expect(detail.textContent).toContain('$ 5.000');
     expect(detail.textContent).toContain('Ceramic mug');
     expect(detail.textContent).toContain('1 of 2');
+    const bar = detail.querySelector('[data-test-id="catalog-detail-bar"]');
+    expect(bar.textContent).toContain('Details');
+    expect(
+      bar
+        .querySelector('[data-test-id="catalog-detail-close"]')
+        .getAttribute('aria-label')
+    ).toBe('Close');
+    const link = detail.querySelector('[data-test-id="catalog-detail-link"]');
+    expect(link.textContent.trim()).toBe('https://x/mug');
+    expect(link.getAttribute('target')).toBe('_blank');
     expect(detail.querySelector('video')).toBeNull();
     expect(detail.textContent).not.toMatch(/cart|order/i);
     wrapper.unmount();
