@@ -1083,13 +1083,17 @@ export default {
       });
       this.hideContentTemplatesModal();
     },
-    setReplyMode(mode = REPLY_EDITOR_MODES.REPLY, { focusEditor = true } = {}) {
-      if (!focusEditor) {
-        this.focusEditorOnMount = false;
-        setTimeout(() => {
-          this.focusEditorOnMount = true;
-        }, 500);
-      }
+    // The editor is rebuilt when the mode changes, and it takes focus on mount.
+    // Skipping that leaves it as the agent had it: focused (keyboard stays
+    // open) only if it was focused already.
+    keepEditorFocusState(isFocused = this.isFocused) {
+      this.focusEditorOnMount = isFocused;
+      setTimeout(() => {
+        this.focusEditorOnMount = true;
+      }, 500);
+    },
+    setReplyMode(mode = REPLY_EDITOR_MODES.REPLY, { keepFocus = false } = {}) {
+      if (keepFocus) this.keepEditorFocusState();
       this.$store.dispatch('draftMessages/setReplyEditorMode', { mode });
       if (this.canSendPublicReply) {
         this.carryOnNextModeSwitch = mode !== this.replyType;
@@ -1144,6 +1148,8 @@ export default {
     toggleAudioRecorder() {
       this.isRecordingAudio = !this.isRecordingAudio;
       if (!this.isRecordingAudio) {
+        // Closing the recorder rebuilds the editor: don't let it grab focus
+        this.keepEditorFocusState(false);
         this.resetAudioRecorderInput();
       }
     },

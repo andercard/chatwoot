@@ -76,7 +76,7 @@ export default {
           ? REPLY_EDITOR_MODES.NOTE
           : REPLY_EDITOR_MODES.REPLY;
       // The lock only switches the mode: it must not open the keyboard
-      setReplyMode(newMode, { focusEditor: false });
+      setReplyMode(newMode, { keepFocus: true });
     };
 
     const { captainTasksEnabled } = useCaptain();
@@ -229,6 +229,7 @@ export default {
       "
       :disabled="disabled || isReplyRestricted"
       :aria-label="$t('CONVERSATION.REPLYBOX.PRIVATE_NOTE')"
+      @mousedown.prevent
       @click="handleModeToggle"
     />
     <NextButton
