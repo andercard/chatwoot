@@ -67,6 +67,10 @@ import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { emitter } from 'shared/helpers/mitt';
+// [@Name](mention://user/1/Name) → captured group is the visible "@Name"
+const MENTION_LINK_REGEX =
+  /\[(@[^\]]+)\]\(mention:\/\/(?:user|team)\/\d+\/[^)]*\)/g;
+
 const EmojiIconPicker = defineAsyncComponent(
   () =>
     import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
@@ -168,6 +172,7 @@ export default {
       sendAfterRecording: false,
       replyType: REPLY_EDITOR_MODES.REPLY,
       focusEditorOnMount: true,
+      carryOnNextModeSwitch: false,
       draftConversationId: null,
       draftReplyMode: null,
       bccEmails: '',
@@ -759,6 +764,18 @@ export default {
         return;
       }
 
+      // Only an explicit switch by the agent carries the text over; automatic
+      // ones (a bot handing over the conversation) restore each mode's draft.
+      const carryOver = this.carryOnNextModeSwitch;
+      this.carryOnNextModeSwitch = false;
+      if (
+        carryOver &&
+        this.draftConversationId === conversationId &&
+        this.carryMessageToMode(replyMode)
+      ) {
+        return;
+      }
+
       if (this.draftConversationId) {
         this.setToDraft(this.draftConversationId, this.draftReplyMode);
       }
@@ -766,6 +783,33 @@ export default {
       this.draftConversationId = conversationId;
       this.draftReplyMode = replyMode;
       this.getFromDraft();
+    },
+    // Switching between reply and private note keeps what the agent typed.
+    // Returns false when there is nothing to carry, so the target mode's own
+    // draft is loaded instead.
+    carryMessageToMode(replyMode) {
+      const channelType = getEffectiveChannelType(
+        this.channelType,
+        this.inbox?.medium || ''
+      );
+      let carried = this.message || '';
+      if (this.messageSignature) {
+        carried = removeSignature(carried, this.messageSignature, channelType);
+      }
+      if (!carried.trim()) return false;
+
+      // Mentions only notify inside private notes; in a public reply they
+      // would reach the customer as a raw mention link, so keep just the name.
+      if (replyMode === REPLY_EDITOR_MODES.REPLY) {
+        carried = carried.replace(MENTION_LINK_REGEX, '$1');
+      }
+
+      this.$store.dispatch('draftMessages/delete', {
+        key: this.getDraftKey(this.draftConversationId, this.draftReplyMode),
+      });
+      this.draftReplyMode = replyMode;
+      this.message = this.toggleSignatureForDraft(carried);
+      return true;
     },
     getFromDraft() {
       if (this.conversationIdByRoute) {
@@ -1047,7 +1091,10 @@ export default {
         }, 500);
       }
       this.$store.dispatch('draftMessages/setReplyEditorMode', { mode });
-      if (this.canSendPublicReply) this.replyType = mode;
+      if (this.canSendPublicReply) {
+        this.carryOnNextModeSwitch = mode !== this.replyType;
+        this.replyType = mode;
+      }
       if (this.isRecordingAudio) {
         this.toggleAudioRecorder();
       }
@@ -1252,7 +1299,14 @@ export default {
       }
     },
     removeAttachment(attachments) {
+      const wasFocused = this.isFocused;
       this.attachedFiles = attachments;
+      // Taking a file off the list must not bring the keyboard up
+      if (!wasFocused) {
+        this.$nextTick(() => {
+          if (!this.isFocused) document.activeElement?.blur?.();
+        });
+      }
     },
     setReplyToInPayload(payload) {
       if (this.inReplyTo?.id) {
