@@ -5,9 +5,16 @@ class Internal::TriggerDailyScheduledItemsJob < ApplicationJob
     # Schedule daily deferred jobs here so each installation can spread load
     # across the day without changing its slot on deploys or restarts.
     schedule_version_check
+    schedule_picnic_release_check
   end
 
   private
+
+  def schedule_picnic_release_check
+    return unless Rails.env.production? && ENV['PICNIC_RELEASE'].present?
+
+    Internal::CheckPicnicReleaseJob.set(wait_until: version_check_run_at).perform_later
+  end
 
   def schedule_version_check
     return unless Rails.env.production?

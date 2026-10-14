@@ -18,6 +18,8 @@ class Api::V1::AccountsController < Api::BaseController
 
   def show
     @latest_chatwoot_version = latest_chatwoot_version
+    @picnic_release = ENV['PICNIC_RELEASE'].presence
+    @latest_picnic_release = Redis::Alfred.get(Redis::Alfred::LATEST_PICNIC_RELEASE) if @picnic_release
     render 'api/v1/accounts/show', format: :json
   end
 

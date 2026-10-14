@@ -3,6 +3,7 @@ import { mapGetters } from 'vuex';
 import LoadingState from './components/widgets/LoadingState.vue';
 import NetworkNotification from './components/NetworkNotification.vue';
 import UpdateBanner from './components/app/UpdateBanner.vue';
+import PicnicUpdateBanner from './components-next/update-banner/PicnicUpdateBanner.vue';
 import StatusBanner from './components/app/StatusBanner.vue';
 import PaymentPendingBanner from './components/app/PaymentPendingBanner.vue';
 import PendingEmailVerificationBanner from './components/app/PendingEmailVerificationBanner.vue';
@@ -31,6 +32,7 @@ export default {
     LoadingState,
     NetworkNotification,
     UpdateBanner,
+    PicnicUpdateBanner,
     StatusBanner,
     PaymentPendingBanner,
     WootSnackbarBox,
@@ -58,6 +60,8 @@ export default {
   data() {
     return {
       latestChatwootVersion: null,
+      picnicRelease: '',
+      latestPicnicRelease: '',
       reconnectService: null,
     };
   },
@@ -118,12 +122,18 @@ export default {
         accountId: this.currentAccountId,
       });
       const account = this.getAccount(this.currentAccountId);
-      const { locale, latest_chatwoot_version: latestChatwootVersion } =
-        account;
+      const {
+        locale,
+        latest_chatwoot_version: latestChatwootVersion,
+        picnic_release: picnicRelease,
+        latest_picnic_release: latestPicnicRelease,
+      } = account;
       const { pubsub_token: pubsubToken } = this.currentUser || {};
       // If user locale is set, use it; otherwise use account locale
       this.setLocale(this.uiSettings?.locale || locale);
       this.latestChatwootVersion = latestChatwootVersion;
+      this.picnicRelease = picnicRelease || '';
+      this.latestPicnicRelease = latestPicnicRelease || '';
       vueActionCable.init(this.store, pubsubToken);
       this.reconnectService = new ReconnectService(this.store, this.router);
       window.reconnectService = this.reconnectService;
@@ -148,6 +158,10 @@ export default {
     :dir="isRTL ? 'rtl' : 'ltr'"
   >
     <UpdateBanner :latest-chatwoot-version="latestChatwootVersion" />
+    <PicnicUpdateBanner
+      :installed-release="picnicRelease"
+      :latest-release="latestPicnicRelease"
+    />
     <StatusBanner />
     <template v-if="currentAccountId">
       <PendingEmailVerificationBanner v-if="hideOnOnboardingView" />

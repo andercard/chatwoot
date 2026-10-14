@@ -31,6 +31,7 @@ echo "Building $IMAGE:$TAG from commit ${COMMIT:0:10} ($PLATFORM, ${OUTPUT#--})"
 docker buildx build \
   --platform "$PLATFORM" \
   -f docker/Dockerfile \
+  --build-arg PICNIC_RELEASE="$TAG" \
   --label "org.opencontainers.image.source=https://github.com/andercard/chatwoot" \
   --label "org.opencontainers.image.revision=$COMMIT" \
   --label "org.opencontainers.image.version=$TAG" \
