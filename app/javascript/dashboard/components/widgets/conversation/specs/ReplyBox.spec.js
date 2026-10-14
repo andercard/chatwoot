@@ -278,6 +278,43 @@ describe('ReplyBox', () => {
     expect(topPanel(wrapper).isReplyRestricted).toBe(false);
   });
 
+  describe('catalog button', () => {
+    const catalog = wrapper => bottomPanel(wrapper).enableWhatsappCatalog;
+
+    const cloud = {
+      channel_type: 'Channel::Whatsapp',
+      provider: 'whatsapp_cloud',
+    };
+
+    it('shows on WhatsApp Cloud and nowhere else', () => {
+      [{ name: 'WhatsApp Cloud', inbox: cloud }, ...CHANNELS.slice(1)].forEach(
+        ({ name, inbox }) => {
+          const { wrapper } = mountWith({ inbox });
+          expect(catalog(wrapper), name).toBe(name === 'WhatsApp Cloud');
+        }
+      );
+      const { wrapper } = mountWith({
+        inbox: { channel_type: 'Channel::Whatsapp', provider: 'default' },
+      });
+      expect(catalog(wrapper)).toBe(false);
+    });
+
+    it('stays visible outside the 24h window and hides on private notes', async () => {
+      const { wrapper } = mountWith({
+        inbox: cloud,
+        chat: { can_reply: false },
+      });
+      expect(catalog(wrapper)).toBe(true);
+      expect(bottomPanel(wrapper).isEditorDisabled).toBe(true);
+
+      wrapper
+        .findComponent({ name: 'ReplyTopPanel' })
+        .vm.$emit('setReplyMode', REPLY_EDITOR_MODES.NOTE);
+      await nextTick();
+      expect(catalog(wrapper)).toBe(false);
+    });
+  });
+
   describe('drafts', () => {
     const DRAFTS = {
       'draft-1-REPLY': 'half typed reply',
