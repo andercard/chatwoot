@@ -85,3 +85,11 @@ Esta ronda **reemplaza el flujo del modal de las tareas 5 y 6** (formato primero
   - depende de: 11
   - listo cuando: al montar el compositor (y al cambiar de bandeja) en una conversación de WhatsApp Cloud se llama a `prefetchCatalog(inbox.id)` una sola vez por bandeja sin bloquear ni mostrar errores, y no se llama en otros canales ni en nota privada; `ReplyBox.spec.js` sigue en verde y un caso verifica que se precarga en WhatsApp Cloud y no en otros canales
   - commit: `perf(whatsapp): prefetch the catalog when the composer opens`
+
+## Ronda 3 · ajustes de pulido tras probar en el teléfono
+
+- [ ] **14 · Pulido del modal y de la imagen del carrusel**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/WhatsappCatalog/Modal.vue`, `app/javascript/dashboard/components/widgets/conversation/WhatsappCatalog/ProductRow.vue`, `app/javascript/dashboard/components/widgets/conversation/WhatsappCatalog/specs/Modal.spec.js`, `app/javascript/dashboard/components-next/message/bubbles/WhatsappCatalog.vue`, `app/javascript/dashboard/i18n/locale/en/conversation.json`, `app/javascript/dashboard/i18n/locale/es/conversation.json`
+  - depende de: ninguna
+  - listo cuando: en el modal (a) «Actualizar» es un botón de solo icono con `aria-label`, sin texto visible; (b) el contador «n / 30» sale en una línea propia entre los filtros de colección y la lista (alineado al inicio), ya no en la barra inferior; (c) la barra inferior de la vista Productos en modo selección tiene a la izquierda un botón «Cancelar» y a la derecha un botón «Siguiente», sin textos largos ni el número; (d) el botón de cerrar es un botón redondo de solo icono «X» (con `aria-label` de cerrar) como los botones de icono del resto de la app, sin el texto «Cerrar»; (e) la vista Formato ya no tiene el enlace «Atrás» del resumen (queda solo el botón «Atrás» del pie); (f) el motivo de formato no disponible no dice «hasta 1 productos» (singular correcto en es y en); y en la burbuja del carrusel (g) la foto de cada tarjeta es cuadrada (`aspect-square`, `object-cover`) en vez de alta; el spec del modal se actualiza a estos textos y sigue en verde
+  - commit: `fix(whatsapp): polish the catalog dialog and carousel image`
