@@ -67,6 +67,10 @@ import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { emitter } from 'shared/helpers/mitt';
+// On a phone the keyboard must only open when the agent taps the input
+const isPhoneViewport = () =>
+  !!window.matchMedia?.('(max-width: 639px)').matches;
+
 // [@Name](mention://user/1/Name) → captured group is the visible "@Name"
 const MENTION_LINK_REGEX =
   /\[(@[^\]]+)\]\(mention:\/\/(?:user|team)\/\d+\/[^)]*\)/g;
@@ -171,7 +175,7 @@ export default {
       isRecordingAudio: false,
       sendAfterRecording: false,
       replyType: REPLY_EDITOR_MODES.REPLY,
-      focusEditorOnMount: true,
+      focusEditorOnMount: !isPhoneViewport(),
       carryOnNextModeSwitch: false,
       draftConversationId: null,
       draftReplyMode: null,
@@ -1089,7 +1093,7 @@ export default {
     keepEditorFocusState(isFocused = this.isFocused) {
       this.focusEditorOnMount = isFocused;
       setTimeout(() => {
-        this.focusEditorOnMount = true;
+        this.focusEditorOnMount = !isPhoneViewport();
       }, 500);
     },
     setReplyMode(mode = REPLY_EDITOR_MODES.REPLY, { keepFocus = false } = {}) {
