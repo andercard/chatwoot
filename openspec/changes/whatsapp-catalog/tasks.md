@@ -3,7 +3,7 @@
 El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, no trabajo de más.
 
 
-- [ ] **1 · Constructor del payload de Meta y límites**
+- [x] **1 · Constructor del payload de Meta y límites**
   - archivos: `app/services/whatsapp/catalog_message_payload_builder.rb`, `spec/services/whatsapp/catalog_message_payload_builder_spec.rb`
   - depende de: ninguna
   - listo cuando: existe `Whatsapp::CatalogMessagePayloadBuilder` con constantes de topes por formato (carrusel 2–10, tarjeta 1, lista 1–30) y un método que, dado el texto y `content_attributes['whatsapp_catalog']`, devuelve el hash `interactive` de Meta: carrusel con `type: 'carousel'`, `body.text`, `action.cards[]` (`card_index` 0..n-1, `type: 'product'`, `action.product_retailer_id` y `catalog_id` en cada una) y sin header/footer; tarjeta con `type: 'product'` (body y footer solo si existen); lista con `type: 'product_list'`, `header: {type: 'text', text}`, `body`, `footer` opcional, `action.catalog_id` y `sections[]` agrupadas por `item['section']` conservando el orden; lanza error con mensaje claro si el número de productos sale del tope del formato o falta catálogo/SKU/cuerpo (carrusel, lista) /encabezado (lista); el spec cubre los tres formatos y esos errores con IDs inventados
