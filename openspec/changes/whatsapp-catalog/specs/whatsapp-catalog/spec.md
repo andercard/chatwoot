@@ -44,28 +44,56 @@ The system SHALL expose the catalog of a WhatsApp Cloud inbox, grouped by collec
 - **WHEN** the catalog is requested
 - **THEN** the product is returned under a collection for products without collection
 
-### Requirement: Format-first catalog dialog with per-format limits
-The catalog dialog SHALL start by asking for the format (carousel, single product card or product list), SHALL list the products grouped by collection with a counter that prevents selecting more than the format allows, and SHALL require the fields of the format: a carousel allows 2 to 10 products and requires a message text (up to 1024 characters) without header or footer; a card allows exactly 1 product with optional text (up to 1024) and optional footer (up to 60); a list allows 1 to 30 products and requires a header and a message text, with an optional footer (up to 60). The message text SHALL be prefilled with the text already typed in the composer.
+### Requirement: Browse-then-select catalog dialog with search
+The catalog dialog SHALL open on the products view showing the catalog with a search box, collection filters (the default Meta collection "All Products" SHALL NOT be listed) and each product exactly once with a "See more" action that opens its detail (photos, title, price, description, link, never video). A "Select" action SHALL enter selection mode with a counter limited to 30 products; continuing SHALL open a format view with a selector (carousel, single product card, product list) where the formats not allowed for the selected count are disabled with the reason, followed by the fields of the format: a carousel allows 2 to 10 products and requires a message text (up to 1024 characters) without header or footer; a card allows exactly 1 product with optional text (up to 1024) and optional footer (up to 60); a list allows 1 to 30 products and requires a header and a message text, with an optional footer (up to 60). The message text SHALL be prefilled with the text already typed in the composer.
 
-#### Scenario: Carousel limit
-- **GIVEN** the carousel format with 10 products selected
-- **WHEN** the agent tries to select an eleventh product
-- **THEN** the product is not selected and the counter shows 10 / 10
+#### Scenario: Search filters the catalog
+- **GIVEN** the products view with 50 products
+- **WHEN** the agent types "mesa" in the search box
+- **THEN** only products whose name or description match are listed, ignoring case and accents
+
+#### Scenario: Product in several collections
+- **GIVEN** a product that belongs to two collections
+- **WHEN** the catalog is listed with the filter "All"
+- **THEN** the product appears once
+
+#### Scenario: See more shows the detail without selecting
+- **GIVEN** the products view outside selection mode
+- **WHEN** the agent clicks "See more" on a product
+- **THEN** the detail opens with photos, price, description and link and the product is not selected
+
+#### Scenario: Formats depend on the selection
+- **GIVEN** selection mode with one product selected
+- **WHEN** the agent continues to the format view
+- **THEN** the carousel is disabled with a reason, and the card and the list are enabled
+
+#### Scenario: Selection limit
+- **GIVEN** selection mode with 30 products selected
+- **WHEN** the agent tries to select another one
+- **THEN** it is not selected and the counter shows 30 / 30
 
 #### Scenario: List requires header and text
 - **GIVEN** the list format with products selected and no header
 - **WHEN** the agent tries to send
 - **THEN** sending is blocked and the header field shows it is required
 
-#### Scenario: Card allows one product
-- **GIVEN** the card format with one product selected
-- **WHEN** the agent selects another product
-- **THEN** the second product is not selected
-
 #### Scenario: Text carried from the composer
 - **GIVEN** the agent typed "Look at these options" in the composer
-- **WHEN** the agent opens the catalog dialog
+- **WHEN** the agent opens the catalog dialog and reaches the format view
 - **THEN** the message text field starts with "Look at these options" and the composer is cleared once the catalog is sent
+
+### Requirement: Catalog loads fast
+The server SHALL read the catalog with one products request that includes each product's collections, cache a successful result for 15 minutes per inbox and allow forcing a refresh; the dashboard SHALL keep the loaded catalog in memory for 5 minutes, share one request between simultaneous callers and prefetch it silently when the composer of a WhatsApp Cloud conversation opens.
+
+#### Scenario: Prefetch makes the dialog instant
+- **GIVEN** a WhatsApp Cloud conversation whose composer has been open for a few seconds
+- **WHEN** the agent opens the catalog dialog
+- **THEN** the products are shown without a loading state
+
+#### Scenario: Forced refresh
+- **GIVEN** a cached catalog
+- **WHEN** the agent presses the refresh action
+- **THEN** the catalog is read from Meta again and the cache is replaced
 
 ### Requirement: One send creates one interactive WhatsApp message
 Sending from the catalog dialog SHALL create exactly one outgoing message whose content is the body text and whose `whatsapp_catalog` content attribute stores the format, catalog ID, header, footer and a snapshot of the products, and the provider SHALL deliver it as the matching Meta interactive message: `carousel` with one `product` card per item, `product` for a card, or `product_list` with the products grouped into sections by collection. The server SHALL reject with 422 a request whose product count is outside the limits of the format, whose required fields are missing, whose catalog does not match the inbox or whose inbox is not WhatsApp Cloud.
