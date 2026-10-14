@@ -611,5 +611,96 @@
   },
   "GALLERY_VIEW": {
     "ERROR_DOWNLOADING": "Unable to download attachment. Please try again"
+  },
+  "CATALOG": {
+    "BUTTON": "Catalog",
+    "TOOLTIP": "Send products from your WhatsApp catalog",
+    "TITLE": "Send from catalog",
+    "STEPS": {
+      "FORMAT": "Format",
+      "PRODUCTS": "Products",
+      "DETAILS": "Details"
+    },
+    "FORMATS": {
+      "CAROUSEL": {
+        "NAME": "Carousel",
+        "RULE": "From 2 to 10 products"
+      },
+      "PRODUCT": {
+        "NAME": "Single product",
+        "RULE": "1 product"
+      },
+      "PRODUCT_LIST": {
+        "NAME": "Product list",
+        "RULE": "From 1 to 30 products"
+      }
+    },
+    "COUNTER": "{count} / {max}",
+    "FIELDS": {
+      "HEADER": "Header",
+      "BODY": "Message text",
+      "FOOTER": "Footer",
+      "REQUIRED": "Required",
+      "OPTIONAL": "Optional",
+      "CHARACTERS": "{count} / {max} characters"
+    },
+    "ERRORS": {
+      "MIN_ITEMS": "Select at least {min} products",
+      "MAX_ITEMS": "You can select up to {max} products",
+      "REQUIRED": "This field is required",
+      "TOO_LONG": "The text is too long",
+      "SEND_FAILED": "Could not send the catalog message. Please try again."
+    },
+    "NO_COLLECTION": "No collection",
+    "ACTIONS": {
+      "SEND": "Send",
+      "BACK": "Back",
+      "NEXT": "Next",
+      "CLOSE": "Close"
+    },
+    "STATES": {
+      "LOADING": "Loading catalog...",
+      "EMPTY": "No products found in this catalog",
+      "ERROR": "Could not load the catalog"
+    },
+    "SETUP_GUIDE": {
+      "OPEN_SETTINGS": "Open inbox settings",
+      "ADMIN_ONLY": "Ask an administrator to complete this setup.",
+      "NO_CATALOG": {
+        "TITLE": "No catalog connected",
+        "DESCRIPTION": "This WhatsApp number does not have a catalog linked yet.",
+        "STEPS": {
+          "ONE": "Create a catalog in Meta Commerce Manager",
+          "TWO": "Connect it to your WhatsApp Business account",
+          "THREE": "Come back and reopen this window"
+        }
+      },
+      "MISSING_PERMISSION": {
+        "TITLE": "Catalog permission missing",
+        "DESCRIPTION": "The access token cannot read your catalog.",
+        "STEPS": {
+          "ONE": "Open the inbox settings",
+          "TWO": "Update the business management token with catalog permissions",
+          "THREE": "Come back and reopen this window"
+        }
+      },
+      "ERROR": {
+        "TITLE": "Could not reach the catalog",
+        "DESCRIPTION": "Something went wrong while contacting WhatsApp.",
+        "STEPS": {
+          "ONE": "Check the inbox connection in its settings",
+          "TWO": "Try again in a few minutes"
+        }
+      }
+    },
+    "PRODUCT": {
+      "VIEW": "View",
+      "VIEW_ITEMS": "View items",
+      "ITEMS_COUNT": "{count} items",
+      "PRICE": "Price",
+      "DESCRIPTION": "Description",
+      "LINK": "Link",
+      "PHOTO_OF": "Photo {current} of {total}"
+    }
   }
 }
