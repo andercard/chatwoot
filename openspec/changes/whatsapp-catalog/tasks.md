@@ -51,7 +51,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en toda bandeja WhatsApp Cloud, fuera de nota privada, aparece el botón Catálogo en escritorio (junto a los demás) y una fila «Catálogo» en el menú «+» del móvil; fuera de la ventana de 24 h queda deshabilitado con el motivo que ya muestra el compositor; al tocarlo se abre el modal de la tarea 6 pasándole el texto actual del editor, y al emitir `sent` se limpia el editor; en bandejas que no son WhatsApp Cloud el botón no existe; el adjunto y el texto que el agente tenía no se pierden si cierra el modal sin enviar; `ReplyBox.spec.js` sigue en verde y se agrega un caso para botón visible/oculto
   - commit: `feat(whatsapp): catalog button in the composer`
 
-- [ ] **9 · ID de catálogo manual en la configuración de la bandeja**
+- [x] **9 · ID de catálogo manual en la configuración de la bandeja**
   - archivos: `app/javascript/dashboard/routes/dashboard/settings/inbox/channels/CloudWhatsapp.vue`, `app/javascript/dashboard/routes/dashboard/settings/inbox/Settings.vue`, `app/javascript/dashboard/i18n/locale/en/inboxMgmt.json`, `app/javascript/dashboard/i18n/locale/es/inboxMgmt.json`
   - depende de: 4
   - listo cuando: en la configuración de una bandeja WhatsApp Cloud existe un campo opcional «ID del catálogo» que se guarda en `provider_config.catalog_id` y que la lectura de la tarea 4 respeta; vacío = descubrimiento automático; el texto de ayuda explica cuándo hace falta (token sin permiso de catálogo); sin cambios en el alta de bandejas nuevas

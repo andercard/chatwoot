@@ -110,6 +110,7 @@ export default {
       selectedInboxName: '',
       channelWebsiteUrl: '',
       webhookUrl: '',
+      catalogId: '',
       channelWelcomeTitle: '',
       channelWelcomeTagline: '',
       selectedFeatureFlags: [],
@@ -556,6 +557,7 @@ export default {
       this.avatarUrl = this.inbox.avatar_url;
       this.selectedInboxName = this.inbox.name;
       this.webhookUrl = this.inbox.webhook_url;
+      this.catalogId = this.inbox.provider_config?.catalog_id || '';
       this.greetingEnabled = this.inbox.greeting_enabled || false;
       this.greetingMessage = this.inbox.greeting_message || '';
       this.emailCollectEnabled = this.inbox.enable_email_collect;
@@ -715,6 +717,14 @@ export default {
               this.isInboundEmailEnabled && this.continuityViaEmail,
           },
         };
+        if (this.isAWhatsAppCloudChannel) {
+          const { catalog_id: _previous, ...providerConfig } =
+            this.inbox.provider_config || {};
+          const catalogId = this.catalogId?.trim();
+          payload.channel.provider_config = catalogId
+            ? { ...providerConfig, catalog_id: catalogId }
+            : providerConfig;
+        }
         if (this.avatarFile) {
           payload.avatar = this.avatarFile;
         }
@@ -983,6 +993,21 @@ export default {
                 type="text"
                 disabled
                 class="!mb-0"
+              />
+            </SettingsFieldSection>
+
+            <SettingsFieldSection
+              v-if="isAWhatsAppCloudChannel"
+              :label="$t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_CATALOG_ID.LABEL')"
+              :help-text="$t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_CATALOG_ID.HELP_TEXT')"
+            >
+              <input
+                v-model="catalogId"
+                type="text"
+                class="!mb-0"
+                :placeholder="
+                  $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_CATALOG_ID.PLACEHOLDER')
+                "
               />
             </SettingsFieldSection>
 
