@@ -2,8 +2,13 @@ import { shallowMount } from '@vue/test-utils';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import { nextTick } from 'vue';
 import { createStore } from 'vuex';
+import { prefetchCatalog } from 'dashboard/helper/whatsappCatalogCache';
 import ReplyBox from '../ReplyBox.vue';
 import WhatsappTemplates from '../WhatsappTemplates/Modal.vue';
+
+vi.mock('dashboard/helper/whatsappCatalogCache', () => ({
+  prefetchCatalog: vi.fn(),
+}));
 
 const CHANNELS = [
   { name: 'WhatsApp Cloud', inbox: { channel_type: 'Channel::Whatsapp' } },
@@ -297,6 +302,19 @@ describe('ReplyBox', () => {
         inbox: { channel_type: 'Channel::Whatsapp', provider: 'default' },
       });
       expect(catalog(wrapper)).toBe(false);
+    });
+
+    it('prefetches the catalog only on WhatsApp Cloud', () => {
+      prefetchCatalog.mockClear();
+      [
+        ...CHANNELS.slice(1),
+        { inbox: { ...cloud, provider: 'default' } },
+      ].forEach(({ inbox }) => mountWith({ inbox }));
+      expect(prefetchCatalog).not.toHaveBeenCalled();
+
+      mountWith({ inbox: cloud });
+      expect(prefetchCatalog).toHaveBeenCalledTimes(1);
+      expect(prefetchCatalog).toHaveBeenCalledWith(1);
     });
 
     it('stays visible outside the 24h window and hides on private notes', async () => {

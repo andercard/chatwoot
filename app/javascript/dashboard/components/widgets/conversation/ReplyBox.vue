@@ -68,6 +68,7 @@ import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { emitter } from 'shared/helpers/mitt';
+import { prefetchCatalog } from 'dashboard/helper/whatsappCatalogCache';
 // On a phone the keyboard must only open when the agent taps the input
 const isPhoneViewport = () =>
   !!window.matchMedia?.('(max-width: 639px)').matches;
@@ -243,6 +244,9 @@ export default {
     },
     showWhatsappCatalog() {
       return this.isAWhatsAppCloudChannel && !this.isPrivate;
+    },
+    catalogPrefetchInboxId() {
+      return this.showWhatsappCatalog && this.inbox.id;
     },
     showContentTemplates() {
       return this.isATwilioWhatsAppChannel && !this.isPrivate;
@@ -623,6 +627,12 @@ export default {
     },
     showWhatsappCatalog(isAvailable) {
       if (!isAvailable) this.showWhatsappCatalogModal = false;
+    },
+    catalogPrefetchInboxId: {
+      immediate: true,
+      handler(inboxId) {
+        if (inboxId) prefetchCatalog(inboxId);
+      },
     },
     showContentTemplates(isAvailable) {
       if (!isAvailable) this.hideContentTemplatesModal();
