@@ -22,7 +22,7 @@ const applyToSelection = async action => {
 </script>
 
 <template>
-  <div class="flex items-center gap-2">
+  <div class="flex flex-wrap items-center gap-2 min-w-0">
     <NextButton
       :label="$t('BULK_ACTION.MARK_READ')"
       icon="i-lucide-mail-open"

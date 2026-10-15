@@ -64,7 +64,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: con 375 px de ancho `.conversations-list-wrap` mide 375 px (hoy 417: el panel desborda y las tarjetas quedan cortadas a la derecha, y los botones de orden/colapsar del encabezado quedan fuera de pantalla); la pestaña "No leídos" no muestra ningún número (hoy pinta un badge "0"); con "No leídos" activa los conteos de Mías / Sin asignar / Todos conservan los valores de la lista completa (hoy bajan de 137/179 a 24/25); las demás pestañas siguen igual
   - commit: `fix(chat-list): keep the list inside the viewport and the tab counts stable on the unread tab`
 
-- [ ] **10 · QA: la barra de acciones masivas se desborda**
+- [x] **10 · QA: la barra de acciones masivas se desborda**
   - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/Index.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkReadActions.vue`
   - depende de: 6
   - listo cuando: en una lista de 340 px (escritorio) y de 375 px (móvil) la barra muestra el contador de seleccionadas, "Limpiar", "Todas", cerrar, los íconos de etiquetas/agente/equipo/estado y los botones Leído y No leído dentro de su propio contenedor, sin salirse ni taparse con el editor de respuesta
