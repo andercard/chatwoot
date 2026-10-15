@@ -9,7 +9,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: existe `picnic/feat/chat-list-gestures` creada desde `picnic/feat/mobile-header-inbox-name` y es la rama actual; `Rama:` y `Base:` del proposal se toman de ahí
   - commit: ninguno
 
-- [ ] **1 · Píldora de escribiendo e ícono del canal en la tarjeta**
+- [x] **1 · Píldora de escribiendo e ícono del canal en la tarjeta**
   - archivos: `app/javascript/dashboard/components/widgets/conversation/ConversationCard.vue`, `app/javascript/dashboard/components-next/Conversation/ConversationCard/TypingPill.vue` (nuevo), `app/javascript/dashboard/i18n/locale/en/chatlist.json`, `app/javascript/dashboard/i18n/locale/es/chatlist.json`
   - depende de: 0
   - listo cuando: con un `typing_on` de otro usuario la tarjeta de esa conversación muestra la píldora bajo la hora con 1, 2 o 3+ nombres (agente, bot o contacto), se quita con `typing_off` o a los 30 s; el ícono del canal (`getInboxIconByType`) aparece junto a la hora en todas las tarjetas; el contador de no leídos queda debajo de la píldora; la vista previa del último mensaje no cambia

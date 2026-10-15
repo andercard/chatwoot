@@ -1,5 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useStoreGetters } from 'dashboard/composables/store';
+import { getInboxIconByType } from 'dashboard/helper/inbox';
 import { getLastMessage } from 'dashboard/helper/conversationHelper';
 import Avatar from 'next/avatar/Avatar.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -8,6 +10,7 @@ import InboxName from '../InboxName.vue';
 import TimeAgo from 'dashboard/components/ui/TimeAgo.vue';
 import CardLabels from './conversationCardComponents/CardLabels.vue';
 import CardPriorityIcon from 'dashboard/components-next/Conversation/ConversationCard/CardPriorityIcon.vue';
+import TypingPill from 'dashboard/components-next/Conversation/ConversationCard/TypingPill.vue';
 import UnreadBadge from 'dashboard/components-next/Conversation/ConversationCard/UnreadBadge.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
 import VoiceCallStatus from './VoiceCallStatus.vue';
@@ -33,7 +36,16 @@ const emit = defineEmits([
   'deSelectConversation',
 ]);
 
+const getters = useStoreGetters();
+
 const hovered = ref(false);
+
+const typingUsers = computed(() =>
+  getters['conversationTypingStatus/getUserList'].value(props.chat.id)
+);
+const channelIcon = computed(() =>
+  getInboxIconByType(props.inbox.channel_type, props.inbox.medium, 'outline')
+);
 
 const unreadCount = computed(() => props.chat.unread_count);
 const hasUnread = computed(() => unreadCount.value > 0);
@@ -214,20 +226,28 @@ watch(
         </span>
       </p>
       <div
-        class="absolute flex flex-col ltr:right-3 rtl:left-3"
+        class="absolute flex flex-col items-end gap-1 ltr:right-3 rtl:left-3"
         :class="showMetaSection ? 'top-8' : 'top-4'"
       >
-        <span class="ml-auto font-normal leading-4 text-xxs">
+        <span
+          class="flex items-center gap-1 font-normal leading-4 text-xxs text-n-slate-11"
+        >
+          <Icon
+            v-if="inbox.channel_type"
+            :icon="channelIcon"
+            class="size-3 flex-shrink-0"
+          />
           <TimeAgo
             :last-activity-timestamp="chat.timestamp"
             :created-at-timestamp="chat.created_at"
             :conversation-id="chat.id"
           />
         </span>
+        <TypingPill v-if="typingUsers.length" :users="typingUsers" />
         <UnreadBadge
           v-if="hasUnread"
           :count="unreadCount"
-          class="ltr:ml-auto rtl:mr-auto mt-1"
+          class="ltr:ml-auto rtl:mr-auto"
         />
       </div>
       <CardLabels
