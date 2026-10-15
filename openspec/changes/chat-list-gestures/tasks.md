@@ -21,7 +21,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en móvil con puntero táctil, arrastrar una tarjeta a la derecha revela "No leído" (o "Leído" si ya tiene `unread_count`), que usa `markAsUnread`/`markAsRead` inyectados; a la izquierda revela "Asignarme" (asigna al usuario actual vía `assignAgent` inyectado) y "Estados", que abre una hoja desde abajo con Resolver o Reabrir, Pendiente y Posponer según el estado actual; Resolver pasa por `updateConversationStatus` (valida atributos requeridos); Posponer ofrece las opciones de `snoozeHelpers` y elegir fecha con el selector existente; no hay botón Eliminar ni "Más"; el scroll vertical y el toque simple siguen funcionando; en escritorio la tarjeta no cambia
   - commit: `feat(chat-list): swipe actions with a status sheet on mobile`
 
-- [ ] **3 · Responder con flecha visible y deslizar**
+- [x] **3 · Responder con flecha visible y deslizar**
   - archivos: `app/javascript/dashboard/components-next/message/Message.vue`, `app/javascript/dashboard/i18n/locale/en/conversation.json`, `app/javascript/dashboard/i18n/locale/es/conversation.json`
   - depende de: 2
   - listo cuando: en escritorio, al pasar el mouse sobre una burbuja aparecen una flecha (Responder, solo ícono) y un ⋯ con las opciones que el menú ya tiene (sin añadir ni quitar ninguna); en móvil, deslizar la burbuja a la derecha cita el mensaje (queda en la caja con `ReplyToMessage` y la burbuja enviada muestra la cita); en inboxes sin soporte (`inboxSupportsReplyTo` falso para ese sentido: Instagram, Email, SMS, Line, 360dialog saliente) no aparecen ni la flecha ni el gesto; usa `useSwipeGesture` de la tarea 2

@@ -385,6 +385,7 @@
     "CONTEXT_MENU": {
       "COPY": "Copiar",
       "REPLY_TO": "Responder a este mensaje",
+      "MORE_OPTIONS": "Más opciones",
       "DELETE": "Eliminar",
       "CREATE_A_CANNED_RESPONSE": "Añadir a respuestas predefinidas",
       "TRANSLATE": "Traducir",
