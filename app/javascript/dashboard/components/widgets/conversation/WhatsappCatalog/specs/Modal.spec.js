@@ -6,12 +6,16 @@ import { useIntersectionObserver } from '@vueuse/core';
 import {
   loadCatalog,
   loadProductsPage,
+  peekCatalog,
+  peekProductsPage,
 } from 'dashboard/helper/whatsappCatalogCache';
 import whatsappCatalogMessages from 'dashboard/api/whatsappCatalogMessages';
 
 vi.mock('dashboard/helper/whatsappCatalogCache', () => ({
   loadCatalog: vi.fn(),
   loadProductsPage: vi.fn(),
+  peekCatalog: vi.fn(),
+  peekProductsPage: vi.fn(),
 }));
 vi.mock('@vueuse/core', async importOriginal => ({
   ...(await importOriginal()),
@@ -71,7 +75,10 @@ const mountModal = async (props = {}) => {
   const w = mount(Modal, {
     props: { show: true, inboxId: 1, conversationId: 9, ...props },
     global: {
-      mocks: { $t: key => key },
+      mocks: {
+        $t: (key, params) =>
+          params?.max ? `${key} ${params.count} / ${params.max}` : key,
+      },
       stubs: {
         Teleport: true,
         Button: ButtonStub,
@@ -97,6 +104,8 @@ describe('WhatsappCatalog Modal', () => {
     vi.clearAllMocks();
     loadCatalog.mockResolvedValue(catalogData());
     loadProductsPage.mockResolvedValue(firstPage());
+    peekCatalog.mockReturnValue(null);
+    peekProductsPage.mockReturnValue(null);
   });
 
   it('opens on the products view with every product once', async () => {
@@ -387,5 +396,93 @@ describe('WhatsappCatalog Modal', () => {
     const w = await mountModal();
     expect(q(w, 'catalog-setup-guide').exists()).toBe(true);
     expect(q(w, 'catalog-search').exists()).toBe(false);
+  });
+
+  it('paints prefetched data without loading state or requests', async () => {
+    peekCatalog.mockReturnValue(catalogData());
+    peekProductsPage.mockReturnValue(firstPage());
+    const w = mount(Modal, {
+      props: { show: true, inboxId: 1, conversationId: 9 },
+      global: {
+        mocks: { $t: key => key },
+        stubs: { Teleport: true, Button: ButtonStub },
+      },
+    });
+    expect(rows(w)).toHaveLength(3);
+    expect(w.text()).not.toContain('CATALOG.STATES.LOADING');
+    await flushPromises();
+    expect(w.text()).not.toContain('CATALOG.STATES.LOADING');
+    expect(loadCatalog).not.toHaveBeenCalled();
+    expect(loadProductsPage).not.toHaveBeenCalled();
+  });
+
+  it('shows the loading state when nothing is prefetched', async () => {
+    loadCatalog.mockReturnValue(new Promise(() => {}));
+    loadProductsPage.mockReturnValue(new Promise(() => {}));
+    const w = await mountModal();
+    expect(w.text()).toContain('CATALOG.STATES.LOADING');
+  });
+
+  it('opens the detail with See more without selecting the product', async () => {
+    const w = await mountModal();
+    const sheet = w.findComponent(CatalogSheet);
+    await q(w, 'catalog-select').trigger('click');
+    await rows(w)[0].find('[data-testid="catalog-see-more"]').trigger('click');
+    expect(w.find('[data-test-id="catalog-detail"]').exists()).toBe(true);
+    sheet.vm.$emit('close');
+    await flushPromises();
+    expect(q(w, 'catalog-counter').text()).toContain('0 / 30');
+    expect(q(w, 'catalog-next').element.disabled).toBe(true);
+    expect(rows(w)[0].find('input').element.checked).toBe(false);
+  });
+
+  it('stops the selection at 30 products', async () => {
+    loadProductsPage.mockResolvedValue({
+      status: 'ok',
+      next_cursor: null,
+      products: Array.from({ length: 31 }, (_, n) => product(n)),
+    });
+    const w = await mountModal();
+    await q(w, 'catalog-select').trigger('click');
+    for (let n = 0; n < 30; n += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await rows(w)[n].trigger('click');
+    }
+    expect(q(w, 'catalog-counter').text()).toContain('30 / 30');
+    await rows(w)[30].trigger('click');
+    expect(rows(w)[30].find('input').element.checked).toBe(false);
+    expect(rows(w)[30].find('input').element.disabled).toBe(true);
+    expect(q(w, 'catalog-counter').text()).toContain('30 / 30');
+  });
+
+  it('keeps the selection across pages and searches', async () => {
+    vi.useFakeTimers();
+    try {
+      const w = await mountModal();
+      await q(w, 'catalog-select').trigger('click');
+      await rows(w)[0].trigger('click');
+      loadProductsPage.mockResolvedValueOnce({
+        status: 'ok',
+        next_cursor: null,
+        products: [product(3)],
+      });
+      await reachEnd();
+      await rows(w)[3].trigger('click');
+      expect(q(w, 'catalog-counter').text()).toContain('2 / 30');
+      loadProductsPage.mockResolvedValue({
+        status: 'ok',
+        next_cursor: null,
+        products: [product(7)],
+      });
+      await q(w, 'catalog-search').setValue('x');
+      await vi.advanceTimersByTimeAsync(400);
+      await flushPromises();
+      expect(rows(w)).toHaveLength(1);
+      expect(q(w, 'catalog-counter').text()).toContain('2 / 30');
+      await rows(w)[0].trigger('click');
+      expect(q(w, 'catalog-counter').text()).toContain('3 / 30');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

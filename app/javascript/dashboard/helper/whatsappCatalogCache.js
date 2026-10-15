@@ -12,13 +12,17 @@ export const clearCatalogCache = () => {
   });
 };
 
+const readFresh = (key, { cache }) => {
+  const cached = cache.get(key);
+  return cached && cached.expiresAt > Date.now() ? cached.data : null;
+};
+
 // Serves `key` from memory while fresh, shares the in-flight request and
 // stores only ok responses. `force` skips the cache and replaces it.
-const cachedRequest = (key, fetcher, { cache, pending }, force = false) => {
-  const cached = cache.get(key);
-  if (!force && cached && cached.expiresAt > Date.now()) {
-    return Promise.resolve(cached.data);
-  }
+const cachedRequest = (key, fetcher, store, force = false) => {
+  const { cache, pending } = store;
+  const fresh = force ? null : readFresh(key, store);
+  if (fresh) return Promise.resolve(fresh);
   if (!force && pending.has(key)) return pending.get(key);
 
   const request = fetcher()
@@ -34,6 +38,15 @@ const cachedRequest = (key, fetcher, { cache, pending }, force = false) => {
   pending.set(key, request);
   return request;
 };
+
+const firstPageKey = (inboxId, collectionId) =>
+  `${inboxId}:${collectionId || 'all'}`;
+
+// Synchronous reads: fresh cached data or null, never hit the API.
+export const peekCatalog = inboxId => readFresh(inboxId, collectionsStore);
+
+export const peekProductsPage = (inboxId, { collectionId } = {}) =>
+  readFresh(firstPageKey(inboxId, collectionId), firstPageStore);
 
 export const loadCatalog = (inboxId, { force = false } = {}) =>
   cachedRequest(
@@ -59,7 +72,7 @@ export const loadProductsPage = (
   if (after || q) return fetcher().then(({ data }) => data);
 
   return cachedRequest(
-    `${inboxId}:${collectionId || 'all'}`,
+    firstPageKey(inboxId, collectionId),
     fetcher,
     firstPageStore,
     force

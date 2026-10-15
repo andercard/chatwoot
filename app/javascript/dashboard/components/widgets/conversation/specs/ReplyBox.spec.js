@@ -340,6 +340,21 @@ describe('ReplyBox', () => {
       expect(editor(wrapper).modelValue).toBe('https://wa.me/c/573001234567');
     });
 
+    it('clears the editor on sent without touching the attachments', async () => {
+      const { wrapper } = mountWith({
+        inbox: { ...cloud, phone_number: '+573001234567' },
+        drafts: { 'draft-1-REPLY': 'texto del compositor' },
+      });
+      await nextTick();
+      const attachment = { resource: { name: 'a.png' } };
+      await wrapper.setData({ attachedFiles: [attachment] });
+      expect(editor(wrapper).modelValue).toBe('texto del compositor');
+      wrapper.findComponent({ name: 'WhatsappCatalogModal' }).vm.$emit('sent');
+      await nextTick();
+      expect(editor(wrapper).modelValue).toBe('');
+      expect(wrapper.vm.attachedFiles).toEqual([attachment]);
+    });
+
     it('prefetches the catalog only on WhatsApp Cloud', () => {
       prefetchCatalog.mockClear();
       [

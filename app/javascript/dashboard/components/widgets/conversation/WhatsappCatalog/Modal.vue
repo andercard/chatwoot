@@ -7,6 +7,8 @@ import whatsappCatalogMessages from 'dashboard/api/whatsappCatalogMessages';
 import {
   loadCatalog,
   loadProductsPage,
+  peekCatalog,
+  peekProductsPage,
 } from 'dashboard/helper/whatsappCatalogCache';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import {
@@ -165,6 +167,12 @@ const closeDetail = async () => {
   if (listRef.value) listRef.value.scrollTop = savedScrollTop;
 };
 
+const applyPage = page => {
+  pageStatus.value = page.status;
+  products.value = page.products || [];
+  nextCursor.value = page.next_cursor ?? null;
+};
+
 const loadFirstPage = async ({ force = false } = {}) => {
   requestId += 1;
   const currentRequest = requestId;
@@ -182,9 +190,7 @@ const loadFirstPage = async ({ force = false } = {}) => {
       force,
     });
     if (currentRequest !== requestId) return;
-    pageStatus.value = page.status;
-    products.value = page.products || [];
-    nextCursor.value = page.next_cursor ?? null;
+    applyPage(page);
   } catch (error) {
     if (currentRequest !== requestId) return;
     loadFailed.value = true;
@@ -261,7 +267,15 @@ const reset = () => {
   form.value = { header: '', body: props.initialBody, footer: '' };
   submitted.value = false;
   sendError.value = '';
-  loadCatalogAndFirstPage();
+  // Fresh prefetched data paints at once, with no loading state and no request.
+  const cachedCatalog = peekCatalog(props.inboxId);
+  const cachedPage = peekProductsPage(props.inboxId);
+  if (cachedCatalog && cachedPage) {
+    catalog.value = cachedCatalog;
+    applyPage(cachedPage);
+  } else {
+    loadCatalogAndFirstPage();
+  }
 };
 
 const close = () => {

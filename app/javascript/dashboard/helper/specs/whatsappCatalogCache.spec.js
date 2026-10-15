@@ -4,6 +4,8 @@ import {
   clearCatalogCache,
   loadCatalog,
   loadProductsPage,
+  peekCatalog,
+  peekProductsPage,
   prefetchCatalog,
 } from '../whatsappCatalogCache';
 
@@ -132,6 +134,36 @@ describe('whatsappCatalogCache', () => {
       inboxes.getWhatsappCatalogProducts.mockRejectedValueOnce(new Error('x'));
       await expect(loadProductsPage(1)).rejects.toThrow('x');
       await expect(loadProductsPage(1)).resolves.toEqual(page);
+    });
+  });
+
+  describe('peek', () => {
+    it('returns null before loading and the cached data after', async () => {
+      expect(peekCatalog(1)).toBeNull();
+      expect(peekProductsPage(1)).toBeNull();
+      await loadCatalog(1);
+      await loadProductsPage(1);
+      await loadProductsPage(1, { collectionId: 'c1' });
+      expect(peekCatalog(1)).toEqual(okData);
+      expect(peekProductsPage(1)).toEqual(page);
+      expect(peekProductsPage(1, { collectionId: 'c1' })).toEqual(page);
+      expect(peekProductsPage(1, { collectionId: 'c2' })).toBeNull();
+      expect(peekCatalog(2)).toBeNull();
+    });
+
+    it('returns null after the TTL', async () => {
+      await loadCatalog(1);
+      await loadProductsPage(1);
+      vi.advanceTimersByTime(CATALOG_CACHE_TTL + 1);
+      expect(peekCatalog(1)).toBeNull();
+      expect(peekProductsPage(1)).toBeNull();
+    });
+
+    it('never calls the API', () => {
+      peekCatalog(1);
+      peekProductsPage(1);
+      expect(inboxes.getWhatsappCatalog).not.toHaveBeenCalled();
+      expect(inboxes.getWhatsappCatalogProducts).not.toHaveBeenCalled();
     });
   });
 });

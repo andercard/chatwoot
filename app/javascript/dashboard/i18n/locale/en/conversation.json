@@ -688,15 +688,15 @@
         "STEPS": {
           "ONE": "Create a catalog in Meta Commerce Manager",
           "TWO": "Connect it to your WhatsApp Business account",
-          "THREE": "Come back and reopen this window"
+          "THREE": "Come back and reopen this window, or paste the catalog ID in the inbox settings (Catalog ID (optional))"
         }
       },
       "MISSING_PERMISSION": {
         "TITLE": "Catalog permission missing",
-        "DESCRIPTION": "The access token cannot read your catalog.",
+        "DESCRIPTION": "The access token of this WhatsApp number does not include the catalog_management permission, so the catalog cannot be read.",
         "STEPS": {
-          "ONE": "Open the inbox settings",
-          "TWO": "Update the business management token with catalog permissions",
+          "ONE": "Add the catalog_management permission to the token, or reconnect the number",
+          "TWO": "Or paste the catalog ID in the inbox settings, under Catalog ID (optional)",
           "THREE": "Come back and reopen this window"
         }
       },
