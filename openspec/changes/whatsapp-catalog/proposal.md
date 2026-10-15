@@ -30,10 +30,10 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
 
 ## Qué propongo, y qué queda afuera
 
-**Resultado:** en una conversación de WhatsApp Cloud, fuera de nota privada, el agente abre **Catálogo** (botón junto a los demás en escritorio, fila en el menú «+» en móvil) y en **un solo modal**:
-1. **Elige el formato** (carrusel / tarjeta / lista). El formato fija los límites desde el principio.
-2. **Elige productos**, paginados desde Meta con buscador, filtro de colección y scroll infinito, con tope visible según el formato (contador «3 / 10»; al llegar al máximo no deja marcar más). Por eso **un envío = un mensaje de WhatsApp**: no hay reparto en varios mensajes.
-3. **Llena los campos del formato** (obligatorios marcados), ver tabla.
+**Resultado:** en una conversación de WhatsApp Cloud, fuera de nota privada, el agente abre **Catálogo** (botón junto a los demás en escritorio, fila en el menú «+» en móvil) y en **un solo modal** (una sola superficie: escritorio diálogo con X a la derecha, móvil hoja inferior que se baja con el dedo):
+1. **Ve el catálogo** (vista Productos): buscador (en el servidor), chips de colecciones y lista paginada con scroll infinito; «Ver más» abre el detalle del producto (fotos, precio, descripción, enlace) dentro de la misma superficie.
+2. **Selecciona** (botón Seleccionar): contador `n / 30`, tope 30.
+3. **Elige el formato** (vista Formato): selector de carrusel / tarjeta / lista donde los formatos que no caben para la cantidad elegida aparecen deshabilitados con su motivo, y llena los campos del formato (obligatorios marcados). Un envío = un mensaje de WhatsApp.
 4. **Envía desde el modal.** En la conversación el mensaje se ve como en WhatsApp (tarjetas, «Ver» abre el detalle con galería, título, precio, descripción y enlace).
 
 | Formato | Productos | Campos del modal (límites de Meta) |
@@ -91,7 +91,7 @@ Los valores son los de la ronda 2 del verify sobre la rama terminada (referencia
 - Alcance: `git diff --name-only origin/production -- db app/models` → vacío (sin migración ni cambios de modelo).
 - Invariante de topes (backend y front deben coincidir): para cada formato, un número de productos fuera de su rango se rechaza con 422 en el backend y con error de campo en `validateCatalogForm`, y dentro de su rango pasa en ambos (los specs de las tareas 1, 2 y 5 lo prueban en los bordes 0/1/2/10/11/30/31).
 
-**B. Navegador local (390×844 táctil y 1440×900):** con el stack del worktree `production` y una bandeja WhatsApp Cloud local cuya respuesta de Graph se simula: el botón aparece en WhatsApp Cloud, no en otros canales ni en nota privada; sin catálogo el modal muestra la guía; el modal empieza por el formato, el contador impide pasar de 10 en carrusel y de 30 en lista, y los campos obligatorios bloquean el envío vacío; las burbujas de los tres formatos y su detalle se ven sin desborde horizontal de la página.
+**B. Navegador local (390×844 táctil y 1440×900):** con el stack del worktree `production` y una bandeja WhatsApp Cloud local cuya respuesta de Graph se simula: el botón aparece en WhatsApp Cloud, no en otros canales ni en nota privada; sin catálogo el modal muestra la guía; el modal abre en Productos (buscador, chips, lista paginada), el contador impide pasar de 30 al seleccionar, la vista Formato deshabilita los formatos que no caben y los campos obligatorios bloquean el envío vacío; las burbujas de los tres formatos y su detalle se ven sin desborde horizontal de la página.
 
 **C. Humano (iPhone real con el número de pruebas, Lucía local):** (1) enviar un carrusel de 3 paquetes, una tarjeta y una lista de 5: llegan a WhatsApp y se parecen a las capturas; (2) la lista con encabezado y secciones es aceptada por Meta (confirma los límites de 60/24 caracteres); (3) un mensaje fuera de ventana falla con el error normal y **reintentar** conserva el catálogo; (4) la burbuja de Chatwoot muestra lo mismo que WhatsApp, con su detalle; (5) con un token sin permiso de catálogo el modal explica qué hacer y el ID manual lo resuelve.
 
