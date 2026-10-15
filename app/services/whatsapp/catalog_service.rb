@@ -1,7 +1,6 @@
 class Whatsapp::CatalogService
   PRODUCT_FIELDS = 'retailer_id,name,description,price,image_url,additional_image_urls,url,product_sets{id,name}'.freeze
   PAGE_SIZE = 100
-  MAX_PAGES = 20
   CACHE_TTL = 15.minutes
   CATALOG_ID_CACHE_TTL = 24.hours
   DEFAULT_COLLECTION_NAME = 'all products'.freeze
@@ -19,12 +18,31 @@ class Whatsapp::CatalogService
   pattr_initialize [:channel!, :refresh]
 
   def perform
+    with_catalog do |catalog_id|
+      { status: 'ok', catalog_id: catalog_id, collections: collections(catalog_id) }
+    end
+  end
+
+  # Reads a single page of products, from the catalog or from one of its collections.
+  def products(limit:, after: nil, query: nil, collection_id: nil)
+    with_catalog do |catalog_id|
+      next { status: 'invalid_collection' } unless known_collection?(catalog_id, collection_id)
+
+      page = -> { products_page(collection_id || catalog_id, limit, after, query) }
+      next page.call if after.present? || query.present?
+
+      Rails.cache.fetch("whatsapp_catalog_products/#{channel.id}/#{catalog_id}/#{collection_id || 'all'}/#{limit}",
+                        expires_in: CACHE_TTL, force: refresh?) { page.call }
+    end
+  end
+
+  private
+
+  def with_catalog
     catalog_id = resolve_catalog_id
     return { status: 'no_catalog' } if catalog_id.blank?
 
-    Rails.cache.fetch("whatsapp_catalog/#{channel.id}/#{catalog_id}", expires_in: CACHE_TTL, force: refresh?) do
-      build_catalog(catalog_id)
-    end
+    yield catalog_id
   rescue ApiError => e
     Rails.logger.warn "[WHATSAPP CATALOG] channel=#{channel.id} #{e.message}"
     { status: e.permission ? 'missing_permission' : 'error' }
@@ -32,8 +50,6 @@ class Whatsapp::CatalogService
     Rails.logger.warn "[WHATSAPP CATALOG] channel=#{channel.id} #{e.class}: #{e.message}"
     { status: 'error' }
   end
-
-  private
 
   def refresh?
     %w[1 true].include?(refresh.to_s)
@@ -46,17 +62,32 @@ class Whatsapp::CatalogService
       end
   end
 
-  def build_catalog(catalog_id)
-    collections = {}
-    products = fetch_products(catalog_id).map do |product|
-      sets = product.dig('product_sets', 'data').to_a.reject { |set| set['name'].to_s.casecmp?(DEFAULT_COLLECTION_NAME) }
-      sets.each { |set| (collections[set['id']] ||= { id: set['id'], name: set['name'], count: 0 })[:count] += 1 }
-      format_product(product, sets.pluck('id'))
-    end
-    { status: 'ok', catalog_id: catalog_id, collections: collections.values, products: products }
+  def known_collection?(catalog_id, collection_id)
+    collection_id.nil? || collections(catalog_id).pluck(:id).include?(collection_id)
   end
 
-  def format_product(product, collection_ids)
+  def collections(catalog_id)
+    Rails.cache.fetch("whatsapp_catalog_collections/#{channel.id}/#{catalog_id}", expires_in: CACHE_TTL, force: refresh?) do
+      sets = request("#{catalog_id}/product_sets", fields: 'id,name,product_count', limit: PAGE_SIZE)['data'].to_a
+      sets.reject { |set| default_collection?(set) }.map { |set| { id: set['id'], name: set['name'], count: set['product_count'] } }
+    end
+  end
+
+  def default_collection?(set)
+    set['name'].to_s.casecmp?(DEFAULT_COLLECTION_NAME)
+  end
+
+  def products_page(parent_id, limit, after, text)
+    params = { fields: PRODUCT_FIELDS, limit: limit, after: after.presence }
+    params[:filter] = { name: { i_contains: text } }.to_json if text.present?
+    body = request("#{parent_id}/products", params.compact)
+    page = body['data'].to_a
+    more = body.dig('paging', 'next').present? && page.size >= limit
+    cursor = body.dig('paging', 'cursors', 'after').presence if more
+    { status: 'ok', products: page.map { |product| format_product(product) }, next_cursor: cursor }
+  end
+
+  def format_product(product)
     {
       retailer_id: product['retailer_id'],
       name: product['name'],
@@ -64,22 +95,8 @@ class Whatsapp::CatalogService
       image_urls: [product['image_url'], *product['additional_image_urls']].compact,
       description: product['description'],
       url: product['url'],
-      collection_ids: collection_ids
+      collection_ids: product.dig('product_sets', 'data').to_a.reject { |set| default_collection?(set) }.pluck('id')
     }
-  end
-
-  # Follows Graph cursors; stops on a short page or an empty one.
-  def fetch_products(catalog_id)
-    products = []
-    after = nil
-    MAX_PAGES.times do
-      body = request("#{catalog_id}/products", { fields: PRODUCT_FIELDS, limit: PAGE_SIZE, after: after }.compact)
-      page = body['data'].to_a
-      products.concat(page)
-      after = body.dig('paging', 'cursors', 'after')
-      break if page.size < PAGE_SIZE || after.blank?
-    end
-    products
   end
 
   def request(path, query)

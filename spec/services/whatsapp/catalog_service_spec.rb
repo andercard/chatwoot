@@ -9,76 +9,56 @@ describe Whatsapp::CatalogService do
   end
   let(:fields) { 'retailer_id,name,description,price,image_url,additional_image_urls,url,product_sets{id,name}' }
   let(:all_products) { { 'id' => 'set_all', 'name' => 'All Products' } }
+  let(:sets) do
+    [{ 'id' => 'set_all', 'name' => 'All Products', 'product_count' => 3 },
+     { 'id' => 'set_1', 'name' => 'Set 1', 'product_count' => 1 },
+     { 'id' => 'set_2', 'name' => 'Set 2', 'product_count' => 2 }]
+  end
   let(:product_a) do
     { 'retailer_id' => 'a', 'name' => 'A', 'price' => '$ 5.000', 'image_url' => 'https://img/a.jpg',
       'additional_image_urls' => ['https://img/a2.jpg'], 'description' => 'da', 'url' => 'https://shop/a',
       'product_sets' => { 'data' => [all_products, { 'id' => 'set_1', 'name' => 'Set 1' }, { 'id' => 'set_2', 'name' => 'Set 2' }] } }
   end
-  let(:product_b) do
-    { 'retailer_id' => 'b', 'name' => 'B', 'price' => '$ 1.000', 'image_url' => 'https://img/b.jpg',
-      'product_sets' => { 'data' => [all_products, { 'id' => 'set_2', 'name' => 'Set 2' }] } }
-  end
   let(:product_c) { { 'retailer_id' => 'c', 'name' => 'C', 'price' => '$ 2.000' } }
+  let(:products_args) { { limit: 24 } }
 
   def stub_graph(path, body, query: {}, status: 200)
-    stub_request(:get, "#{graph}/#{path}").with(query: hash_including(query.merge('limit' => '100')))
+    stub_request(:get, "#{graph}/#{path}").with(query: hash_including(query))
                                           .to_return(status: status, body: body.to_json, headers: { 'Content-Type' => 'application/json' })
   end
 
-  context 'when the catalog is discovered from the WABA' do
-    before do
-      stub_graph('123456789/product_catalogs', { data: [{ 'id' => 'cat_1', 'name' => 'Shop' }] })
-      stub_graph('cat_1/products', { data: [product_a, product_b, product_c] }, query: { 'fields' => fields })
-    end
+  before do
+    stub_graph('123456789/product_catalogs', { data: [{ 'id' => 'cat_1', 'name' => 'Shop' }] })
+    stub_graph('cat_1/product_sets', { data: sets }, query: { 'fields' => 'id,name,product_count' })
+  end
 
-    it 'reads the catalog in one call per resource' do
-      expect(result[:status]).to eq('ok')
-      expect(result[:catalog_id]).to eq('cat_1')
-      expect(a_request(:get, /product_catalogs/)).to have_been_made.once
-      expect(a_request(:get, %r{cat_1/products})).to have_been_made.once
-      expect(a_request(:get, %r{/product_sets})).not_to have_been_made
-    end
-
-    it 'returns each product once with its collection ids' do
-      expect(result[:products].pluck(:retailer_id)).to eq(%w[a b c])
-      expect(result[:products].first).to eq(
-        retailer_id: 'a', name: 'A', price: '$ 5.000', image_urls: ['https://img/a.jpg', 'https://img/a2.jpg'],
-        description: 'da', url: 'https://shop/a', collection_ids: %w[set_1 set_2]
+  context 'when listing collections' do
+    it 'returns collections with counts, without products and without All Products' do
+      expect(result).to eq(
+        status: 'ok', catalog_id: 'cat_1',
+        collections: [{ id: 'set_1', name: 'Set 1', count: 1 }, { id: 'set_2', name: 'Set 2', count: 2 }]
       )
-      expect(result[:products].second[:collection_ids]).to eq(['set_2'])
-      expect(result[:products].last).to include(collection_ids: [], image_urls: [], description: nil, url: nil)
-    end
-
-    it 'excludes All Products and counts products per collection' do
-      expect(result[:collections]).to eq(
-        [{ id: 'set_1', name: 'Set 1', count: 1 }, { id: 'set_2', name: 'Set 2', count: 2 }]
-      )
+      expect(a_request(:get, %r{/products})).not_to have_been_made
     end
 
     context 'with a cache store' do
       before { allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new) }
 
-      it 'caches ok results and the catalog id' do
+      it 'caches collections and the catalog id, and refresh bypasses both' do
         2.times { described_class.new(channel: channel).perform }
-
-        expect(a_request(:get, %r{cat_1/products})).to have_been_made.once
+        expect(a_request(:get, %r{cat_1/product_sets})).to have_been_made.once
         expect(a_request(:get, /product_catalogs/)).to have_been_made.once
-      end
 
-      it 'bypasses and rewrites both caches on refresh' do
-        described_class.new(channel: channel).perform
         described_class.new(channel: channel, refresh: '1').perform
-        described_class.new(channel: channel).perform
-
-        expect(a_request(:get, %r{cat_1/products})).to have_been_made.twice
+        expect(a_request(:get, %r{cat_1/product_sets})).to have_been_made.twice
         expect(a_request(:get, /product_catalogs/)).to have_been_made.twice
       end
 
       it 'does not cache errors' do
-        stub_graph('cat_1/products', { error: { code: 1, message: 'boom' } }, status: 500)
+        stub_graph('cat_1/product_sets', { error: { code: 1, message: 'boom' } }, status: 500)
         2.times { described_class.new(channel: channel).perform }
 
-        expect(a_request(:get, %r{cat_1/products})).to have_been_made.twice
+        expect(a_request(:get, %r{cat_1/product_sets})).to have_been_made.twice
       end
     end
   end
@@ -87,28 +67,106 @@ describe Whatsapp::CatalogService do
     before { channel.update!(provider_config: channel.provider_config.merge('catalog_id' => 'cat_9')) }
 
     it 'skips the product_catalogs lookup' do
-      stub_graph('cat_9/products', { data: [product_c] })
+      stub_graph('cat_9/product_sets', { data: [] })
 
       expect(result[:catalog_id]).to eq('cat_9')
       expect(a_request(:get, /product_catalogs/)).not_to have_been_made
     end
   end
 
-  context 'when there are more product pages' do
-    let(:full_page) { Array.new(100) { |i| { 'retailer_id' => "p#{i}", 'name' => 'P' } } }
+  describe '#products' do
+    subject(:result) { described_class.new(channel: channel).products(**products_args) }
 
-    before { channel.update!(provider_config: channel.provider_config.merge('catalog_id' => 'cat_9')) }
+    before { stub_graph('cat_1/products', { data: [product_a, product_c] }, query: { 'fields' => fields, 'limit' => '24' }) }
 
-    it 'follows the cursor while pages are full' do
-      stub_request(:get, "#{graph}/cat_9/products").with(query: hash_excluding('after'))
-                                                   .to_return(body: { data: full_page, paging: { cursors: { after: 'c1' }, next: 'x' } }.to_json,
-                                                              headers: { 'Content-Type' => 'application/json' })
-      stub_request(:get, "#{graph}/cat_9/products").with(query: hash_including('after' => 'c1'))
-                                                   .to_return(body: { data: [product_c], paging: { cursors: { after: 'c2' }, next: 'y' } }.to_json,
-                                                              headers: { 'Content-Type' => 'application/json' })
+    it 'formats one page with collection ids, without All Products, and a null cursor on a short page' do
+      expect(result[:status]).to eq('ok')
+      expect(result[:next_cursor]).to be_nil
+      expect(result[:products].first).to eq(
+        retailer_id: 'a', name: 'A', price: '$ 5.000', image_urls: ['https://img/a.jpg', 'https://img/a2.jpg'],
+        description: 'da', url: 'https://shop/a', collection_ids: %w[set_1 set_2]
+      )
+      expect(result[:products].last).to include(collection_ids: [], image_urls: [], description: nil, url: nil)
+      expect(a_request(:get, %r{cat_1/products})).to have_been_made.once
+    end
 
-      expect(result[:products].size).to eq(101)
-      expect(a_request(:get, %r{cat_9/products})).to have_been_made.twice
+    context 'with a full page and a cursor' do
+      let(:products_args) { { limit: 2 } }
+
+      before do
+        stub_graph('cat_1/products', { data: [product_a, product_c], paging: { cursors: { after: 'c1' }, next: 'x' } },
+                   query: { 'limit' => '2' })
+        stub_graph('cat_1/products', { data: [product_c], paging: { cursors: { after: 'c2' }, next: 'y' } },
+                   query: { 'limit' => '2', 'after' => 'c1' })
+      end
+
+      it 'returns the Meta cursor and requests the next page with it' do
+        expect(result[:next_cursor]).to eq('c1')
+        page = described_class.new(channel: channel).products(limit: 2, after: 'c1')
+
+        expect(page[:products].pluck(:retailer_id)).to eq(['c'])
+        expect(page[:next_cursor]).to be_nil
+      end
+    end
+
+    context 'with a text query' do
+      let(:products_args) { { limit: 24, query: 'Café "ñandú"' } }
+
+      it 'sends the filter as escaped JSON' do
+        result
+
+        filter = { name: { i_contains: 'Café "ñandú"' } }.to_json
+        expect(a_request(:get, %r{cat_1/products}).with(query: hash_including('filter' => filter))).to have_been_made.once
+      end
+    end
+
+    context 'with a collection' do
+      let(:products_args) { { limit: 24, collection_id: 'set_1', query: 'a' } }
+
+      before { stub_graph('set_1/products', { data: [product_a] }, query: { 'limit' => '24' }) }
+
+      it 'reads the collection products and filters inside it' do
+        expect(result[:products].pluck(:retailer_id)).to eq(['a'])
+        filter = { name: { i_contains: 'a' } }.to_json
+        expect(a_request(:get, %r{set_1/products}).with(query: hash_including('filter' => filter))).to have_been_made.once
+        expect(a_request(:get, %r{cat_1/products})).not_to have_been_made
+      end
+    end
+
+    context 'with a collection of another catalog' do
+      let(:products_args) { { limit: 24, collection_id: 'foreign' } }
+
+      it 'returns invalid_collection without reading products' do
+        expect(result).to eq(status: 'invalid_collection')
+        expect(a_request(:get, %r{/products})).not_to have_been_made
+      end
+    end
+
+    context 'with a cache store' do
+      before { allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new) }
+
+      it 'caches the first page without query and skips the cache for q and after' do
+        2.times { described_class.new(channel: channel).products(limit: 24) }
+        expect(a_request(:get, %r{cat_1/products})).to have_been_made.once
+
+        2.times { described_class.new(channel: channel).products(limit: 24, query: 'a') }
+        2.times { described_class.new(channel: channel).products(limit: 24, after: 'c1') }
+        expect(a_request(:get, %r{cat_1/products})).to have_been_made.times(5)
+      end
+
+      it 'bypasses the cache on refresh' do
+        described_class.new(channel: channel).products(limit: 24)
+        described_class.new(channel: channel, refresh: '1').products(limit: 24)
+
+        expect(a_request(:get, %r{cat_1/products})).to have_been_made.twice
+      end
+
+      it 'does not cache errors' do
+        stub_graph('cat_1/products', { error: { code: 1, message: 'boom' } }, status: 500)
+        2.times { described_class.new(channel: channel).products(limit: 24) }
+
+        expect(a_request(:get, %r{cat_1/products})).to have_been_made.twice
+      end
     end
   end
 

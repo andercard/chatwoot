@@ -1834,4 +1834,69 @@ RSpec.describe 'Inboxes API', type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
     end
   end
+
+  describe 'GET /api/v1/accounts/{account.id}/inboxes/{id}/whatsapp_catalog_products' do
+    let(:whatsapp_inbox) do
+      create(:channel_whatsapp, account: account, provider: 'whatsapp_cloud', sync_templates: false, validate_provider_config: false).inbox
+    end
+    let(:service) { instance_double(Whatsapp::CatalogService, products: { status: 'ok', products: [], next_cursor: nil }) }
+    let(:url) { "/api/v1/accounts/#{account.id}/inboxes/#{whatsapp_inbox.id}/whatsapp_catalog_products" }
+
+    before do
+      create(:inbox_member, user: agent, inbox: whatsapp_inbox)
+      allow(Whatsapp::CatalogService).to receive(:new).with(channel: whatsapp_inbox.channel, refresh: nil).and_return(service)
+    end
+
+    it 'returns unauthorized for unauthenticated user' do
+      get url
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'uses the default limit of 24 and passes the filters' do
+      get "#{url}?after=c1&q=%20caf%C3%A9%20&collection_id=set_1", headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body).to include('status' => 'ok', 'next_cursor' => nil)
+      expect(service).to have_received(:products).with(limit: 24, after: 'c1', query: 'café', collection_id: 'set_1')
+    end
+
+    it 'accepts the maximum limit of 50' do
+      get "#{url}?limit=50", headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(service).to have_received(:products).with(hash_including(limit: 50))
+    end
+
+    it 'rejects a limit above 50 or invalid' do
+      %w[51 0 abc].each do |limit|
+        get "#{url}?limit=#{limit}", headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
+    it 'returns 422 for a collection outside the catalog' do
+      allow(service).to receive(:products).and_return(status: 'invalid_collection')
+
+      get "#{url}?collection_id=foreign", headers: agent.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body).to have_key('error')
+    end
+
+    it 'returns unauthorized for an agent without inbox access' do
+      other = create(:user, account: account, role: :agent)
+      get url, headers: other.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'returns unprocessable entity for a non WhatsApp Cloud inbox' do
+      inbox = create(:inbox, account: account)
+      get "/api/v1/accounts/#{account.id}/inboxes/#{inbox.id}/whatsapp_catalog_products", headers: admin.create_new_auth_token, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
 end
