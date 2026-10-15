@@ -15,7 +15,7 @@ const onRowClick = () => {
 
 <template>
   <div
-    class="flex items-center gap-3 p-2 rounded-lg outline outline-1 -outline-offset-1"
+    class="flex items-center gap-3 p-1 rounded-lg outline outline-1 -outline-offset-1"
     :class="[
       checked ? 'outline-n-brand bg-n-alpha-2' : 'outline-n-container',
       selectable && disabled ? 'opacity-50 cursor-not-allowed' : '',

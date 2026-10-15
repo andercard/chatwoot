@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
 import Modal from '../Modal.vue';
+import CatalogSheet from 'dashboard/components-next/whatsapp-catalog/CatalogSheet.vue';
 import { loadCatalog } from 'dashboard/helper/whatsappCatalogCache';
 import whatsappCatalogMessages from 'dashboard/api/whatsappCatalogMessages';
 
@@ -102,24 +103,53 @@ describe('WhatsappCatalog Modal', () => {
     expect(q(w, 'catalog-no-results').exists()).toBe(true);
   });
 
-  it('opens the detail with See more', async () => {
+  it('replaces the list with the detail in the same sheet', async () => {
     const w = await mountModal();
     await rows(w)[0].find('[data-testid="catalog-see-more"]').trigger('click');
     const detail = w.find('[data-test-id="catalog-detail"]');
     expect(detail.exists()).toBe(true);
     expect(detail.text()).toContain('Red Shirt');
+    expect(w.findAll('[data-test-id="catalog-sheet"]')).toHaveLength(1);
+    expect(q(w, 'catalog-search').isVisible()).toBe(false);
+    expect(rows(w)[0].isVisible()).toBe(false);
   });
 
-  it('renders refresh and close as icon-only buttons', async () => {
+  it('goes back from the detail keeping search and selection', async () => {
+    const w = await mountModal();
+    const sheet = w.findComponent(CatalogSheet);
+    await q(w, 'catalog-select').trigger('click');
+    await rows(w)[0].trigger('click');
+    await q(w, 'catalog-search').setValue('red');
+    await rows(w)[0].find('[data-testid="catalog-see-more"]').trigger('click');
+    sheet.vm.$emit('close');
+    await flushPromises();
+    expect(w.find('[data-test-id="catalog-detail"]').exists()).toBe(false);
+    expect(q(w, 'catalog-search').element.value).toBe('red');
+    expect(q(w, 'catalog-search').isVisible()).toBe(true);
+    expect(rows(w)).toHaveLength(1);
+    expect(rows(w)[0].find('input').element.checked).toBe(true);
+    expect(w.emitted('close')).toBeFalsy();
+    expect(w.emitted('update:show')).toBeFalsy();
+    sheet.vm.$emit('close');
+    expect(w.emitted('update:show')[0]).toEqual([false]);
+    expect(w.emitted('close')).toBeTruthy();
+  });
+
+  it('gives the search input the same height as the buttons', async () => {
+    const w = await mountModal();
+    const search = q(w, 'catalog-search');
+    expect(search.classes()).toContain('h-10');
+    expect(search.classes()).toContain('!mb-0');
+    expect(search.element.parentElement.classList).toContain('items-center');
+  });
+
+  it('renders refresh as an icon-only button', async () => {
     const w = await mountModal();
     expect(q(w, 'catalog-refresh').text()).toBe('');
     expect(q(w, 'catalog-refresh').attributes('aria-label')).toBe(
       'CATALOG.ACTIONS.REFRESH'
     );
-    expect(q(w, 'catalog-close').text()).toBe('');
-    expect(q(w, 'catalog-close').attributes('aria-label')).toBe(
-      'CATALOG.ACTIONS.CLOSE'
-    );
+    expect(w.find('[data-test-id="catalog-sheet-close"]').exists()).toBe(true);
     expect(q(w, 'catalog-counter').exists()).toBe(false);
   });
 
@@ -136,10 +166,9 @@ describe('WhatsappCatalog Modal', () => {
     expect(q(w, 'catalog-next').element.disabled).toBe(true);
     await rows(w)[0].trigger('click');
     expect(q(w, 'catalog-counter').text()).toContain('CATALOG.COUNTER');
-    expect(w.find('footer').text()).not.toContain('CATALOG.COUNTER');
     expect(
-      w.find('header').find('[data-testid="catalog-counter"]').exists()
-    ).toBe(true);
+      w.find('[data-testid="catalog-next"]').element.parentElement.textContent
+    ).not.toContain('CATALOG.COUNTER');
     expect(q(w, 'catalog-cancel-selection').text()).toBe(
       'CATALOG.ACTIONS.CANCEL'
     );

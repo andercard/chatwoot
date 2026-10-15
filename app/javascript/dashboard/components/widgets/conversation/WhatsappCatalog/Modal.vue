@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import whatsappCatalogMessages from 'dashboard/api/whatsappCatalogMessages';
@@ -16,7 +16,8 @@ import {
 } from 'dashboard/helper/whatsappCatalog';
 
 import Button from 'dashboard/components-next/button/Button.vue';
-import WhatsappCatalogDetail from 'dashboard/components-next/message/bubbles/WhatsappCatalogDetail.vue';
+import CatalogSheet from 'dashboard/components-next/whatsapp-catalog/CatalogSheet.vue';
+import ProductDetail from 'dashboard/components-next/whatsapp-catalog/ProductDetail.vue';
 import ProductRow from './ProductRow.vue';
 import SetupGuide from './SetupGuide.vue';
 
@@ -61,6 +62,8 @@ const collectionId = ref(null);
 const selectionMode = ref(false);
 const selectedIds = ref([]);
 const detailItem = ref(null);
+const listRef = ref(null);
+let savedScrollTop = 0;
 const kind = ref(null);
 const form = ref({ header: '', body: '', footer: '' });
 const submitted = ref(false);
@@ -147,8 +150,16 @@ const toggleProduct = product => {
   }
 };
 
+// The list stays mounted (v-show) while the detail replaces it in the same sheet.
 const openDetail = product => {
+  savedScrollTop = listRef.value?.scrollTop || 0;
   detailItem.value = { ...product, imageUrls: product.image_urls };
+};
+
+const closeDetail = async () => {
+  detailItem.value = null;
+  await nextTick();
+  if (listRef.value) listRef.value.scrollTop = savedScrollTop;
 };
 
 const fetchCatalog = async ({ force = false } = {}) => {
@@ -188,6 +199,9 @@ const close = () => {
   emit('close');
 };
 
+// X, handle drag, Escape and backdrop: the detail goes back to the list, otherwise the modal closes.
+const onClose = () => (detailItem.value ? closeDetail() : close());
+
 const insertLink = () => {
   emit('insertLink', props.catalogLink);
   close();
@@ -223,6 +237,10 @@ const goToFormat = () => {
   submitted.value = false;
   view.value = 'format';
 };
+
+const sheetTitle = computed(() =>
+  detailItem.value ? t('CATALOG.PRODUCT.DETAILS_TITLE') : t('CATALOG.TITLE')
+);
 
 const goBack = () => {
   sendError.value = '';
@@ -263,111 +281,153 @@ watch(
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      v-if="show"
-      class="fixed inset-0 z-[9999] flex items-center justify-center bg-n-alpha-black1 backdrop-blur-[4px] max-sm:items-end"
-      @click.self="close"
-    >
+  <CatalogSheet :show="show" :title="sheetTitle" size="md" @close="onClose">
+    <ProductDetail v-if="detailItem" :item="detailItem" />
+    <div v-show="!detailItem" class="flex flex-col flex-1 min-h-0">
       <div
-        class="flex flex-col w-full max-w-2xl max-h-[90dvh] overflow-hidden shadow-xl bg-n-solid-2 rounded-xl max-sm:max-w-full max-sm:rounded-b-none"
-        role="dialog"
-        data-testid="catalog-modal"
+        v-if="view === 'products' && catalog && !needsGuide"
+        class="flex flex-col gap-3 px-4 py-3 border-b border-n-weak shrink-0"
       >
-        <header class="flex flex-col gap-3 p-4 border-b border-n-weak shrink-0">
-          <div class="flex items-center justify-between gap-2">
-            <h3 class="mb-0 text-base font-medium text-n-slate-12">
-              {{ $t('CATALOG.TITLE') }}
-            </h3>
-            <Button
-              type="button"
-              variant="faded"
-              color="slate"
-              icon="i-lucide-x"
-              class="!rounded-full"
-              :aria-label="$t('CATALOG.ACTIONS.CLOSE')"
-              data-testid="catalog-close"
-              @click="close"
-            />
-          </div>
-          <template v-if="view === 'products' && catalog && !needsGuide">
-            <div class="flex items-center gap-2">
-              <input
-                v-model="query"
-                type="search"
-                class="flex-1 h-10 min-w-0 mb-0 rounded-lg"
-                :placeholder="$t('CATALOG.SEARCH.PLACEHOLDER')"
-                data-testid="catalog-search"
-              />
+        <div class="flex items-center gap-2">
+          <input
+            v-model="query"
+            type="search"
+            class="flex-1 h-10 min-w-0 !mb-0 rounded-lg"
+            :placeholder="$t('CATALOG.SEARCH.PLACEHOLDER')"
+            data-testid="catalog-search"
+          />
+          <Button
+            type="button"
+            variant="faded"
+            color="slate"
+            icon="i-lucide-refresh-cw"
+            :aria-label="$t('CATALOG.ACTIONS.REFRESH')"
+            :is-loading="isRefreshing"
+            :disabled="isRefreshing"
+            data-testid="catalog-refresh"
+            @click="fetchCatalog({ force: true })"
+          />
+          <Button
+            v-if="!selectionMode"
+            type="button"
+            variant="faded"
+            color="blue"
+            :label="$t('CATALOG.ACTIONS.SELECT')"
+            data-testid="catalog-select"
+            @click="selectionMode = true"
+          />
+          <Button
+            v-if="catalogLink"
+            type="button"
+            variant="faded"
+            color="slate"
+            icon="i-lucide-link"
+            :aria-label="$t('CATALOG.ACTIONS.INSERT_LINK')"
+            data-testid="catalog-insert-link"
+            @click="insertLink"
+          />
+        </div>
+        <div class="flex gap-2 pb-1 overflow-x-auto" data-testid="catalog-chips">
+          <button
+            type="button"
+            class="px-3 py-1 text-xs whitespace-nowrap rounded-full shrink-0 outline outline-1 -outline-offset-1"
+            :class="
+              collectionId === null
+                ? 'outline-n-brand bg-n-alpha-2 text-n-slate-12'
+                : 'outline-n-container text-n-slate-11'
+            "
+            data-testid="catalog-chip-all"
+            @click="collectionId = null"
+          >
+            {{ $t('CATALOG.FILTERS.ALL') }}
+          </button>
+          <button
+            v-for="collection in collections"
+            :key="collection.id"
+            type="button"
+            class="px-3 py-1 text-xs whitespace-nowrap rounded-full shrink-0 outline outline-1 -outline-offset-1"
+            :class="
+              collectionId === collection.id
+                ? 'outline-n-brand bg-n-alpha-2 text-n-slate-12'
+                : 'outline-n-container text-n-slate-11'
+            "
+            :data-testid="`catalog-chip-${collection.id}`"
+            @click="collectionId = collection.id"
+          >
+            {{ `${collection.name} (${collection.count})` }}
+          </button>
+        </div>
+        <span
+          v-if="selectionMode"
+          class="text-sm font-medium text-start text-n-slate-12"
+          data-testid="catalog-counter"
+        >
+          {{
+            $t('CATALOG.COUNTER', {
+              count: selectedCount,
+              max: CATALOG_MAX_SELECTION,
+            })
+          }}
+        </span>
+      </div>
+
+      <div ref="listRef" class="flex-1 min-h-0 p-4 overflow-y-auto">
+        <template v-if="view === 'products'">
+          <p v-if="isLoading" class="mb-0 text-sm text-n-slate-11">
+            {{ $t('CATALOG.STATES.LOADING') }}
+          </p>
+          <div v-else-if="loadFailed" class="flex flex-col gap-3">
+            <p class="mb-0 text-sm text-n-ruby-11">
+              {{ $t('CATALOG.STATES.ERROR') }}
+            </p>
+            <div>
               <Button
                 type="button"
                 variant="faded"
                 color="slate"
-                icon="i-lucide-refresh-cw"
-                :aria-label="$t('CATALOG.ACTIONS.REFRESH')"
-                :is-loading="isRefreshing"
-                :disabled="isRefreshing"
-                data-testid="catalog-refresh"
+                :label="$t('CATALOG.ACTIONS.REFRESH')"
+                data-testid="catalog-retry"
                 @click="fetchCatalog({ force: true })"
               />
-              <Button
-                v-if="!selectionMode"
-                type="button"
-                variant="faded"
-                color="blue"
-                :label="$t('CATALOG.ACTIONS.SELECT')"
-                data-testid="catalog-select"
-                @click="selectionMode = true"
-              />
-              <Button
-                v-if="catalogLink"
-                type="button"
-                variant="faded"
-                color="slate"
-                icon="i-lucide-link"
-                :aria-label="$t('CATALOG.ACTIONS.INSERT_LINK')"
-                data-testid="catalog-insert-link"
-                @click="insertLink"
-              />
             </div>
-            <div
-              class="flex gap-2 pb-1 overflow-x-auto"
-              data-testid="catalog-chips"
-            >
-              <button
-                type="button"
-                class="px-3 py-1 text-xs whitespace-nowrap rounded-full shrink-0 outline outline-1 -outline-offset-1"
-                :class="
-                  collectionId === null
-                    ? 'outline-n-brand bg-n-alpha-2 text-n-slate-12'
-                    : 'outline-n-container text-n-slate-11'
-                "
-                data-testid="catalog-chip-all"
-                @click="collectionId = null"
-              >
-                {{ $t('CATALOG.FILTERS.ALL') }}
-              </button>
-              <button
-                v-for="collection in collections"
-                :key="collection.id"
-                type="button"
-                class="px-3 py-1 text-xs whitespace-nowrap rounded-full shrink-0 outline outline-1 -outline-offset-1"
-                :class="
-                  collectionId === collection.id
-                    ? 'outline-n-brand bg-n-alpha-2 text-n-slate-12'
-                    : 'outline-n-container text-n-slate-11'
-                "
-                :data-testid="`catalog-chip-${collection.id}`"
-                @click="collectionId = collection.id"
-              >
-                {{ `${collection.name} (${collection.count})` }}
-              </button>
-            </div>
-            <span
-              v-if="selectionMode"
-              class="text-sm font-medium text-start text-n-slate-12"
-              data-testid="catalog-counter"
-            >
+          </div>
+          <SetupGuide
+            v-else-if="needsGuide"
+            :status="catalog.status"
+            :is-admin="isAdmin"
+            :inbox-id="inboxId"
+            @close="close"
+          />
+          <p
+            v-else-if="catalog && !allProducts.length"
+            class="mb-0 text-sm text-n-slate-11"
+          >
+            {{ $t('CATALOG.STATES.EMPTY') }}
+          </p>
+          <p
+            v-else-if="catalog && !visibleProducts.length"
+            class="mb-0 text-sm text-n-slate-11"
+            data-testid="catalog-no-results"
+          >
+            {{ $t('CATALOG.SEARCH.NO_RESULTS') }}
+          </p>
+          <div v-else class="flex flex-col gap-2">
+            <ProductRow
+              v-for="product in visibleProducts"
+              :key="product.retailer_id"
+              :product="product"
+              :selectable="selectionMode"
+              :checked="isSelected(product)"
+              :disabled="!isSelected(product) && atMax"
+              @toggle="toggleProduct"
+              @view="openDetail"
+            />
+          </div>
+        </template>
+
+        <div v-else class="flex flex-col gap-4">
+          <div class="flex flex-col gap-2">
+            <span class="text-sm font-medium text-n-slate-12">
               {{
                 $t('CATALOG.COUNTER', {
                   count: selectedCount,
@@ -375,232 +435,163 @@ watch(
                 })
               }}
             </span>
-          </template>
-        </header>
-
-        <div class="flex-1 min-h-0 p-4 overflow-y-auto">
-          <template v-if="view === 'products'">
-            <p v-if="isLoading" class="mb-0 text-sm text-n-slate-11">
-              {{ $t('CATALOG.STATES.LOADING') }}
-            </p>
-            <div v-else-if="loadFailed" class="flex flex-col gap-3">
-              <p class="mb-0 text-sm text-n-ruby-11">
-                {{ $t('CATALOG.STATES.ERROR') }}
-              </p>
-              <div>
-                <Button
-                  type="button"
-                  variant="faded"
-                  color="slate"
-                  :label="$t('CATALOG.ACTIONS.REFRESH')"
-                  data-testid="catalog-retry"
-                  @click="fetchCatalog({ force: true })"
-                />
-              </div>
-            </div>
-            <SetupGuide
-              v-else-if="needsGuide"
-              :status="catalog.status"
-              :is-admin="isAdmin"
-              :inbox-id="inboxId"
-              @close="close"
-            />
-            <p
-              v-else-if="catalog && !allProducts.length"
-              class="mb-0 text-sm text-n-slate-11"
-            >
-              {{ $t('CATALOG.STATES.EMPTY') }}
-            </p>
-            <p
-              v-else-if="catalog && !visibleProducts.length"
-              class="mb-0 text-sm text-n-slate-11"
-              data-testid="catalog-no-results"
-            >
-              {{ $t('CATALOG.SEARCH.NO_RESULTS') }}
-            </p>
-            <div v-else class="flex flex-col gap-2">
-              <ProductRow
-                v-for="product in visibleProducts"
+            <div class="flex gap-1 overflow-x-auto">
+              <img
+                v-for="product in selectedProducts"
                 :key="product.retailer_id"
-                :product="product"
-                :selectable="selectionMode"
-                :checked="isSelected(product)"
-                :disabled="!isSelected(product) && atMax"
-                @toggle="toggleProduct"
-                @view="openDetail"
+                :src="product.image_urls?.[0]"
+                :alt="product.name"
+                loading="lazy"
+                decoding="async"
+                class="object-cover rounded-md size-8 shrink-0 bg-n-alpha-2"
               />
             </div>
-          </template>
+          </div>
 
-          <div v-else class="flex flex-col gap-4">
-            <div class="flex flex-col gap-2">
-              <span class="text-sm font-medium text-n-slate-12">
-                {{
-                  $t('CATALOG.COUNTER', {
-                    count: selectedCount,
-                    max: CATALOG_MAX_SELECTION,
-                  })
-                }}
-              </span>
-              <div class="flex gap-1 overflow-x-auto">
-                <img
-                  v-for="product in selectedProducts"
-                  :key="product.retailer_id"
-                  :src="product.image_urls?.[0]"
-                  :alt="product.name"
-                  loading="lazy"
-                  decoding="async"
-                  class="object-cover rounded-md size-8 shrink-0 bg-n-alpha-2"
-                />
-              </div>
-            </div>
-
-            <fieldset class="flex flex-col gap-2 p-0 m-0 border-0">
-              <legend class="mb-1 text-sm font-medium text-n-slate-12">
-                {{ $t('CATALOG.FORMAT.LABEL') }}
-              </legend>
-              <label
-                v-for="format in formats"
-                :key="format.kind"
-                class="flex items-start gap-3 p-3 rounded-lg outline outline-1 -outline-offset-1"
-                :class="[
-                  kind === format.kind
-                    ? 'outline-n-brand bg-n-alpha-2'
-                    : 'outline-n-container',
-                  format.available
-                    ? 'cursor-pointer'
-                    : 'opacity-60 cursor-not-allowed',
-                ]"
-              >
-                <input
-                  type="radio"
-                  name="catalog-format"
-                  class="mt-1 mb-0 shrink-0"
-                  :checked="kind === format.kind"
-                  :disabled="!format.available"
-                  :data-testid="`catalog-format-${format.kind}`"
-                  @change="chooseKind(format.kind)"
-                />
-                <span class="flex flex-col gap-0.5">
-                  <span class="text-sm font-medium text-n-slate-12">
-                    {{ $t(`CATALOG.FORMATS.${FORMAT_KEYS[format.kind]}.NAME`) }}
-                  </span>
-                  <span class="text-xs text-n-slate-11">
-                    {{ $t(`CATALOG.FORMATS.${FORMAT_KEYS[format.kind]}.RULE`) }}
-                  </span>
-                  <span
-                    v-if="!format.available"
-                    class="text-xs text-n-ruby-11"
-                    :data-testid="`catalog-format-reason-${format.kind}`"
-                  >
-                    {{
-                      $t('CATALOG.FORMAT.UNAVAILABLE', {
-                        reason: reasonText(format.reason),
-                      })
-                    }}
-                  </span>
-                </span>
-              </label>
-            </fieldset>
-
-            <div
-              v-for="field in fields"
-              :key="field.name"
-              class="flex flex-col gap-1"
+          <fieldset class="flex flex-col gap-2 p-0 m-0 border-0">
+            <legend class="mb-1 text-sm font-medium text-n-slate-12">
+              {{ $t('CATALOG.FORMAT.LABEL') }}
+            </legend>
+            <label
+              v-for="format in formats"
+              :key="format.kind"
+              class="flex items-start gap-3 p-3 rounded-lg outline outline-1 -outline-offset-1"
+              :class="[
+                kind === format.kind
+                  ? 'outline-n-brand bg-n-alpha-2'
+                  : 'outline-n-container',
+                format.available
+                  ? 'cursor-pointer'
+                  : 'opacity-60 cursor-not-allowed',
+              ]"
             >
-              <label
-                class="flex items-center justify-between gap-2 text-sm font-medium text-n-slate-12"
-                :for="`catalog-${field.name}`"
-              >
-                <span>{{
-                  $t(`CATALOG.FIELDS.${field.name.toUpperCase()}`)
-                }}</span>
-                <span class="text-xs font-normal text-n-slate-11">
-                  {{
-                    field.required
-                      ? $t('CATALOG.FIELDS.REQUIRED')
-                      : $t('CATALOG.FIELDS.OPTIONAL')
-                  }}
-                </span>
-              </label>
-              <textarea
-                :id="`catalog-${field.name}`"
-                v-model="form[field.name]"
-                :rows="field.name === 'body' ? 4 : 1"
-                class="mb-0"
-                :data-testid="`catalog-field-${field.name}`"
+              <input
+                type="radio"
+                name="catalog-format"
+                class="mt-1 mb-0 shrink-0"
+                :checked="kind === format.kind"
+                :disabled="!format.available"
+                :data-testid="`catalog-format-${format.kind}`"
+                @change="chooseKind(format.kind)"
               />
-              <div class="flex justify-between gap-2 text-xs">
-                <span class="text-n-ruby-11">{{ errorText(field.name) }}</span>
-                <span class="text-n-slate-11">
+              <span class="flex flex-col gap-0.5">
+                <span class="text-sm font-medium text-n-slate-12">
+                  {{ $t(`CATALOG.FORMATS.${FORMAT_KEYS[format.kind]}.NAME`) }}
+                </span>
+                <span class="text-xs text-n-slate-11">
+                  {{ $t(`CATALOG.FORMATS.${FORMAT_KEYS[format.kind]}.RULE`) }}
+                </span>
+                <span
+                  v-if="!format.available"
+                  class="text-xs text-n-ruby-11"
+                  :data-testid="`catalog-format-reason-${format.kind}`"
+                >
                   {{
-                    $t('CATALOG.FIELDS.CHARACTERS', {
-                      count: form[field.name].length,
-                      max: CATALOG_TEXT_LIMITS[field.name],
+                    $t('CATALOG.FORMAT.UNAVAILABLE', {
+                      reason: reasonText(format.reason),
                     })
                   }}
                 </span>
-              </div>
-            </div>
-            <p
-              v-if="sendError"
-              class="mb-0 text-sm text-n-ruby-11"
-              data-testid="catalog-send-error"
-            >
-              {{ sendError }}
-            </p>
-          </div>
-        </div>
+              </span>
+            </label>
+          </fieldset>
 
-        <footer
-          v-if="view === 'products' && selectionMode && catalog && !needsGuide"
-          class="flex items-center justify-between gap-3 p-4 border-t border-n-weak shrink-0"
-        >
-          <Button
-            type="button"
-            variant="faded"
-            color="slate"
-            :label="$t('CATALOG.ACTIONS.CANCEL')"
-            data-testid="catalog-cancel-selection"
-            @click="exitSelection"
-          />
-          <Button
-            type="button"
-            color="blue"
-            :label="$t('CATALOG.ACTIONS.NEXT')"
-            :disabled="!selectedCount"
-            data-testid="catalog-next"
-            @click="goToFormat"
-          />
-        </footer>
-        <footer
-          v-else-if="view === 'format'"
-          class="flex items-center justify-between gap-3 p-4 border-t border-n-weak shrink-0"
-        >
-          <Button
-            type="button"
-            variant="faded"
-            color="slate"
-            :label="$t('CATALOG.ACTIONS.BACK')"
-            data-testid="catalog-back"
-            @click="goBack"
-          />
-          <Button
-            type="button"
-            color="blue"
-            :label="$t('CATALOG.ACTIONS.SEND')"
-            :is-loading="isSending"
-            :disabled="isSending"
-            data-testid="catalog-send"
-            @click="send"
-          />
-        </footer>
+          <div
+            v-for="field in fields"
+            :key="field.name"
+            class="flex flex-col gap-1"
+          >
+            <label
+              class="flex items-center justify-between gap-2 text-sm font-medium text-n-slate-12"
+              :for="`catalog-${field.name}`"
+            >
+              <span>{{ $t(`CATALOG.FIELDS.${field.name.toUpperCase()}`) }}</span>
+              <span class="text-xs font-normal text-n-slate-11">
+                {{
+                  field.required
+                    ? $t('CATALOG.FIELDS.REQUIRED')
+                    : $t('CATALOG.FIELDS.OPTIONAL')
+                }}
+              </span>
+            </label>
+            <textarea
+              :id="`catalog-${field.name}`"
+              v-model="form[field.name]"
+              :rows="field.name === 'body' ? 4 : 1"
+              class="mb-0"
+              :data-testid="`catalog-field-${field.name}`"
+            />
+            <div class="flex justify-between gap-2 text-xs">
+              <span class="text-n-ruby-11">{{ errorText(field.name) }}</span>
+              <span class="text-n-slate-11">
+                {{
+                  $t('CATALOG.FIELDS.CHARACTERS', {
+                    count: form[field.name].length,
+                    max: CATALOG_TEXT_LIMITS[field.name],
+                  })
+                }}
+              </span>
+            </div>
+          </div>
+          <p
+            v-if="sendError"
+            class="mb-0 text-sm text-n-ruby-11"
+            data-testid="catalog-send-error"
+          >
+            {{ sendError }}
+          </p>
+        </div>
       </div>
     </div>
-    <WhatsappCatalogDetail
-      v-if="detailItem"
-      :item="detailItem"
-      @close="detailItem = null"
-    />
-  </Teleport>
+
+    <template
+      v-if="
+        !detailItem &&
+        ((view === 'products' && selectionMode && catalog && !needsGuide) ||
+          view === 'format')
+      "
+      #footer
+    >
+      <div
+        v-if="view === 'products'"
+        class="flex items-center justify-between gap-3 p-4"
+      >
+        <Button
+          type="button"
+          variant="faded"
+          color="slate"
+          :label="$t('CATALOG.ACTIONS.CANCEL')"
+          data-testid="catalog-cancel-selection"
+          @click="exitSelection"
+        />
+        <Button
+          type="button"
+          color="blue"
+          :label="$t('CATALOG.ACTIONS.NEXT')"
+          :disabled="!selectedCount"
+          data-testid="catalog-next"
+          @click="goToFormat"
+        />
+      </div>
+      <div v-else class="flex items-center justify-between gap-3 p-4">
+        <Button
+          type="button"
+          variant="faded"
+          color="slate"
+          :label="$t('CATALOG.ACTIONS.BACK')"
+          data-testid="catalog-back"
+          @click="goBack"
+        />
+        <Button
+          type="button"
+          color="blue"
+          :label="$t('CATALOG.ACTIONS.SEND')"
+          :is-loading="isSending"
+          :disabled="isSending"
+          data-testid="catalog-send"
+          @click="send"
+        />
+      </div>
+    </template>
+  </CatalogSheet>
 </template>
