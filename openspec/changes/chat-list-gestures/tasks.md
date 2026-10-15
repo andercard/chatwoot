@@ -51,3 +51,21 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: con puntero táctil, un scroll vertical que empieza sobre el encabezado de una sección no la arrastra y el panel se desplaza normal; mantener pulsado el encabezado alrededor de 0,5 s (constante con nombre) activa el arrastre y reordena; con ratón el arrastre sigue arrancando de inmediato; el orden guardado (`onDragEnd`) no cambia; sin dependencias nuevas (`delay` y `delay-on-touch-only` de `vuedraggable`)
   - commit: `fix(contact-panel): require a long press to reorder sections on touch`
 
+
+- [ ] **8 · QA: los gestos de la tarjeta no se disparan y la píldora se corta**
+  - archivos: `app/javascript/dashboard/components-next/Conversation/ConversationCard/SwipeActions.vue`, `app/javascript/dashboard/components-next/Conversation/ConversationCard/TypingPill.vue`
+  - depende de: 6
+  - listo cuando: `SwipeActions.vue` enlaza los handlers del gesto como listeners que Vue sí registra (`v-bind="handlers"`, no `v-on`, porque las claves son `onPointerdown`, `onClickCapture`…) y con eventos de puntero táctiles un arrastre a la izquierda deja `translateX` negativo en el contenedor `touch-pan-y` y a la derecha positivo; `TypingPill.vue` muestra el primer nombre de cada persona (no el nombre completo) con un ancho máximo suficiente para que "Tatiana escribe…" y "Tatiana y Lucía escriben…" se lean sin recorte en una columna de 340 px
+  - commit: `fix(chat-list): bind the swipe handlers and show first names in the typing pill`
+
+- [ ] **9 · QA: el chip No leídos ensancha la lista, muestra 0 y encoge los conteos**
+  - archivos: `app/javascript/dashboard/components/ChatList.vue`, `app/javascript/dashboard/components/ChatListHeader.vue`, `app/javascript/dashboard/components/ui/Tabs/TabsItem.vue`, `app/javascript/dashboard/store/modules/conversations/actions.js`
+  - depende de: 6
+  - listo cuando: con 375 px de ancho `.conversations-list-wrap` mide 375 px (hoy 417: el panel desborda y las tarjetas quedan cortadas a la derecha, y los botones de orden/colapsar del encabezado quedan fuera de pantalla); la pestaña "No leídos" no muestra ningún número (hoy pinta un badge "0"); con "No leídos" activa los conteos de Mías / Sin asignar / Todos conservan los valores de la lista completa (hoy bajan de 137/179 a 24/25); las demás pestañas siguen igual
+  - commit: `fix(chat-list): keep the list inside the viewport and the tab counts stable on the unread tab`
+
+- [ ] **10 · QA: la barra de acciones masivas se desborda**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/Index.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkReadActions.vue`
+  - depende de: 6
+  - listo cuando: en una lista de 340 px (escritorio) y de 375 px (móvil) la barra muestra el contador de seleccionadas, "Limpiar", "Todas", cerrar, los íconos de etiquetas/agente/equipo/estado y los botones Leído y No leído dentro de su propio contenedor, sin salirse ni taparse con el editor de respuesta
+  - commit: `fix(chat-list): lay out the bulk action bar inside its container`
