@@ -32,17 +32,12 @@ When the catalog of the inbox cannot be read, the catalog dialog SHALL show a gu
 - **THEN** the guide names the missing permission and the manual catalog ID alternative
 
 ### Requirement: Catalog is read from Meta server-side
-The system SHALL expose the catalog of a WhatsApp Cloud inbox, grouped by collection, using the catalog ID saved in the inbox provider configuration when present and the catalog connected to the WhatsApp Business account otherwise. The access token SHALL NOT be sent to the browser, and a failure to read SHALL be reported as a status (`no_catalog`, `missing_permission` or `error`) and not as a server error.
+The system SHALL expose the catalog of a WhatsApp Cloud inbox (collections and products), using the catalog ID saved in the inbox provider configuration when present and the catalog connected to the WhatsApp Business account otherwise. The access token SHALL NOT be sent to the browser, and a failure to read SHALL be reported as a status (`no_catalog`, `missing_permission` or `error`) and not as a server error.
 
 #### Scenario: Manual catalog ID wins
 - **GIVEN** an inbox with `catalog_id` saved in its provider configuration
 - **WHEN** the catalog is requested
 - **THEN** that catalog is read and the connected-catalog lookup is not used
-
-#### Scenario: Products outside any collection
-- **GIVEN** a catalog with a product that belongs to no collection
-- **WHEN** the catalog is requested
-- **THEN** the product is returned under a collection for products without collection
 
 ### Requirement: Browse-then-select catalog dialog with search
 The catalog dialog SHALL open on the products view showing the catalog with a search box, collection filters (the default Meta collection "All Products" SHALL NOT be listed) and each product exactly once with a "See more" action that opens its detail (photos, title, price, description, link, never video). A "Select" action SHALL enter selection mode with a counter limited to 30 products; continuing SHALL open a format view with a selector (carousel, single product card, product list) where the formats not allowed for the selected count are disabled with the reason, followed by the fields of the format: a carousel allows 2 to 10 products and requires a message text (up to 1024 characters) without header or footer; a card allows exactly 1 product with optional text (up to 1024) and optional footer (up to 60); a list allows 1 to 30 products and requires a header and a message text, with an optional footer (up to 60). The message text SHALL be prefilled with the text already typed in the composer.
