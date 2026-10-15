@@ -238,6 +238,25 @@ const refresh = async () => {
   isRefreshing.value = false;
 };
 
+// Revalidates stale painted data without loading state, scroll or selection
+// changes. It yields to any newer request (collection, search, reopen, close).
+const refreshInBackground = async () => {
+  const currentRequest = requestId;
+  try {
+    const [freshCatalog, freshPage] = await Promise.all([
+      loadCatalog(props.inboxId),
+      loadProductsPage(props.inboxId, {}),
+    ]);
+    if (currentRequest !== requestId || query.value) return;
+    if (freshCatalog.status === 'ok' && freshPage.status === 'ok') {
+      catalog.value = freshCatalog;
+      applyPage(freshPage);
+    }
+  } catch (error) {
+    // Keep showing the cached list.
+  }
+};
+
 const searchProducts = useDebounceFn(() => loadFirstPage(), SEARCH_DEBOUNCE_MS);
 
 const selectCollection = id => {
@@ -254,6 +273,9 @@ useIntersectionObserver(
 );
 
 const reset = () => {
+  requestId += 1;
+  isLoading.value = false;
+  isLoadingPage.value = false;
   view.value = 'products';
   catalog.value = null;
   products.value = [];
@@ -267,12 +289,13 @@ const reset = () => {
   form.value = { header: '', body: props.initialBody, footer: '' };
   submitted.value = false;
   sendError.value = '';
-  // Fresh prefetched data paints at once, with no loading state and no request.
+  // Prefetched data paints at once, with no loading state; stale data is revalidated in the background.
   const cachedCatalog = peekCatalog(props.inboxId);
   const cachedPage = peekProductsPage(props.inboxId);
   if (cachedCatalog && cachedPage) {
-    catalog.value = cachedCatalog;
-    applyPage(cachedPage);
+    catalog.value = cachedCatalog.data;
+    applyPage(cachedPage.data);
+    if (cachedCatalog.isStale || cachedPage.isStale) refreshInBackground();
   } else {
     loadCatalogAndFirstPage();
   }
@@ -359,6 +382,7 @@ watch(
   () => props.show,
   value => {
     if (value) reset();
+    else requestId += 1;
   },
   { immediate: true }
 );

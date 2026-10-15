@@ -138,28 +138,38 @@ describe('whatsappCatalogCache', () => {
   });
 
   describe('peek', () => {
-    it('returns null before loading and the cached data after', async () => {
+    it('returns null before loading and fresh data after', async () => {
       expect(peekCatalog(1)).toBeNull();
       expect(peekProductsPage(1)).toBeNull();
       await loadCatalog(1);
       await loadProductsPage(1);
       await loadProductsPage(1, { collectionId: 'c1' });
-      expect(peekCatalog(1)).toEqual(okData);
-      expect(peekProductsPage(1)).toEqual(page);
-      expect(peekProductsPage(1, { collectionId: 'c1' })).toEqual(page);
+      expect(peekCatalog(1)).toEqual({ data: okData, isStale: false });
+      expect(peekProductsPage(1)).toEqual({ data: page, isStale: false });
+      expect(peekProductsPage(1, { collectionId: 'c1' })).toEqual({
+        data: page,
+        isStale: false,
+      });
       expect(peekProductsPage(1, { collectionId: 'c2' })).toBeNull();
       expect(peekCatalog(2)).toBeNull();
     });
 
-    it('returns null after the TTL', async () => {
+    it('keeps returning the data, flagged stale, after the TTL', async () => {
       await loadCatalog(1);
       await loadProductsPage(1);
       vi.advanceTimersByTime(CATALOG_CACHE_TTL + 1);
-      expect(peekCatalog(1)).toBeNull();
-      expect(peekProductsPage(1)).toBeNull();
+      expect(peekCatalog(1)).toEqual({ data: okData, isStale: true });
+      expect(peekProductsPage(1)).toEqual({ data: page, isStale: true });
     });
 
-    it('never calls the API', () => {
+    it('never calls the API', async () => {
+      peekCatalog(1);
+      peekProductsPage(1);
+      await loadCatalog(1);
+      await loadProductsPage(1);
+      inboxes.getWhatsappCatalog.mockClear();
+      inboxes.getWhatsappCatalogProducts.mockClear();
+      vi.advanceTimersByTime(CATALOG_CACHE_TTL + 1);
       peekCatalog(1);
       peekProductsPage(1);
       expect(inboxes.getWhatsappCatalog).not.toHaveBeenCalled();

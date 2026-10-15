@@ -15,7 +15,12 @@ const mountSheet = (props = { show: true, title: 'Details' }, slots = {}) =>
     attachTo: document.body,
     global: {
       plugins: [i18n],
-      stubs: { SheetHandle: { template: '<div data-test-id="handle" />' } },
+      stubs: {
+        SheetHandle: {
+          emits: ['close'],
+          template: '<div data-test-id="handle" @click="$emit(\'close\')" />',
+        },
+      },
     },
   });
 
@@ -47,6 +52,13 @@ describe('CatalogSheet', () => {
     expect(q('[data-test-id="catalog-sheet"]').firstElementChild).toBe(
       q('[data-test-id="handle"]')
     );
+    wrapper.unmount();
+  });
+
+  it('emits close when the handle is dragged down', () => {
+    const wrapper = mountSheet();
+    q('[data-test-id="handle"]').click();
+    expect(wrapper.emitted('close')).toHaveLength(1);
     wrapper.unmount();
   });
 

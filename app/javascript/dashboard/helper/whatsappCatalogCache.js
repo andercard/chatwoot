@@ -12,17 +12,19 @@ export const clearCatalogCache = () => {
   });
 };
 
-const readFresh = (key, { cache }) => {
+// Raw read: whatever was cached, flagged when it outlived the TTL. Null if never loaded.
+const readCache = (key, { cache }) => {
   const cached = cache.get(key);
-  return cached && cached.expiresAt > Date.now() ? cached.data : null;
+  if (!cached) return null;
+  return { data: cached.data, isStale: cached.expiresAt <= Date.now() };
 };
 
 // Serves `key` from memory while fresh, shares the in-flight request and
 // stores only ok responses. `force` skips the cache and replaces it.
 const cachedRequest = (key, fetcher, store, force = false) => {
   const { cache, pending } = store;
-  const fresh = force ? null : readFresh(key, store);
-  if (fresh) return Promise.resolve(fresh);
+  const cached = force ? null : readCache(key, store);
+  if (cached && !cached.isStale) return Promise.resolve(cached.data);
   if (!force && pending.has(key)) return pending.get(key);
 
   const request = fetcher()
@@ -42,11 +44,12 @@ const cachedRequest = (key, fetcher, store, force = false) => {
 const firstPageKey = (inboxId, collectionId) =>
   `${inboxId}:${collectionId || 'all'}`;
 
-// Synchronous reads: fresh cached data or null, never hit the API.
-export const peekCatalog = inboxId => readFresh(inboxId, collectionsStore);
+// Synchronous reads, never hit the API: `{ data, isStale }` (stale data is
+// still returned so callers can paint it and revalidate) or null if never loaded.
+export const peekCatalog = inboxId => readCache(inboxId, collectionsStore);
 
 export const peekProductsPage = (inboxId, { collectionId } = {}) =>
-  readFresh(firstPageKey(inboxId, collectionId), firstPageStore);
+  readCache(firstPageKey(inboxId, collectionId), firstPageStore);
 
 export const loadCatalog = (inboxId, { force = false } = {}) =>
   cachedRequest(

@@ -387,6 +387,22 @@ describe('WhatsappCatalog Modal', () => {
     expect(whatsappCatalogMessages.create).not.toHaveBeenCalled();
   });
 
+  it('shows the permission guide mentioning catalog_management', async () => {
+    loadCatalog.mockResolvedValue({
+      status: 'missing_permission',
+      collections: [],
+    });
+    loadProductsPage.mockResolvedValue({
+      status: 'missing_permission',
+      products: [],
+    });
+    const w = await mountModal();
+    expect(q(w, 'catalog-setup-guide').text()).toContain(
+      'CATALOG.SETUP_GUIDE.MISSING_PERMISSION.TITLE'
+    );
+    expect(q(w, 'catalog-search').exists()).toBe(false);
+  });
+
   it('shows the setup guide for no_catalog', async () => {
     loadCatalog.mockResolvedValue({
       status: 'no_catalog',
@@ -398,22 +414,78 @@ describe('WhatsappCatalog Modal', () => {
     expect(q(w, 'catalog-search').exists()).toBe(false);
   });
 
-  it('paints prefetched data without loading state or requests', async () => {
-    peekCatalog.mockReturnValue(catalogData());
-    peekProductsPage.mockReturnValue(firstPage());
-    const w = mount(Modal, {
-      props: { show: true, inboxId: 1, conversationId: 9 },
-      global: {
-        mocks: { $t: key => key },
-        stubs: { Teleport: true, Button: ButtonStub },
-      },
+  describe('with prefetched data', () => {
+    const mountCached = () =>
+      mount(Modal, {
+        props: { show: true, inboxId: 1, conversationId: 9 },
+        global: {
+          mocks: { $t: key => key },
+          stubs: { Teleport: true, Button: ButtonStub },
+        },
+      });
+
+    it('paints fresh data without loading state or requests', async () => {
+      peekCatalog.mockReturnValue({ data: catalogData(), isStale: false });
+      peekProductsPage.mockReturnValue({ data: firstPage(), isStale: false });
+      const w = mountCached();
+      expect(rows(w)).toHaveLength(3);
+      expect(w.text()).not.toContain('CATALOG.STATES.LOADING');
+      await flushPromises();
+      expect(w.text()).not.toContain('CATALOG.STATES.LOADING');
+      expect(loadCatalog).not.toHaveBeenCalled();
+      expect(loadProductsPage).not.toHaveBeenCalled();
     });
-    expect(rows(w)).toHaveLength(3);
-    expect(w.text()).not.toContain('CATALOG.STATES.LOADING');
-    await flushPromises();
-    expect(w.text()).not.toContain('CATALOG.STATES.LOADING');
-    expect(loadCatalog).not.toHaveBeenCalled();
-    expect(loadProductsPage).not.toHaveBeenCalled();
+
+    it('paints stale data at once and refreshes it in the background', async () => {
+      peekCatalog.mockReturnValue({ data: catalogData(), isStale: true });
+      peekProductsPage.mockReturnValue({ data: firstPage(), isStale: true });
+      loadProductsPage.mockResolvedValue({
+        ...firstPage(),
+        products: [...firstPage().products, product(5, { name: 'New Scarf' })],
+      });
+      const w = mountCached();
+      expect(rows(w)).toHaveLength(3);
+      expect(w.text()).not.toContain('CATALOG.STATES.LOADING');
+      expect(loadCatalog).toHaveBeenCalledWith(1);
+      expect(loadProductsPage).toHaveBeenCalledWith(1, {});
+      await flushPromises();
+      expect(w.text()).not.toContain('CATALOG.STATES.LOADING');
+      expect(rows(w)).toHaveLength(4);
+      expect(w.text()).toContain('New Scarf');
+    });
+
+    it('ignores the background refresh when the user changed collection', async () => {
+      peekCatalog.mockReturnValue({ data: catalogData(), isStale: true });
+      peekProductsPage.mockReturnValue({ data: firstPage(), isStale: true });
+      let resolveBackground;
+      loadProductsPage.mockReturnValueOnce(
+        new Promise(resolve => {
+          resolveBackground = resolve;
+        })
+      );
+      const w = mountCached();
+      loadProductsPage.mockResolvedValue({
+        status: 'ok',
+        next_cursor: null,
+        products: [product(9, { name: 'Other' })],
+      });
+      await q(w, 'catalog-chip-c2').trigger('click');
+      await flushPromises();
+      resolveBackground({ ...firstPage(), products: [product(5)] });
+      await flushPromises();
+      expect(rows(w)).toHaveLength(1);
+      expect(w.text()).toContain('Other');
+    });
+
+    it('keeps the cached list when the background refresh fails', async () => {
+      peekCatalog.mockReturnValue({ data: catalogData(), isStale: true });
+      peekProductsPage.mockReturnValue({ data: firstPage(), isStale: true });
+      loadCatalog.mockRejectedValue(new Error('boom'));
+      const w = mountCached();
+      await flushPromises();
+      expect(rows(w)).toHaveLength(3);
+      expect(w.text()).not.toContain('CATALOG.STATES.ERROR');
+    });
   });
 
   it('shows the loading state when nothing is prefetched', async () => {
