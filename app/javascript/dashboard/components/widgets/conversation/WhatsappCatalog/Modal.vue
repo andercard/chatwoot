@@ -1,9 +1,13 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useDebounceFn, useIntersectionObserver } from '@vueuse/core';
 
 import whatsappCatalogMessages from 'dashboard/api/whatsappCatalogMessages';
-import { loadCatalog } from 'dashboard/helper/whatsappCatalogCache';
+import {
+  loadCatalog,
+  loadProductsPage,
+} from 'dashboard/helper/whatsappCatalogCache';
 import { useAdmin } from 'dashboard/composables/useAdmin';
 import {
   CATALOG_MAX_SELECTION,
@@ -11,7 +15,6 @@ import {
   CATALOG_ITEM_LIMITS,
   CATALOG_TEXT_LIMITS,
   validateCatalogForm,
-  filterCatalogProducts,
   getAvailableFormats,
 } from 'dashboard/helper/whatsappCatalog';
 
@@ -34,6 +37,8 @@ const emit = defineEmits(['update:show', 'sent', 'close', 'insertLink']);
 const { t } = useI18n();
 const { isAdmin } = useAdmin();
 
+const SEARCH_DEBOUNCE_MS = 400;
+
 const FORMAT_KEYS = {
   [CATALOG_KINDS.CAROUSEL]: 'CAROUSEL',
   [CATALOG_KINDS.PRODUCT]: 'PRODUCT',
@@ -54,15 +59,22 @@ const FIELDS_BY_KIND = {
 
 const view = ref('products');
 const catalog = ref(null);
+const products = ref([]);
+const nextCursor = ref(null);
+const pageStatus = ref('ok');
 const isLoading = ref(false);
+const isLoadingPage = ref(false);
 const isRefreshing = ref(false);
 const loadFailed = ref(false);
 const query = ref('');
 const collectionId = ref(null);
 const selectionMode = ref(false);
-const selectedIds = ref([]);
+// Full product objects by retailer_id, so the selection survives pages, searches and collections.
+const selected = ref({});
 const detailItem = ref(null);
 const listRef = ref(null);
+const sentinelRef = ref(null);
+let requestId = 0;
 let savedScrollTop = 0;
 const kind = ref(null);
 const form = ref({ header: '', body: '', footer: '' });
@@ -70,22 +82,14 @@ const submitted = ref(false);
 const isSending = ref(false);
 const sendError = ref('');
 
-const allProducts = computed(() => catalog.value?.products || []);
 const collections = computed(() => catalog.value?.collections || []);
+const guideStatus = computed(() =>
+  catalog.value?.status === 'ok' ? pageStatus.value : catalog.value?.status
+);
 const needsGuide = computed(
-  () => catalog.value && catalog.value.status !== 'ok'
+  () => !!catalog.value && guideStatus.value !== 'ok'
 );
-const visibleProducts = computed(() =>
-  filterCatalogProducts(allProducts.value, {
-    query: query.value,
-    collectionId: collectionId.value,
-  })
-);
-const selectedProducts = computed(() =>
-  selectedIds.value
-    .map(id => allProducts.value.find(p => p.retailer_id === id))
-    .filter(Boolean)
-);
+const selectedProducts = computed(() => Object.values(selected.value));
 const selectedCount = computed(() => selectedProducts.value.length);
 const atMax = computed(() => selectedCount.value >= CATALOG_MAX_SELECTION);
 const formats = computed(() => getAvailableFormats(selectedCount.value));
@@ -138,15 +142,14 @@ const errorText = field =>
 const reasonText = reason =>
   reason ? t(reason.key, { ...reason.params, count: reason.params.max }) : '';
 
-const isSelected = product => selectedIds.value.includes(product.retailer_id);
+const isSelected = product => product.retailer_id in selected.value;
 
 const toggleProduct = product => {
   if (isSelected(product)) {
-    selectedIds.value = selectedIds.value.filter(
-      id => id !== product.retailer_id
-    );
+    const { [product.retailer_id]: removed, ...rest } = selected.value;
+    selected.value = rest;
   } else if (!atMax.value) {
-    selectedIds.value = [...selectedIds.value, product.retailer_id];
+    selected.value = { ...selected.value, [product.retailer_id]: product };
   }
 };
 
@@ -162,36 +165,103 @@ const closeDetail = async () => {
   if (listRef.value) listRef.value.scrollTop = savedScrollTop;
 };
 
-const fetchCatalog = async ({ force = false } = {}) => {
+const loadFirstPage = async ({ force = false } = {}) => {
+  requestId += 1;
+  const currentRequest = requestId;
+  products.value = [];
+  nextCursor.value = null;
+  pageStatus.value = 'ok';
   loadFailed.value = false;
-  if (force) isRefreshing.value = true;
-  else if (!catalog.value) isLoading.value = true;
+  isLoadingPage.value = false;
+  isLoading.value = true;
+  if (listRef.value) listRef.value.scrollTop = 0;
   try {
-    catalog.value = await loadCatalog(props.inboxId, { force });
-    const known = new Set(allProducts.value.map(p => p.retailer_id));
-    selectedIds.value = selectedIds.value.filter(id => known.has(id));
+    const page = await loadProductsPage(props.inboxId, {
+      q: query.value,
+      collectionId: collectionId.value,
+      force,
+    });
+    if (currentRequest !== requestId) return;
+    pageStatus.value = page.status;
+    products.value = page.products || [];
+    nextCursor.value = page.next_cursor ?? null;
   } catch (error) {
+    if (currentRequest !== requestId) return;
     loadFailed.value = true;
-  } finally {
-    isLoading.value = false;
-    isRefreshing.value = false;
   }
+  isLoading.value = false;
 };
+
+const loadNextPage = async () => {
+  if (!nextCursor.value || isLoadingPage.value || isLoading.value) return;
+  const currentRequest = requestId;
+  isLoadingPage.value = true;
+  try {
+    const page = await loadProductsPage(props.inboxId, {
+      after: nextCursor.value,
+      q: query.value,
+      collectionId: collectionId.value,
+    });
+    if (currentRequest !== requestId) return;
+    const known = new Set(products.value.map(p => p.retailer_id));
+    products.value = [
+      ...products.value,
+      ...page.products.filter(p => !known.has(p.retailer_id)),
+    ];
+    nextCursor.value = page.next_cursor ?? null;
+  } catch (error) {
+    // Keep the cursor: scrolling to the end again retries the page.
+  }
+  if (currentRequest === requestId) isLoadingPage.value = false;
+};
+
+const loadCatalogAndFirstPage = async ({ force = false } = {}) => {
+  const catalogRequest = loadCatalog(props.inboxId, { force })
+    .then(data => {
+      catalog.value = data;
+    })
+    .catch(() => {
+      loadFailed.value = true;
+    });
+  await Promise.all([catalogRequest, loadFirstPage({ force })]);
+};
+
+const refresh = async () => {
+  isRefreshing.value = true;
+  await loadCatalogAndFirstPage({ force: true });
+  isRefreshing.value = false;
+};
+
+const searchProducts = useDebounceFn(() => loadFirstPage(), SEARCH_DEBOUNCE_MS);
+
+const selectCollection = id => {
+  collectionId.value = id;
+  loadFirstPage();
+};
+
+useIntersectionObserver(
+  sentinelRef,
+  ([entry]) => {
+    if (entry?.isIntersecting) loadNextPage();
+  },
+  { root: listRef }
+);
 
 const reset = () => {
   view.value = 'products';
   catalog.value = null;
+  products.value = [];
   loadFailed.value = false;
   query.value = '';
   collectionId.value = null;
   selectionMode.value = false;
-  selectedIds.value = [];
+  selected.value = {};
   detailItem.value = null;
   kind.value = null;
   form.value = { header: '', body: props.initialBody, footer: '' };
   submitted.value = false;
   sendError.value = '';
-  fetchCatalog();
+  loadCatalogAndFirstPage();
 };
 
 const close = () => {
@@ -209,7 +279,7 @@ const insertLink = () => {
 
 const exitSelection = () => {
   selectionMode.value = false;
-  selectedIds.value = [];
+  selected.value = {};
 };
 
 const suggestHeader = () => {
@@ -281,7 +351,13 @@ watch(
 </script>
 
 <template>
-  <CatalogSheet :show="show" :title="sheetTitle" size="md" @close="onClose">
+  <CatalogSheet
+    :show="show"
+    :title="sheetTitle"
+    :back-button="!!detailItem"
+    size="md"
+    @close="onClose"
+  >
     <ProductDetail v-if="detailItem" :item="detailItem" />
     <div v-show="!detailItem" class="flex flex-col flex-1 min-h-0">
       <div
@@ -295,6 +371,7 @@ watch(
             class="flex-1 h-10 min-w-0 !mb-0 rounded-lg"
             :placeholder="$t('CATALOG.SEARCH.PLACEHOLDER')"
             data-testid="catalog-search"
+            @input="searchProducts"
           />
           <Button
             type="button"
@@ -305,7 +382,7 @@ watch(
             :is-loading="isRefreshing"
             :disabled="isRefreshing"
             data-testid="catalog-refresh"
-            @click="fetchCatalog({ force: true })"
+            @click="refresh"
           />
           <Button
             v-if="!selectionMode"
@@ -327,7 +404,10 @@ watch(
             @click="insertLink"
           />
         </div>
-        <div class="flex gap-2 pb-1 overflow-x-auto" data-testid="catalog-chips">
+        <div
+          class="flex gap-2 pb-1 overflow-x-auto"
+          data-testid="catalog-chips"
+        >
           <button
             type="button"
             class="px-3 py-1 text-xs whitespace-nowrap rounded-full shrink-0 outline outline-1 -outline-offset-1"
@@ -337,7 +417,7 @@ watch(
                 : 'outline-n-container text-n-slate-11'
             "
             data-testid="catalog-chip-all"
-            @click="collectionId = null"
+            @click="selectCollection(null)"
           >
             {{ $t('CATALOG.FILTERS.ALL') }}
           </button>
@@ -352,7 +432,7 @@ watch(
                 : 'outline-n-container text-n-slate-11'
             "
             :data-testid="`catalog-chip-${collection.id}`"
-            @click="collectionId = collection.id"
+            @click="selectCollection(collection.id)"
           >
             {{ `${collection.name} (${collection.count})` }}
           </button>
@@ -387,33 +467,31 @@ watch(
                 color="slate"
                 :label="$t('CATALOG.ACTIONS.REFRESH')"
                 data-testid="catalog-retry"
-                @click="fetchCatalog({ force: true })"
+                @click="refresh"
               />
             </div>
           </div>
           <SetupGuide
             v-else-if="needsGuide"
-            :status="catalog.status"
+            :status="guideStatus"
             :is-admin="isAdmin"
             :inbox-id="inboxId"
             @close="close"
           />
           <p
-            v-else-if="catalog && !allProducts.length"
+            v-else-if="!products.length"
             class="mb-0 text-sm text-n-slate-11"
+            data-testid="catalog-empty"
           >
-            {{ $t('CATALOG.STATES.EMPTY') }}
-          </p>
-          <p
-            v-else-if="catalog && !visibleProducts.length"
-            class="mb-0 text-sm text-n-slate-11"
-            data-testid="catalog-no-results"
-          >
-            {{ $t('CATALOG.SEARCH.NO_RESULTS') }}
+            {{
+              query || collectionId !== null
+                ? $t('CATALOG.SEARCH.NO_RESULTS')
+                : $t('CATALOG.STATES.EMPTY')
+            }}
           </p>
           <div v-else class="flex flex-col gap-2">
             <ProductRow
-              v-for="product in visibleProducts"
+              v-for="product in products"
               :key="product.retailer_id"
               :product="product"
               :selectable="selectionMode"
@@ -422,6 +500,14 @@ watch(
               @toggle="toggleProduct"
               @view="openDetail"
             />
+            <p
+              v-if="isLoadingPage"
+              class="mb-0 text-sm text-center text-n-slate-11"
+              data-testid="catalog-loading-more"
+            >
+              {{ $t('CATALOG.STATES.LOADING') }}
+            </p>
+            <div ref="sentinelRef" class="h-px" />
           </div>
         </template>
 
@@ -505,7 +591,9 @@ watch(
               class="flex items-center justify-between gap-2 text-sm font-medium text-n-slate-12"
               :for="`catalog-${field.name}`"
             >
-              <span>{{ $t(`CATALOG.FIELDS.${field.name.toUpperCase()}`) }}</span>
+              <span>{{
+                $t(`CATALOG.FIELDS.${field.name.toUpperCase()}`)
+              }}</span>
               <span class="text-xs font-normal text-n-slate-11">
                 {{
                   field.required
