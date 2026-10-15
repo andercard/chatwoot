@@ -717,18 +717,26 @@ export default {
               this.isInboundEmailEnabled && this.continuityViaEmail,
           },
         };
-        if (this.isAWhatsAppCloudChannel) {
-          const { catalog_id: _previous, ...providerConfig } =
-            this.inbox.provider_config || {};
-          const catalogId = this.catalogId?.trim();
-          payload.channel.provider_config = catalogId
-            ? { ...providerConfig, catalog_id: catalogId }
-            : providerConfig;
-        }
         if (this.avatarFile) {
           payload.avatar = this.avatarFile;
         }
         await this.$store.dispatch('inboxes/updateInbox', payload);
+        if (this.isAWhatsAppCloudChannel) {
+          const { catalog_id: previous, ...providerConfig } =
+            this.inbox.provider_config || {};
+          const catalogId = this.catalogId?.trim();
+          if ((previous || '') !== (catalogId || '')) {
+            await this.$store.dispatch('inboxes/updateInbox', {
+              id: this.currentInboxId,
+              formData: false,
+              channel: {
+                provider_config: catalogId
+                  ? { ...providerConfig, catalog_id: catalogId }
+                  : providerConfig,
+              },
+            });
+          }
+        }
         useAlert(this.$t('INBOX_MGMT.EDIT.API.SUCCESS_MESSAGE'));
         this.showBusinessNameInput = false;
       } catch (error) {
@@ -999,14 +1007,18 @@ export default {
             <SettingsFieldSection
               v-if="isAWhatsAppCloudChannel"
               :label="$t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_CATALOG_ID.LABEL')"
-              :help-text="$t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_CATALOG_ID.HELP_TEXT')"
+              :help-text="
+                $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_CATALOG_ID.HELP_TEXT')
+              "
             >
               <input
                 v-model="catalogId"
                 type="text"
                 class="!mb-0"
                 :placeholder="
-                  $t('INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_CATALOG_ID.PLACEHOLDER')
+                  $t(
+                    'INBOX_MGMT.SETTINGS_POPUP.WHATSAPP_CATALOG_ID.PLACEHOLDER'
+                  )
                 "
               />
             </SettingsFieldSection>
