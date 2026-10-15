@@ -1,8 +1,11 @@
-module Api::V1::Accounts::Concerns::InboxHealthManagement
+module Api::V1::Accounts::Concerns::InboxHealthManagement # rubocop:disable Metrics/ModuleLength
   extend ActiveSupport::Concern
 
+  CATALOG_DEFAULT_LIMIT = 24
+  CATALOG_MAX_LIMIT = 50
+
   included do
-    skip_before_action :check_authorization, only: [:health, :register_webhook]
+    skip_before_action :check_authorization, only: [:health, :register_webhook, :whatsapp_catalog_products]
     before_action :check_admin_authorization?, only: [:register_webhook]
     before_action :validate_health_supported_channel, only: [:health, :register_webhook]
   end
@@ -57,6 +60,26 @@ module Api::V1::Accounts::Concerns::InboxHealthManagement
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def whatsapp_catalog
+    return head(:unprocessable_entity) unless whatsapp_cloud_channel?
+
+    render json: Whatsapp::CatalogService.new(channel: @inbox.channel, refresh: params[:refresh]).perform
+  end
+
+  def whatsapp_catalog_products
+    return head(:unprocessable_entity) unless whatsapp_cloud_channel?
+
+    limit = Integer(params.fetch(:limit, CATALOG_DEFAULT_LIMIT), exception: false)
+    return render_catalog_error("limit must be between 1 and #{CATALOG_MAX_LIMIT}") unless limit&.between?(1, CATALOG_MAX_LIMIT)
+
+    result = Whatsapp::CatalogService.new(channel: @inbox.channel, refresh: params[:refresh]).products(
+      limit: limit, after: params[:after], query: params[:q].to_s.strip, collection_id: params[:collection_id].presence
+    )
+    return render_catalog_error('collection_id does not belong to the catalog') if result[:status] == 'invalid_collection'
+
+    render json: result
+  end
+
   def whatsapp_business_management_token
     Whatsapp::BusinessManagementTokenService.new(whatsapp_channel).update!(params.require(:business_management_token))
 
@@ -66,6 +89,10 @@ module Api::V1::Accounts::Concerns::InboxHealthManagement
   end
 
   private
+
+  def render_catalog_error(message)
+    render json: { error: message }, status: :unprocessable_entity
+  end
 
   def fetch_health_data
     return Whatsapp::HealthService.new(@inbox.channel).sync_health_status!(include_business_profile: true) if whatsapp_cloud_channel?

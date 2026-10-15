@@ -302,6 +302,28 @@ RSpec.describe 'Conversation Messages API', type: :request do
       end
     end
 
+    context 'when the failed message carries a WhatsApp catalog' do
+      let(:agent) { create(:user, account: account, role: :agent) }
+      let(:catalog) { { 'kind' => 'product', 'catalog_id' => 'catalog_1', 'items' => [{ 'retailer_id' => 'sku-1' }] } }
+      let(:message) do
+        create(:message, account: account, status: :failed,
+                         content_attributes: { external_error: 'error', whatsapp_catalog: catalog })
+      end
+
+      before do
+        create(:inbox_member, inbox: message.conversation.inbox, user: agent)
+      end
+
+      it 'keeps the catalog when retrying the message' do
+        post "/api/v1/accounts/#{account.id}/conversations/#{message.conversation.display_id}/messages/#{message.id}/retry",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(message.reload.content_attributes).to eq({ 'whatsapp_catalog' => catalog })
+      end
+    end
+
     context 'when the message id is invalid' do
       let(:agent) { create(:user, account: account, role: :agent) }
 
