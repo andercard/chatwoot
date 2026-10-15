@@ -11,6 +11,7 @@ const { t } = useI18n();
 
 const detailItem = ref(null);
 const listOpen = ref(false);
+const openedFromList = ref(false);
 
 const catalog = computed(() => contentAttributes.value?.whatsappCatalog ?? {});
 const items = computed(() => catalog.value.items ?? []);
@@ -18,12 +19,32 @@ const isCarousel = computed(() => catalog.value.kind === 'carousel');
 const isList = computed(() => catalog.value.kind === 'product_list');
 const firstItem = computed(() => items.value[0]);
 const collectionName = computed(
-  () =>
-    firstItem.value?.section ||
-    catalog.value.header ||
-    t('CATALOG.NO_COLLECTION')
+  () => firstItem.value?.section || t('CATALOG.NO_COLLECTION')
+);
+const sheetTitle = computed(() =>
+  detailItem.value ? t('CATALOG.PRODUCT.DETAILS_TITLE') : collectionName.value
 );
 const firstImage = item => item?.imageUrls?.[0];
+
+const openFromCard = item => {
+  openedFromList.value = false;
+  detailItem.value = item;
+};
+
+const openFromList = item => {
+  openedFromList.value = true;
+  detailItem.value = item;
+};
+
+// Back arrow, X, handle, Escape and backdrop: a detail opened from the list returns to it.
+const onSheetClose = () => {
+  if (detailItem.value && openedFromList.value) {
+    detailItem.value = null;
+    return;
+  }
+  detailItem.value = null;
+  listOpen.value = false;
+};
 </script>
 
 <template>
@@ -33,7 +54,7 @@ const firstImage = item => item?.imageUrls?.[0];
     data-bubble-name="whatsapp-catalog"
   >
     <div class="flex flex-col gap-2 min-w-0">
-      <div v-if="catalog.header && !isList" class="font-medium break-words">
+      <div v-if="catalog.header" class="font-medium break-words">
         {{ catalog.header }}
       </div>
       <button
@@ -76,7 +97,7 @@ const firstImage = item => item?.imageUrls?.[0];
           <button
             type="button"
             class="block w-full aspect-square bg-n-alpha-2"
-            @click="detailItem = item"
+            @click="openFromCard(item)"
           >
             <img
               v-if="firstImage(item)"
@@ -95,7 +116,7 @@ const firstImage = item => item?.imageUrls?.[0];
           <button
             type="button"
             class="py-2 text-sm font-medium text-center border-t text-n-brand border-n-weak hover:bg-n-alpha-2"
-            @click="detailItem = item"
+            @click="openFromCard(item)"
           >
             {{ t('CATALOG.PRODUCT.VIEW') }}
           </button>
@@ -116,60 +137,37 @@ const firstImage = item => item?.imageUrls?.[0];
       </div>
     </div>
 
-    <Teleport to="body">
-      <div
-        v-if="listOpen"
-        class="fixed inset-0 z-[9999] flex items-center justify-center bg-n-alpha-black1 max-sm:bg-n-background"
-        data-test-id="catalog-list"
-        @click.self="listOpen = false"
-      >
-        <div
-          role="dialog"
-          aria-modal="true"
-          class="flex flex-col w-full max-w-md overflow-y-auto border rounded-xl bg-n-solid-2 border-n-weak max-h-[90vh] max-sm:max-w-full max-sm:h-full max-sm:max-h-full max-sm:rounded-none"
-        >
-          <div class="flex items-center justify-between p-3">
-            <span class="font-medium">{{ collectionName }}</span>
-            <button
-              type="button"
-              class="px-3 py-1 text-sm rounded-lg hover:bg-n-alpha-2"
-              @click="listOpen = false"
-            >
-              {{ t('CATALOG.ACTIONS.CLOSE') }}
-            </button>
-          </div>
-          <button
-            v-for="item in items"
-            :key="item.retailerId"
-            type="button"
-            class="flex items-center gap-3 p-3 text-start border-t border-n-weak hover:bg-n-alpha-2"
-            data-test-id="catalog-list-row"
-            @click="detailItem = item"
-          >
-            <img
-              v-if="firstImage(item)"
-              :src="firstImage(item)"
-              :alt="item.name"
-              loading="lazy"
-              class="object-cover rounded-md size-12"
-            />
-            <span v-else class="rounded-md size-12 bg-n-alpha-2" />
-            <span class="flex flex-col min-w-0">
-              <span class="text-sm font-medium truncate">{{ item.name }}</span>
-              <span class="text-sm text-n-slate-11">{{ item.price }}</span>
-            </span>
-          </button>
-        </div>
-      </div>
-    </Teleport>
-
     <CatalogSheet
-      :show="!!detailItem"
-      :title="t('CATALOG.PRODUCT.DETAILS_TITLE')"
+      :show="listOpen || !!detailItem"
+      :title="sheetTitle"
+      :back-button="!!detailItem && openedFromList"
       size="lg"
-      @close="detailItem = null"
+      @close="onSheetClose"
     >
       <ProductDetail v-if="detailItem" :item="detailItem" />
+      <template v-else>
+        <button
+          v-for="item in items"
+          :key="item.retailerId"
+          type="button"
+          class="flex items-center gap-3 p-3 text-start border-t border-n-weak first:border-t-0 hover:bg-n-alpha-2"
+          data-test-id="catalog-list-row"
+          @click="openFromList(item)"
+        >
+          <img
+            v-if="firstImage(item)"
+            :src="firstImage(item)"
+            :alt="item.name"
+            loading="lazy"
+            class="object-cover rounded-md size-12"
+          />
+          <span v-else class="rounded-md size-12 bg-n-alpha-2" />
+          <span class="flex flex-col min-w-0">
+            <span class="text-sm font-medium truncate">{{ item.name }}</span>
+            <span class="text-sm text-n-slate-11">{{ item.price }}</span>
+          </span>
+        </button>
+      </template>
     </CatalogSheet>
   </BaseBubble>
 </template>

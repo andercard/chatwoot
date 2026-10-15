@@ -108,4 +108,17 @@ describe('CatalogSheet', () => {
     expect(wrapper.emitted('close')).toHaveLength(1);
     wrapper.unmount();
   });
+
+  it('does not let the backdrop click reach the element below', () => {
+    const wrapper = mountSheet();
+    const parentClick = vi.fn();
+    document.body.addEventListener('click', parentClick);
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    q('[data-test-id="catalog-sheet-backdrop"]').dispatchEvent(event);
+    expect(wrapper.emitted('close')).toHaveLength(1);
+    expect(event.defaultPrevented).toBe(true);
+    expect(parentClick).not.toHaveBeenCalled();
+    document.body.removeEventListener('click', parentClick);
+    wrapper.unmount();
+  });
 });

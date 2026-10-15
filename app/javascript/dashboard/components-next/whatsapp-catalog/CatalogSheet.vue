@@ -45,7 +45,7 @@ onBeforeUnmount(stopListening);
       v-if="show"
       class="fixed inset-0 z-[10000] flex items-end justify-center bg-n-alpha-black1 backdrop-blur-sm sm:items-center sm:p-4"
       data-test-id="catalog-sheet-backdrop"
-      @click.self="emit('close')"
+      @click.self.stop.prevent="emit('close')"
     >
       <div
         role="dialog"

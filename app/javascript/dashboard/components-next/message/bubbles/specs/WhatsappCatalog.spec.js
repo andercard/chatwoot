@@ -61,7 +61,7 @@ const mountCatalog = (kind, catalogItems = items) => {
             DETAILS_TITLE: 'Details',
           },
           NO_COLLECTION: 'Collection',
-          ACTIONS: { CLOSE: 'Close' },
+          ACTIONS: { CLOSE: 'Close', BACK: 'Back' },
         },
       },
     },
@@ -124,22 +124,67 @@ describe('WhatsappCatalog', () => {
     wrapper.unmount();
   });
 
-  it('renders a product list with count and opens list then detail', async () => {
+  it('renders a product list with header, count and opens the list inside the sheet', async () => {
     const wrapper = mountCatalog('product_list');
+    expect(wrapper.text()).toContain('Head');
     expect(wrapper.text()).toContain('Kitchen');
     expect(wrapper.text()).toContain('2 items');
     expect(wrapper.text()).toContain('View items');
 
     await wrapper.find('[data-test-id="catalog-list-header"]').trigger('click');
-    const rows = document.body.querySelectorAll(
+    const sheets = document.body.querySelectorAll(
+      '[data-test-id="catalog-sheet"]'
+    );
+    expect(sheets).toHaveLength(1);
+    expect(
+      sheets[0].querySelector('[data-test-id="catalog-sheet-header"]')
+        .textContent
+    ).toContain('Kitchen');
+    const rows = sheets[0].querySelectorAll(
       '[data-test-id="catalog-list-row"]'
     );
     expect(rows).toHaveLength(2);
+
     rows[1].click();
     await wrapper.vm.$nextTick();
     expect(
+      document.body.querySelectorAll('[data-test-id="catalog-sheet"]')
+    ).toHaveLength(1);
+    expect(
       document.body.querySelector('[data-test-id="catalog-detail"]').textContent
     ).toContain('Plate');
+    expect(
+      document.body.querySelector('[data-test-id="catalog-list-row"]')
+    ).toBeNull();
+
+    document.body.querySelector('[data-test-id="catalog-sheet-back"]').click();
+    await wrapper.vm.$nextTick();
+    expect(
+      document.body.querySelectorAll('[data-test-id="catalog-list-row"]')
+    ).toHaveLength(2);
+    expect(
+      document.body.querySelector('[data-test-id="catalog-detail"]')
+    ).toBeNull();
+
+    document.body.querySelector('[data-test-id="catalog-sheet-close"]').click();
+    await wrapper.vm.$nextTick();
+    expect(
+      document.body.querySelector('[data-test-id="catalog-sheet"]')
+    ).toBeNull();
+    wrapper.unmount();
+  });
+
+  it('closes a detail opened from a card without a back arrow', async () => {
+    const wrapper = mountCatalog('carousel');
+    await wrapper.find('[data-test-id="catalog-card"] button').trigger('click');
+    expect(
+      document.body.querySelector('[data-test-id="catalog-sheet-back"]')
+    ).toBeNull();
+    document.body.querySelector('[data-test-id="catalog-sheet-close"]').click();
+    await wrapper.vm.$nextTick();
+    expect(
+      document.body.querySelector('[data-test-id="catalog-sheet"]')
+    ).toBeNull();
     wrapper.unmount();
   });
 });
