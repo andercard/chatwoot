@@ -45,7 +45,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: un botón ☑ junto a filtro y orden, o una pulsación larga sobre una tarjeta (con puntero táctil), activa el modo selección; en ese modo tocar una tarjeta alterna su selección (sin abrirla) y el checkbox siempre es visible; se ve "N seleccionadas", "Todas" y cerrar; la barra de acciones trae las existentes (etiquetas, agente, equipo, estado) y Leído/No leído, que aplican `markMessagesRead`/`markMessagesUnread` a cada conversación seleccionada; en móvil la barra va abajo; salir del modo limpia la selección; el checkbox al pasar el mouse en escritorio sigue funcionando; no hay acción de eliminar
   - commit: `feat(chat-list): selection mode with bulk read and unread`
 
-- [ ] **7 · Reordenar secciones del panel de contacto solo con pulsación larga en móvil**
+- [x] **7 · Reordenar secciones del panel de contacto solo con pulsación larga en móvil**
   - archivos: `app/javascript/dashboard/routes/dashboard/conversation/ContactPanel.vue`
   - depende de: 0
   - listo cuando: con puntero táctil, un scroll vertical que empieza sobre el encabezado de una sección no la arrastra y el panel se desplaza normal; mantener pulsado el encabezado alrededor de 0,5 s (constante con nombre) activa el arrastre y reordena; con ratón el arrastre sigue arrancando de inmediato; el orden guardado (`onDragEnd`) no cambia; sin dependencias nuevas (`delay` y `delay-on-touch-only` de `vuedraggable`)
