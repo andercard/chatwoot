@@ -57,7 +57,7 @@ const mountCatalog = (kind, catalogItems = items) => {
             ITEMS_COUNT: '{count} items',
             DESCRIPTION: 'Description',
             LINK: 'Link',
-            PHOTO_OF: '{current} of {total}',
+            PHOTO_OF: 'Photo {current} of {total}',
             DETAILS_TITLE: 'Details',
           },
           NO_COLLECTION: 'Collection',
@@ -96,14 +96,19 @@ describe('WhatsappCatalog', () => {
     expect(detail.textContent).toContain('Mug');
     expect(detail.textContent).toContain('$ 5.000');
     expect(detail.textContent).toContain('Ceramic mug');
-    expect(detail.textContent).toContain('1 of 2');
-    const bar = detail.querySelector('[data-test-id="catalog-detail-bar"]');
-    expect(bar.textContent).toContain('Details');
+    expect(detail.textContent).toContain('Photo 1 of 2');
+    const sheet = document.body.querySelector('[data-test-id="catalog-sheet"]');
     expect(
-      bar
-        .querySelector('[data-test-id="catalog-detail-close"]')
+      sheet.querySelector('[data-test-id="catalog-sheet-header"]').textContent
+    ).toContain('Details');
+    expect(
+      sheet
+        .querySelector('[data-test-id="catalog-sheet-close"]')
         .getAttribute('aria-label')
     ).toBe('Close');
+    expect(
+      detail.querySelector('[data-test-id="catalog-detail-close"]')
+    ).toBeNull();
     const link = detail.querySelector('[data-test-id="catalog-detail-link"]');
     expect(link.textContent.trim()).toBe('https://x/mug');
     expect(link.getAttribute('target')).toBe('_blank');

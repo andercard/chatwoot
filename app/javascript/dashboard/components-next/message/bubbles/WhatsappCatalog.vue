@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BaseBubble from './Base.vue';
-import WhatsappCatalogDetail from './WhatsappCatalogDetail.vue';
+import CatalogSheet from 'dashboard/components-next/whatsapp-catalog/CatalogSheet.vue';
+import ProductDetail from 'dashboard/components-next/whatsapp-catalog/ProductDetail.vue';
 import { useMessageContext } from '../provider.js';
 
 const { content, contentAttributes } = useMessageContext();
@@ -162,10 +163,13 @@ const firstImage = item => item?.imageUrls?.[0];
       </div>
     </Teleport>
 
-    <WhatsappCatalogDetail
-      v-if="detailItem"
-      :item="detailItem"
+    <CatalogSheet
+      :show="!!detailItem"
+      :title="t('CATALOG.PRODUCT.DETAILS_TITLE')"
+      size="lg"
       @close="detailItem = null"
-    />
+    >
+      <ProductDetail v-if="detailItem" :item="detailItem" />
+    </CatalogSheet>
   </BaseBubble>
 </template>
