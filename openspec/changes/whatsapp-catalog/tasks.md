@@ -181,7 +181,7 @@ Se desechan los criterios obsoletos (marcadas arriba como «reemplazada por»). 
 
 ## Ronda 8 · estabilidad del spec en el CI
 
-- [ ] **26 · El spec del modal no deja temporizadores de un test dentro del siguiente**
+- [x] **26 · El spec del modal no deja temporizadores de un test dentro del siguiente**
   - archivos: `app/javascript/dashboard/components/widgets/conversation/WhatsappCatalog/specs/Modal.spec.js`
   - depende de: ninguna
   - listo cuando: el caso «paints fresh data without loading state or requests» (y cualquiera con la misma forma) pasa de forma determinista aunque un test anterior haya escrito en el buscador: cada test desmonta el componente y limpia temporizadores pendientes (`vi.clearAllTimers()` / `vi.useRealTimers()` en `afterEach`, o temporizadores simulados en todo el archivo) para que el debounce de 400 ms de una búsqueda («red») no se dispare en el test siguiente; el spec entero pasa 5 veces seguidas y también ejecutado en orden aleatorio (`--sequence.shuffle`)

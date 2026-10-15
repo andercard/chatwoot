@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount, flushPromises, enableAutoUnmount } from '@vue/test-utils';
 import Modal from '../Modal.vue';
 import CatalogSheet from 'dashboard/components-next/whatsapp-catalog/CatalogSheet.vue';
 import { useIntersectionObserver } from '@vueuse/core';
@@ -99,13 +99,21 @@ const reachEnd = async () => {
 const q = (w, id) => w.find(`[data-testid="${id}"]`);
 const rows = w => w.findAll('[data-testid="catalog-product-row"]');
 
+enableAutoUnmount(afterEach);
+
 describe('WhatsappCatalog Modal', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     loadCatalog.mockResolvedValue(catalogData());
     loadProductsPage.mockResolvedValue(firstPage());
     peekCatalog.mockReturnValue(null);
     peekProductsPage.mockReturnValue(null);
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
   });
 
   it('opens on the products view with every product once', async () => {
@@ -144,56 +152,46 @@ describe('WhatsappCatalog Modal', () => {
   });
 
   it('searches on the server once after the debounce', async () => {
-    vi.useFakeTimers();
-    try {
-      const w = await mountModal();
-      loadProductsPage.mockResolvedValue({
-        status: 'ok',
-        next_cursor: null,
-        products: [product(1, { name: 'Blue Hat' })],
-      });
-      const search = q(w, 'catalog-search');
-      await search.setValue('h');
-      await search.setValue('hat');
-      expect(loadProductsPage).toHaveBeenCalledTimes(1);
-      await vi.advanceTimersByTimeAsync(400);
-      await flushPromises();
-      expect(loadProductsPage).toHaveBeenCalledTimes(2);
-      expect(loadProductsPage).toHaveBeenLastCalledWith(1, {
-        q: 'hat',
-        collectionId: null,
-        force: false,
-      });
-      expect(rows(w)).toHaveLength(1);
-      loadProductsPage.mockResolvedValue({
-        status: 'ok',
-        next_cursor: null,
-        products: [],
-      });
-      await search.setValue('zzz');
-      await vi.advanceTimersByTimeAsync(400);
-      await flushPromises();
-      expect(q(w, 'catalog-empty').text()).toBe('CATALOG.SEARCH.NO_RESULTS');
-    } finally {
-      vi.useRealTimers();
-    }
+    const w = await mountModal();
+    loadProductsPage.mockResolvedValue({
+      status: 'ok',
+      next_cursor: null,
+      products: [product(1, { name: 'Blue Hat' })],
+    });
+    const search = q(w, 'catalog-search');
+    await search.setValue('h');
+    await search.setValue('hat');
+    expect(loadProductsPage).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+    expect(loadProductsPage).toHaveBeenCalledTimes(2);
+    expect(loadProductsPage).toHaveBeenLastCalledWith(1, {
+      q: 'hat',
+      collectionId: null,
+      force: false,
+    });
+    expect(rows(w)).toHaveLength(1);
+    loadProductsPage.mockResolvedValue({
+      status: 'ok',
+      next_cursor: null,
+      products: [],
+    });
+    await search.setValue('zzz');
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+    expect(q(w, 'catalog-empty').text()).toBe('CATALOG.SEARCH.NO_RESULTS');
   });
 
   it('requests the first page of a collection keeping the search', async () => {
-    vi.useFakeTimers();
-    try {
-      const w = await mountModal();
-      await q(w, 'catalog-search').setValue('hat');
-      await vi.advanceTimersByTimeAsync(400);
-      await q(w, 'catalog-chip-c2').trigger('click');
-      expect(loadProductsPage).toHaveBeenLastCalledWith(1, {
-        q: 'hat',
-        collectionId: 'c2',
-        force: false,
-      });
-    } finally {
-      vi.useRealTimers();
-    }
+    const w = await mountModal();
+    await q(w, 'catalog-search').setValue('hat');
+    await vi.advanceTimersByTimeAsync(400);
+    await q(w, 'catalog-chip-c2').trigger('click');
+    expect(loadProductsPage).toHaveBeenLastCalledWith(1, {
+      q: 'hat',
+      collectionId: 'c2',
+      force: false,
+    });
   });
 
   it('keeps the selection across collections and sends it', async () => {
@@ -528,33 +526,28 @@ describe('WhatsappCatalog Modal', () => {
   });
 
   it('keeps the selection across pages and searches', async () => {
-    vi.useFakeTimers();
-    try {
-      const w = await mountModal();
-      await q(w, 'catalog-select').trigger('click');
-      await rows(w)[0].trigger('click');
-      loadProductsPage.mockResolvedValueOnce({
-        status: 'ok',
-        next_cursor: null,
-        products: [product(3)],
-      });
-      await reachEnd();
-      await rows(w)[3].trigger('click');
-      expect(q(w, 'catalog-counter').text()).toContain('2 / 30');
-      loadProductsPage.mockResolvedValue({
-        status: 'ok',
-        next_cursor: null,
-        products: [product(7)],
-      });
-      await q(w, 'catalog-search').setValue('x');
-      await vi.advanceTimersByTimeAsync(400);
-      await flushPromises();
-      expect(rows(w)).toHaveLength(1);
-      expect(q(w, 'catalog-counter').text()).toContain('2 / 30');
-      await rows(w)[0].trigger('click');
-      expect(q(w, 'catalog-counter').text()).toContain('3 / 30');
-    } finally {
-      vi.useRealTimers();
-    }
+    const w = await mountModal();
+    await q(w, 'catalog-select').trigger('click');
+    await rows(w)[0].trigger('click');
+    loadProductsPage.mockResolvedValueOnce({
+      status: 'ok',
+      next_cursor: null,
+      products: [product(3)],
+    });
+    await reachEnd();
+    await rows(w)[3].trigger('click');
+    expect(q(w, 'catalog-counter').text()).toContain('2 / 30');
+    loadProductsPage.mockResolvedValue({
+      status: 'ok',
+      next_cursor: null,
+      products: [product(7)],
+    });
+    await q(w, 'catalog-search').setValue('x');
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+    expect(rows(w)).toHaveLength(1);
+    expect(q(w, 'catalog-counter').text()).toContain('2 / 30');
+    await rows(w)[0].trigger('click');
+    expect(q(w, 'catalog-counter').text()).toContain('3 / 30');
   });
 });
