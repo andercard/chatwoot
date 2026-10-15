@@ -65,6 +65,11 @@ export const hasMessageFailedWithExternalError = pendingMessage => {
 
 const conversationListRequest = useAbortableRequest();
 
+// The unread tab narrows the list only; its meta must not replace tab counts.
+const UNREAD_CONVERSATION_TYPE = 'unread';
+// A request that never matches the active stats view, so its counts are ignored.
+const IGNORED_COUNT_REQUEST = { view: null, id: 0 };
+
 // actions
 const actions = {
   getConversation: async ({ commit, dispatch }, conversationId) => {
@@ -90,10 +95,10 @@ const actions = {
   ) => {
     return conversationListRequest.run(async signal => {
       const params = state.conversationFilters;
-      const countRequest = await dispatch(
-        'conversationStats/onListRequestStarted',
-        params
-      );
+      const countRequest =
+        params.conversationType === UNREAD_CONVERSATION_TYPE
+          ? IGNORED_COUNT_REQUEST
+          : await dispatch('conversationStats/onListRequestStarted', params);
       if (signal.aborted) return;
       commit(types.SET_LIST_LOADING_STATUS);
       try {

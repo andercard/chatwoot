@@ -4,7 +4,7 @@ import { computed, inject } from 'vue';
 const props = defineProps({
   index: {
     type: Number,
-    default: 0,
+    default: undefined,
   },
   name: {
     type: String,
@@ -58,7 +58,7 @@ const onTabClick = event => {
     >
       {{ name }}
       <div
-        v-if="showBadge"
+        v-if="showBadge && getItemCount !== undefined"
         class="rounded-full h-5 flex items-center justify-center text-xs font-medium my-0 ltr:ml-1 rtl:mr-1 px-1.5 py-0 min-w-[20px]"
         :class="[
           active
