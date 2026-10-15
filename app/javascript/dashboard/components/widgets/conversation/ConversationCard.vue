@@ -27,6 +27,7 @@ const props = defineProps({
   showInboxName: { type: Boolean, default: false },
   hideThumbnail: { type: Boolean, default: false },
   compact: { type: Boolean, default: false },
+  selectionMode: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -148,7 +149,7 @@ watch(
       >
         <template #overlay="{ size }">
           <label
-            v-if="hovered || selected"
+            v-if="hovered || selected || selectionMode"
             class="flex items-center justify-center rounded-full cursor-pointer absolute inset-0 z-10 backdrop-blur-[2px]"
             :style="{ width: `${size}px`, height: `${size}px` }"
             @click.stop

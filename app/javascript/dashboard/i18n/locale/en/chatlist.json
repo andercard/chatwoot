@@ -8,6 +8,9 @@
     },
     "FAILED_TO_SEND": "Failed to send",
     "FETCH_ERROR": "Couldn't load conversations. Please try again.",
+    "SELECTION": {
+      "TOGGLE": "Select conversations"
+    },
     "SWIPE": {
       "MARK_UNREAD": "Unread",
       "MARK_READ": "Read",

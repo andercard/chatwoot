@@ -823,6 +823,13 @@ function toggleSelectAll(check) {
   selectAllConversations(check, conversationList);
 }
 
+const isSelectionMode = ref(false);
+
+function setSelectionMode(value) {
+  isSelectionMode.value = value;
+  if (!value) resetBulkActions();
+}
+
 useEmitter('fetch_conversation_stats', () => {
   if (hasAppliedFiltersOrActiveFolders.value) return;
   // Tab counts must not be narrowed by the unread tab
@@ -875,6 +882,8 @@ provide('markAsRead', markAsRead);
 provide('assignPriority', assignPriority);
 provide('isConversationSelected', isConversationSelected);
 provide('deleteConversation', handleDelete);
+provide('isSelectionMode', isSelectionMode);
+provide('setSelectionMode', setSelectionMode);
 
 watch(activeTeam, () => resetAndFetchData());
 
@@ -924,11 +933,13 @@ watch(appliedFilters, () => resetBulkActions());
       :is-on-expanded-layout="isOnExpandedLayout"
       :conversation-stats="conversationStats"
       :is-list-loading="chatListLoading && !conversationList.length"
+      :is-selection-mode="isSelectionMode"
       @add-folders="onClickOpenAddFoldersModal"
       @delete-folders="onClickOpenDeleteFoldersModal"
       @filters-modal="onToggleAdvanceFiltersModal"
       @reset-filters="resetAndFetchData"
       @basic-filter-change="onBasicFilterChange"
+      @toggle-selection="setSelectionMode(!isSelectionMode)"
     />
 
     <TeleportWithDirection
@@ -973,8 +984,10 @@ watch(appliedFilters, () => resetBulkActions());
       :show-open-action="allSelectedConversationsStatus('open')"
       :show-resolved-action="allSelectedConversationsStatus('resolved')"
       :show-snoozed-action="allSelectedConversationsStatus('snoozed')"
+      :selection-mode="isSelectionMode"
       :class="isOnExpandedLayout && 'sm:!w-[24rem] !w-full'"
       @select-all-conversations="toggleSelectAll"
+      @exit-selection="setSelectionMode(false)"
     />
     <ConversationList
       :conversation-list="conversationList"

@@ -8,6 +8,9 @@
     },
     "FAILED_TO_SEND": "Error al enviar",
     "FETCH_ERROR": "No se pudieron cargar las conversaciones. Inténtalo de nuevo.",
+    "SELECTION": {
+      "TOGGLE": "Seleccionar conversaciones"
+    },
     "SWIPE": {
       "MARK_UNREAD": "No leído",
       "MARK_READ": "Leído",

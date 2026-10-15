@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, inject } from 'vue';
+import { computed, ref, watch, inject, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
@@ -36,6 +36,12 @@ const markAsRead = inject('markAsRead');
 const assignPriority = inject('assignPriority');
 const isConversationSelected = inject('isConversationSelected');
 const deleteConversation = inject('deleteConversation');
+const isSelectionMode = inject('isSelectionMode');
+const setSelectionMode = inject('setSelectionMode');
+
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_MOVE_TOLERANCE_PX = 8;
+const LONG_PRESS_POINTER_TYPES = ['touch', 'pen'];
 
 // --- Context menu state (shared by both layouts) ---
 const showContextMenu = ref(false);
@@ -96,7 +102,58 @@ const conversationPath = computed(() =>
   )
 );
 
+// --- Long press (touch/pen) enters selection mode ---
+let longPressTimer = null;
+let longPressStart = null;
+let longPressFired = false;
+
+const cancelLongPress = () => {
+  clearTimeout(longPressTimer);
+  longPressTimer = null;
+};
+
+const onPointerDown = e => {
+  longPressFired = false;
+  if (!LONG_PRESS_POINTER_TYPES.includes(e.pointerType)) return;
+  longPressStart = { x: e.clientX, y: e.clientY };
+  cancelLongPress();
+  longPressTimer = setTimeout(() => {
+    longPressTimer = null;
+    longPressFired = true;
+    setSelectionMode(true);
+    if (!isConversationSelected(props.source.id)) {
+      selectConversation(props.source.id, inbox.value.id);
+    }
+  }, LONG_PRESS_MS);
+};
+
+const onPointerMove = e => {
+  if (!longPressTimer) return;
+  const dx = e.clientX - longPressStart.x;
+  const dy = e.clientY - longPressStart.y;
+  if (Math.hypot(dx, dy) > LONG_PRESS_MOVE_TOLERANCE_PX) cancelLongPress();
+};
+
+onBeforeUnmount(cancelLongPress);
+
+const toggleSelection = () => {
+  if (isConversationSelected(props.source.id)) {
+    deSelectConversation(props.source.id, inbox.value.id);
+  } else {
+    selectConversation(props.source.id, inbox.value.id);
+  }
+};
+
 const onCardClick = e => {
+  if (longPressFired) {
+    longPressFired = false;
+    return;
+  }
+  if (isSelectionMode.value) {
+    toggleSelection();
+    return;
+  }
+
   const path = conversationPath.value;
   if (!path) return;
 
@@ -124,6 +181,7 @@ const onExpandedSelect = checked => {
 
 const openContextMenu = e => {
   e.preventDefault();
+  if (longPressTimer || longPressFired || isSelectionMode.value) return;
   toggleContextMenu(true);
   contextMenu.value.x = e.pageX || e.clientX;
   contextMenu.value.y = e.pageY || e.clientY;
@@ -184,6 +242,21 @@ const onMarkAsRead = () => {
   closeContextMenu();
 };
 
+const swipeProps = computed(() =>
+  isSelectionMode.value
+    ? {}
+    : {
+        hasUnread: props.source.unread_count > 0,
+        showAssignMe: showAssignMe.value,
+        onMarkUnread: onMarkAsUnread,
+        onMarkRead: onMarkAsRead,
+        onAssignMe: onSwipeAssignMe,
+        onOpenStatus: () => {
+          showStatusSheet.value = true;
+        },
+      }
+);
+
 const onAssignPriority = priority => {
   assignPriority(priority, props.source.id);
   closeContextMenu();
@@ -196,13 +269,13 @@ const onDeleteConversation = () => {
 </script>
 
 <template>
-  <SwipeActions
-    :has-unread="source.unread_count > 0"
-    :show-assign-me="showAssignMe"
-    @mark-unread="onMarkAsUnread"
-    @mark-read="onMarkAsRead"
-    @assign-me="onSwipeAssignMe"
-    @open-status="showStatusSheet = true"
+  <component
+    :is="isSelectionMode ? 'div' : SwipeActions"
+    v-bind="swipeProps"
+    @pointerdown="onPointerDown"
+    @pointermove="onPointerMove"
+    @pointerup="cancelLongPress"
+    @pointercancel="cancelLongPress"
   >
     <!-- Expanded layout: wide screen + expanded setting -->
     <ConversationCardExpanded
@@ -233,12 +306,13 @@ const onDeleteConversation = () => {
       :is-active-chat="isActiveChat"
       :show-assignee="showAssignee"
       :show-inbox-name="showInboxName"
+      :selection-mode="isSelectionMode"
       @click="onCardClick"
       @contextmenu="openContextMenu"
       @select-conversation="selectConversation"
       @de-select-conversation="deSelectConversation"
     />
-  </SwipeActions>
+  </component>
 
   <ConversationStatusSheet
     :show="showStatusSheet"
