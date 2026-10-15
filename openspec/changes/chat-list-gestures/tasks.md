@@ -52,7 +52,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - commit: `fix(contact-panel): require a long press to reorder sections on touch`
 
 
-- [ ] **8 · QA: los gestos de la tarjeta no se disparan y la píldora se corta**
+- [x] **8 · QA: los gestos de la tarjeta no se disparan y la píldora se corta**
   - archivos: `app/javascript/dashboard/components-next/Conversation/ConversationCard/SwipeActions.vue`, `app/javascript/dashboard/components-next/Conversation/ConversationCard/TypingPill.vue`
   - depende de: 6
   - listo cuando: `SwipeActions.vue` enlaza los handlers del gesto como listeners que Vue sí registra (`v-bind="handlers"`, no `v-on`, porque las claves son `onPointerdown`, `onClickCapture`…) y con eventos de puntero táctiles un arrastre a la izquierda deja `translateX` negativo en el contenedor `touch-pan-y` y a la derecha positivo; `TypingPill.vue` muestra el primer nombre de cada persona (no el nombre completo) con un ancho máximo suficiente para que "Tatiana escribe…" y "Tatiana y Lucía escriben…" se lean sin recorte en una columna de 340 px

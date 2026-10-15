@@ -8,15 +8,17 @@ const props = defineProps({
 
 const { t } = useI18n();
 
+const firstName = name => name.split(' ')[0] || name;
+
 const label = computed(() => {
   const [first, second] = props.users;
   if (props.users.length === 1) {
-    return t('CHAT_LIST.TYPING_ONE', { user: first.name });
+    return t('CHAT_LIST.TYPING_ONE', { user: firstName(first.name) });
   }
   if (props.users.length === 2) {
     return t('CHAT_LIST.TYPING_TWO', {
-      user: first.name,
-      secondUser: second.name,
+      user: firstName(first.name),
+      secondUser: firstName(second.name),
     });
   }
   return t('CHAT_LIST.TYPING_MULTIPLE', { count: props.users.length });
@@ -26,7 +28,7 @@ const label = computed(() => {
 <template>
   <span
     :title="label"
-    class="block max-w-28 truncate rounded-full bg-n-blue-3 px-2 py-0.5 text-xxs font-medium leading-3 text-n-blue-11"
+    class="block max-w-44 truncate rounded-full bg-n-blue-3 px-2 py-0.5 text-xxs font-medium leading-3 text-n-blue-11"
   >
     {{ label }}
   </span>

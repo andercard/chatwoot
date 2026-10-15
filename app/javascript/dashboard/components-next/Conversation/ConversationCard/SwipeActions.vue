@@ -113,7 +113,7 @@ const ACTION_CLASSES =
       class="relative touch-pan-y bg-n-background"
       :class="{ 'transition-transform duration-200': !isSwiping }"
       :style="cardStyle"
-      v-on="handlers"
+      v-bind="handlers"
     >
       <slot />
     </div>
