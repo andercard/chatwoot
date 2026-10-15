@@ -173,7 +173,6 @@ Rails.application.routes.draw do
                 end
               end
               resource :contact_info_request, only: [:create]
-              resource :catalog_message, only: [:create]
               resources :assignments, only: [:create]
               resources :labels, only: [:create, :index]
               resource :participants, only: [:show, :create, :update, :destroy]
@@ -298,8 +297,6 @@ Rails.application.routes.draw do
             get :campaigns, on: :member
             get :agent_bot, on: :member
             get :message_templates, on: :member
-            get :whatsapp_catalog, on: :member
-            get :whatsapp_catalog_products, on: :member
             post :set_agent_bot, on: :member
             delete :avatar, on: :member
             post :sync_templates, on: :member

@@ -205,8 +205,7 @@
     "CUSTOM_SNOOZE": {
       "TITLE": "Posponer hasta",
       "APPLY": "Posponer",
-      "CANCEL": "Cancelar",
-      "INSERT_LINK": "Insertar enlace del catálogo"
+      "CANCEL": "Cancelar"
     },
     "PRIORITY": {
       "TITLE": "Prioridad",
@@ -599,112 +598,5 @@
   },
   "GALLERY_VIEW": {
     "ERROR_DOWNLOADING": "No se pudo descargar el archivo adjunto. Por favor, inténtelo de nuevo"
-  },
-  "CATALOG": {
-    "BUTTON": "Catálogo",
-    "TOOLTIP": "Enviar productos de tu catálogo de WhatsApp",
-    "TITLE": "Enviar desde el catálogo",
-    "STEPS": {
-      "FORMAT": "Formato",
-      "PRODUCTS": "Productos",
-      "DETAILS": "Detalles"
-    },
-    "FORMATS": {
-      "CAROUSEL": {
-        "NAME": "Carrusel",
-        "RULE": "De 2 a 10 productos"
-      },
-      "PRODUCT": {
-        "NAME": "Producto único",
-        "RULE": "1 producto"
-      },
-      "PRODUCT_LIST": {
-        "NAME": "Lista de productos",
-        "RULE": "De 1 a 30 productos"
-      }
-    },
-    "COUNTER": "{count} / {max}",
-    "FIELDS": {
-      "HEADER": "Encabezado",
-      "BODY": "Texto del mensaje",
-      "FOOTER": "Pie",
-      "REQUIRED": "Obligatorio",
-      "OPTIONAL": "Opcional",
-      "CHARACTERS": "{count} / {max} caracteres"
-    },
-    "ERRORS": {
-      "MIN_ITEMS": "Selecciona al menos {min} productos",
-      "MAX_ITEMS": "Máximo {max} producto | Máximo {max} productos",
-      "REQUIRED": "Este campo es obligatorio",
-      "TOO_LONG": "El texto es demasiado largo",
-      "SEND_FAILED": "No se pudo enviar el mensaje de catálogo. Inténtalo de nuevo."
-    },
-    "NO_COLLECTION": "Sin colección",
-    "ACTIONS": {
-      "SEND": "Enviar",
-      "BACK": "Atrás",
-      "NEXT": "Siguiente",
-      "CLOSE": "Cerrar",
-      "SELECT": "Seleccionar",
-      "SEE_MORE": "Ver más",
-      "REFRESH": "Actualizar",
-      "CANCEL": "Cancelar"
-    },
-    "SEARCH": {
-      "PLACEHOLDER": "Buscar productos",
-      "NO_RESULTS": "Ningún producto coincide con tu búsqueda"
-    },
-    "FILTERS": {
-      "ALL": "Todos"
-    },
-    "FORMAT": {
-      "LABEL": "Formato de envío",
-      "UNAVAILABLE": "No disponible: {reason}"
-    },
-    "STATES": {
-      "LOADING": "Cargando catálogo...",
-      "EMPTY": "No hay productos en este catálogo",
-      "ERROR": "No se pudo cargar el catálogo"
-    },
-    "SETUP_GUIDE": {
-      "OPEN_SETTINGS": "Abrir configuración de la bandeja",
-      "ADMIN_ONLY": "Pide a un administrador que complete esta configuración.",
-      "NO_CATALOG": {
-        "TITLE": "Sin catálogo conectado",
-        "DESCRIPTION": "Este número de WhatsApp aún no tiene un catálogo vinculado.",
-        "STEPS": {
-          "ONE": "Crea un catálogo en Meta Commerce Manager",
-          "TWO": "Conéctalo a tu cuenta de WhatsApp Business",
-          "THREE": "Vuelve y abre de nuevo esta ventana, o pega el ID del catálogo en la configuración de la bandeja (ID del catálogo (opcional))"
-        }
-      },
-      "MISSING_PERMISSION": {
-        "TITLE": "Falta el permiso del catálogo",
-        "DESCRIPTION": "El token de acceso de este número de WhatsApp no incluye el permiso catalog_management, por lo que no se puede leer el catálogo.",
-        "STEPS": {
-          "ONE": "Agrega el permiso catalog_management al token o reconecta el número",
-          "TWO": "O pega el ID del catálogo en la configuración de la bandeja, en ID del catálogo (opcional)",
-          "THREE": "Vuelve y abre de nuevo esta ventana"
-        }
-      },
-      "ERROR": {
-        "TITLE": "No se pudo acceder al catálogo",
-        "DESCRIPTION": "Algo salió mal al contactar con WhatsApp.",
-        "STEPS": {
-          "ONE": "Revisa la conexión de la bandeja en su configuración",
-          "TWO": "Inténtalo de nuevo en unos minutos"
-        }
-      }
-    },
-    "PRODUCT": {
-      "VIEW": "Ver",
-      "VIEW_ITEMS": "Ver artículos",
-      "ITEMS_COUNT": "{count} artículos",
-      "PRICE": "Precio",
-      "DESCRIPTION": "Descripción",
-      "LINK": "Enlace",
-      "PHOTO_OF": "Foto {current} de {total}",
-      "DETAILS_TITLE": "Detalles"
-    }
   }
 }

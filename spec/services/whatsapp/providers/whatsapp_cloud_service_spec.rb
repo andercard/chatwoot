@@ -285,56 +285,6 @@ describe Whatsapp::Providers::WhatsappCloudService do
     end
   end
 
-  describe '#send_message with a catalog' do
-    let(:catalog) do
-      {
-        'kind' => 'product',
-        'catalog_id' => 'catalog_1',
-        'footer' => 'Today only',
-        'items' => [{ 'retailer_id' => 'sku-1' }]
-      }
-    end
-    let(:catalog_message) do
-      create(:message, conversation: conversation, message_type: :outgoing, content: 'Take a look', inbox: whatsapp_channel.inbox,
-                       content_attributes: { 'whatsapp_catalog' => catalog })
-    end
-
-    it 'sends the catalog as an interactive message' do
-      stub_request(:post, 'https://graph.facebook.com/v24.0/123456789/messages')
-        .with(
-          body: {
-            messaging_product: 'whatsapp', to: '+123456789',
-            interactive: {
-              type: 'product',
-              body: { text: 'Take a look' },
-              footer: { text: 'Today only' },
-              action: { catalog_id: 'catalog_1', product_retailer_id: 'sku-1' }
-            },
-            type: 'interactive'
-          }.to_json
-        ).to_return(status: 200, body: whatsapp_response.to_json, headers: response_headers)
-
-      expect(service.send_message('+123456789', catalog_message)).to eq 'message_id'
-    end
-
-    it 'omits the body when the card has no content' do
-      catalog_message.update!(content: nil)
-      stub_request(:post, 'https://graph.facebook.com/v24.0/123456789/messages')
-        .with(body: hash_including({ interactive: hash_excluding({ body: anything }) }))
-        .to_return(status: 200, body: whatsapp_response.to_json, headers: response_headers)
-
-      expect(service.send_message('+123456789', catalog_message)).to eq 'message_id'
-    end
-
-    it 'marks the message as failed when the catalog is invalid' do
-      catalog_message.update!(content_attributes: { 'whatsapp_catalog' => catalog.merge('catalog_id' => nil) })
-
-      expect(service.send_message('+123456789', catalog_message)).to be_nil
-      expect(catalog_message.reload.status).to eq 'failed'
-      expect(catalog_message.external_error).to eq 'Catalog ID is required'
-    end
-  end
-
   describe '#send_template' do
     let(:template_info) do
       {

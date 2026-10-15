@@ -88,10 +88,6 @@ export default {
       type: Boolean,
       default: false,
     },
-    enableWhatsappCatalog: {
-      type: Boolean,
-      default: false,
-    },
     enableMacros: {
       type: Boolean,
       default: false,
@@ -138,7 +134,6 @@ export default {
     'toggleInsertArticle',
     'selectWhatsappTemplate',
     'selectContentTemplate',
-    'selectCatalog',
     'toggleQuotedReply',
     'requestContactInfoTemplate',
     'openMacros',
@@ -263,14 +258,6 @@ export default {
           icon: 'i-ph-whatsapp-logo',
           label: this.contentTemplatesLabel,
           action: () => this.$emit('selectContentTemplate'),
-        },
-        {
-          key: 'catalog',
-          show: this.enableWhatsappCatalog,
-          icon: 'i-lucide-store',
-          label: this.$t('CATALOG.BUTTON'),
-          disabled: this.isEditorDisabled,
-          action: () => this.$emit('selectCatalog'),
         },
       ].filter(item => item.show);
     },
@@ -403,9 +390,8 @@ export default {
           <li v-for="item in mobileMenuItems" :key="item.key">
             <button
               type="button"
-              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-50 disabled:pointer-events-none"
+              class="flex gap-3 items-center py-2.5 px-3 w-full text-start rounded-lg text-n-slate-12 hover:bg-n-alpha-2"
               :aria-pressed="item.checked"
-              :disabled="item.disabled"
               @click="runMobileMenuItem(item)"
             >
               <span :class="item.icon" class="size-5 text-n-slate-11" />
@@ -517,17 +503,6 @@ export default {
         faded
         sm
         @click="$emit('selectWhatsappTemplate')"
-      />
-      <NextButton
-        v-if="enableWhatsappCatalog"
-        v-tooltip.top-end="$t('CATALOG.TOOLTIP')"
-        class="max-sm:hidden"
-        icon="i-lucide-store"
-        slate
-        faded
-        sm
-        :disabled="isEditorDisabled"
-        @click="$emit('selectCatalog')"
       />
       <!-- Phone: contact request lives in the "+" menu -->
       <div class="contents max-sm:hidden">

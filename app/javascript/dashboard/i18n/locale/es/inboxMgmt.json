@@ -1009,11 +1009,6 @@
       "ENABLE_EMAIL_COLLECT_BOX": "Activar caja de recolección de correo electrónico",
       "ENABLE_EMAIL_COLLECT_BOX_SUB_TEXT": "Activar o desactivar la caja de recolección de correo electrónico",
       "AUTO_ASSIGNMENT": "Activar asignación automática",
-      "WHATSAPP_CATALOG_ID": {
-        "LABEL": "ID del catálogo (opcional)",
-        "PLACEHOLDER": "p. ej. 123456789012345",
-        "HELP_TEXT": "Déjalo vacío para detectar el catálogo conectado automáticamente. Úsalo si el token no tiene el permiso catalog_management o la cuenta tiene varios catálogos."
-      },
       "SENDER_NAME_SECTION": "Habilitar nombre del agente en el correo electrónico",
       "SENDER_NAME_SECTION_TEXT": "Habilitar/Deshabilitar mostrando el nombre del agente en el correo electrónico, si está deshabilitado, mostrará el nombre del negocio",
       "ENABLE_CONTINUITY_VIA_EMAIL": "Habilitar continuidad de conversación por correo electrónico",

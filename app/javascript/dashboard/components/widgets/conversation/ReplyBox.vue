@@ -28,7 +28,6 @@ import {
   getUndefinedVariablesInMessage,
 } from '@chatwoot/utils';
 import WhatsappTemplates from './WhatsappTemplates/Modal.vue';
-import WhatsappCatalogModal from './WhatsappCatalog/Modal.vue';
 import ContentTemplates from './ContentTemplates/ContentTemplatesModal.vue';
 import { MESSAGE_MAX_LENGTH } from 'shared/helpers/MessageTypeHelper';
 import inboxMixin, { INBOX_FEATURES } from 'shared/mixins/inboxMixin';
@@ -68,7 +67,6 @@ import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { emitter } from 'shared/helpers/mitt';
-import { prefetchCatalog } from 'dashboard/helper/whatsappCatalogCache';
 // On a phone the keyboard must only open when the agent taps the input
 const isPhoneViewport = () =>
   !!window.matchMedia?.('(max-width: 639px)').matches;
@@ -97,7 +95,6 @@ export default {
     Spinner,
     ContentTemplates,
     WhatsappTemplates,
-    WhatsappCatalogModal,
     WootMessageEditor,
     QuotedEmailPreview,
     CopilotEditorSection,
@@ -187,7 +184,6 @@ export default {
       toEmails: '',
       doAutoSaveDraft: () => {},
       showWhatsAppTemplatesModal: false,
-      showWhatsappCatalogModal: false,
       requestContactInfoTemplatesOnly: false,
       showContentTemplatesModal: false,
       updateEditorSelectionWith: '',
@@ -241,16 +237,6 @@ export default {
         this.inboxId
       );
       return !!(templates && templates.length) && !this.isPrivate;
-    },
-    showWhatsappCatalog() {
-      return this.isAWhatsAppCloudChannel && !this.isPrivate;
-    },
-    whatsappCatalogLink() {
-      const digits = (this.inbox.phone_number || '').replace(/\D/g, '');
-      return digits ? `https://wa.me/c/${digits}` : '';
-    },
-    catalogPrefetchInboxId() {
-      return this.showWhatsappCatalog && this.inbox.id;
     },
     showContentTemplates() {
       return this.isATwilioWhatsAppChannel && !this.isPrivate;
@@ -629,15 +615,6 @@ export default {
     showWhatsappTemplates(isAvailable) {
       if (!isAvailable) this.hideWhatsappTemplatesModal();
     },
-    showWhatsappCatalog(isAvailable) {
-      if (!isAvailable) this.showWhatsappCatalogModal = false;
-    },
-    catalogPrefetchInboxId: {
-      immediate: true,
-      handler(inboxId) {
-        if (inboxId) prefetchCatalog(inboxId);
-      },
-    },
     showContentTemplates(isAvailable) {
       if (!isAvailable) this.hideContentTemplatesModal();
     },
@@ -944,16 +921,6 @@ export default {
     openWhatsappTemplateModal() {
       this.requestContactInfoTemplatesOnly = false;
       this.showWhatsAppTemplatesModal = true;
-    },
-    openWhatsappCatalog() {
-      this.showWhatsappCatalogModal = true;
-    },
-    insertWhatsappCatalogLink(link) {
-      this.message = this.message ? `${this.message}\n${link}` : link;
-    },
-    onWhatsappCatalogSent() {
-      this.message = '';
-      this.removeFromDraft();
     },
     hideWhatsappTemplatesModal() {
       this.showWhatsAppTemplatesModal = false;
@@ -1734,7 +1701,6 @@ export default {
         :enable-multiple-file-upload="enableMultipleFileUpload"
         :enable-whats-app-templates="showWhatsappTemplates"
         :enable-content-templates="showContentTemplates"
-        :enable-whatsapp-catalog="showWhatsappCatalog"
         :enable-macros="isMacrosEnabled"
         :inbox="inbox"
         :is-on-private-note="isOnPrivateNote"
@@ -1759,7 +1725,6 @@ export default {
         :new-conversation-modal-active="newConversationModalActive"
         @select-whatsapp-template="openWhatsappTemplateModal"
         @select-content-template="openContentTemplateModal"
-        @select-catalog="openWhatsappCatalog"
         @toggle-insert-article="toggleInsertArticle"
         @toggle-quoted-reply="toggleQuotedReply"
         @request-contact-info-template="openContactInfoTemplateModal"
@@ -1775,16 +1740,6 @@ export default {
       @close="hideWhatsappTemplatesModal"
       @on-send="onSendWhatsAppReply"
       @cancel="hideWhatsappTemplatesModal"
-    />
-
-    <WhatsappCatalogModal
-      v-model:show="showWhatsappCatalogModal"
-      :inbox-id="inbox.id"
-      :conversation-id="conversationId"
-      :initial-body="message"
-      :catalog-link="whatsappCatalogLink"
-      @insert-link="insertWhatsappCatalogLink"
-      @sent="onWhatsappCatalogSent"
     />
 
     <ContentTemplates

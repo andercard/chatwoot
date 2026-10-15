@@ -38,10 +38,6 @@ class InboxPolicy < ApplicationPolicy
     true
   end
 
-  def whatsapp_catalog?
-    true
-  end
-
   def campaigns?
     @account_user.administrator?
   end
