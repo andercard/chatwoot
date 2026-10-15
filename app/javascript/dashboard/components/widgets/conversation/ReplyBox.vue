@@ -68,7 +68,6 @@ import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { emitter } from 'shared/helpers/mitt';
-import { prefetchCatalog } from 'dashboard/helper/whatsappCatalogCache';
 // On a phone the keyboard must only open when the agent taps the input
 const isPhoneViewport = () =>
   !!window.matchMedia?.('(max-width: 639px)').matches;
@@ -77,6 +76,7 @@ const isPhoneViewport = () =>
 const MENTION_LINK_REGEX =
   /\[(@[^\]]+)\]\(mention:\/\/(?:user|team)\/\d+\/[^)]*\)/g;
 
+import { prefetchCatalog } from 'dashboard/helper/whatsappCatalogCache';
 const EmojiIconPicker = defineAsyncComponent(
   () =>
     import('dashboard/components-next/emoji-icon-picker/EmojiIconPicker.vue')
@@ -941,10 +941,6 @@ export default {
         );
       }
     },
-    openWhatsappTemplateModal() {
-      this.requestContactInfoTemplatesOnly = false;
-      this.showWhatsAppTemplatesModal = true;
-    },
     openWhatsappCatalog() {
       this.showWhatsappCatalogModal = true;
     },
@@ -954,6 +950,10 @@ export default {
     onWhatsappCatalogSent() {
       this.message = '';
       this.removeFromDraft();
+    },
+    openWhatsappTemplateModal() {
+      this.requestContactInfoTemplatesOnly = false;
+      this.showWhatsAppTemplatesModal = true;
     },
     hideWhatsappTemplatesModal() {
       this.showWhatsAppTemplatesModal = false;
@@ -1734,8 +1734,8 @@ export default {
         :enable-multiple-file-upload="enableMultipleFileUpload"
         :enable-whats-app-templates="showWhatsappTemplates"
         :enable-content-templates="showContentTemplates"
-        :enable-whatsapp-catalog="showWhatsappCatalog"
         :enable-macros="isMacrosEnabled"
+        :enable-whatsapp-catalog="showWhatsappCatalog"
         :inbox="inbox"
         :is-on-private-note="isOnPrivateNote"
         :is-recording-audio="isRecordingAudio"

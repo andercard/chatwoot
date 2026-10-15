@@ -6,6 +6,11 @@ class Whatsapp::CatalogMessagePayloadBuilder
     'product' => 1..1,
     'product_list' => 1..30
   }.freeze
+  BODY_MAX_LENGTH = 1024
+  FOOTER_MAX_LENGTH = 60
+  HEADER_MAX_LENGTH = 60
+  SECTION_TITLE_MAX_LENGTH = 24
+  MAX_SECTIONS = 10
 
   pattr_initialize [:body!, :catalog!]
 
@@ -25,22 +30,49 @@ class Whatsapp::CatalogMessagePayloadBuilder
   end
 
   def validate!
-    raise Error, "Unsupported catalog message kind: #{kind.inspect}" unless ITEM_LIMITS.key?(kind)
+    raise Error, I18n.t('errors.whatsapp.catalog.unknown_kind', kind: kind) unless ITEM_LIMITS.key?(kind)
 
     validate_products!
+    validate_product_fields!
     validate_texts!
   end
 
   def validate_products!
     limit = ITEM_LIMITS[kind]
-    raise Error, 'Catalog ID is required' if catalog['catalog_id'].blank?
-    raise Error, "#{kind} requires between #{limit.min} and #{limit.max} products" unless limit.cover?(items.size)
-    raise Error, 'Every product requires a retailer ID (SKU)' if items.any? { |item| item['retailer_id'].blank? }
+    raise Error, I18n.t('errors.whatsapp.catalog.catalog_id_required') if catalog['catalog_id'].blank?
+    raise Error, I18n.t('errors.whatsapp.catalog.items_out_of_range', kind: kind, min: limit.min, max: limit.max) unless limit.cover?(items.size)
+  end
+
+  def validate_product_fields!
+    raise Error, I18n.t('errors.whatsapp.catalog.retailer_id_required') if items.any? { |item| item['retailer_id'].blank? }
+    raise Error, I18n.t('errors.whatsapp.catalog.invalid_url') unless items.all? { |item| item['url'].blank? || http_url?(item['url']) }
+  end
+
+  def http_url?(url)
+    URI.parse(url.to_s).is_a?(URI::HTTP)
+  rescue URI::InvalidURIError
+    false
   end
 
   def validate_texts!
-    raise Error, "#{kind} requires a body" if kind != 'product' && body.blank?
-    raise Error, 'product_list requires a header' if kind == 'product_list' && catalog['header'].blank?
+    raise Error, I18n.t('errors.whatsapp.catalog.body_required', kind: kind) if kind != 'product' && body.blank?
+    raise Error, I18n.t('errors.whatsapp.catalog.header_required') if kind == 'product_list' && catalog['header'].blank?
+
+    validate_length!('body', body, BODY_MAX_LENGTH)
+    validate_length!('footer', catalog['footer'], FOOTER_MAX_LENGTH)
+    validate_list_lengths! if kind == 'product_list'
+  end
+
+  def validate_list_lengths!
+    validate_length!('header', catalog['header'], HEADER_MAX_LENGTH)
+    items.each { |item| validate_length!('section', item['section'], SECTION_TITLE_MAX_LENGTH) }
+    return if items.pluck('section').uniq.size <= MAX_SECTIONS
+
+    raise Error, I18n.t('errors.whatsapp.catalog.too_many_sections', max: MAX_SECTIONS)
+  end
+
+  def validate_length!(field, text, max)
+    raise Error, I18n.t('errors.whatsapp.catalog.text_too_long', field: field, max: max) if text.to_s.length > max
   end
 
   def carousel_payload

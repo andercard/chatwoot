@@ -205,8 +205,7 @@
     "CUSTOM_SNOOZE": {
       "TITLE": "Posponer hasta",
       "APPLY": "Posponer",
-      "CANCEL": "Cancelar",
-      "INSERT_LINK": "Insertar enlace del catálogo"
+      "CANCEL": "Cancelar"
     },
     "PRIORITY": {
       "TITLE": "Prioridad",
@@ -648,7 +647,8 @@
       "SELECT": "Seleccionar",
       "SEE_MORE": "Ver más",
       "REFRESH": "Actualizar",
-      "CANCEL": "Cancelar"
+      "CANCEL": "Cancelar",
+      "INSERT_LINK": "Insertar enlace del catálogo"
     },
     "SEARCH": {
       "PLACEHOLDER": "Buscar productos",

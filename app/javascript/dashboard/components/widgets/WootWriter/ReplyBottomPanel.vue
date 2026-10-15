@@ -88,11 +88,11 @@ export default {
       type: Boolean,
       default: false,
     },
-    enableWhatsappCatalog: {
+    enableMacros: {
       type: Boolean,
       default: false,
     },
-    enableMacros: {
+    enableWhatsappCatalog: {
       type: Boolean,
       default: false,
     },
@@ -138,8 +138,8 @@ export default {
     'toggleInsertArticle',
     'selectWhatsappTemplate',
     'selectContentTemplate',
-    'selectCatalog',
     'toggleQuotedReply',
+    'selectCatalog',
     'requestContactInfoTemplate',
     'openMacros',
   ],
@@ -518,6 +518,13 @@ export default {
         sm
         @click="$emit('selectWhatsappTemplate')"
       />
+      <!-- Phone: contact request lives in the "+" menu -->
+      <div class="contents max-sm:hidden">
+        <RequestContactInfoButton
+          v-if="!isOnPrivateNote"
+          @request-template="$emit('requestContactInfoTemplate')"
+        />
+      </div>
       <NextButton
         v-if="enableWhatsappCatalog"
         v-tooltip.top-end="$t('CATALOG.TOOLTIP')"
@@ -529,13 +536,6 @@ export default {
         :disabled="isEditorDisabled"
         @click="$emit('selectCatalog')"
       />
-      <!-- Phone: contact request lives in the "+" menu -->
-      <div class="contents max-sm:hidden">
-        <RequestContactInfoButton
-          v-if="!isOnPrivateNote"
-          @request-template="$emit('requestContactInfoTemplate')"
-        />
-      </div>
       <NextButton
         v-if="enableContentTemplates"
         v-tooltip.top-end="'Content Templates'"

@@ -82,10 +82,19 @@ describe('WhatsappCatalog', () => {
   });
 
   it('renders a carousel and opens the detail without an order button', async () => {
-    const wrapper = mountCatalog('carousel');
+    const wrapper = mountCatalog('carousel', [
+      ...items,
+      {
+        retailerId: 'c',
+        name: 'Bowl',
+        price: '$ 9.000',
+        imageUrls: [],
+        section: 'Kitchen',
+      },
+    ]);
     expect(wrapper.text()).toContain('Body text');
     expect(wrapper.text()).toContain('Foot');
-    expect(wrapper.findAll('[data-test-id="catalog-card"]')).toHaveLength(2);
+    expect(wrapper.findAll('[data-test-id="catalog-card"]')).toHaveLength(3);
 
     await wrapper
       .find('[data-test-id="catalog-card"] button + div + button')
@@ -139,7 +148,7 @@ describe('WhatsappCatalog', () => {
     expect(
       sheets[0].querySelector('[data-test-id="catalog-sheet-header"]')
         .textContent
-    ).toContain('Kitchen');
+    ).toContain('Head');
     const rows = sheets[0].querySelectorAll(
       '[data-test-id="catalog-list-row"]'
     );
@@ -186,5 +195,36 @@ describe('WhatsappCatalog', () => {
       document.body.querySelector('[data-test-id="catalog-sheet"]')
     ).toBeNull();
     wrapper.unmount();
+  });
+
+  it('groups the list rows under their section titles', async () => {
+    const wrapper = mountCatalog('product_list', [
+      { ...items[0], section: 'Kitchen' },
+      { ...items[1], section: 'Living room' },
+      { ...items[0], retailerId: 'c', name: 'Bowl', section: 'Kitchen' },
+    ]);
+    await wrapper.find('[data-test-id="catalog-list-header"]').trigger('click');
+    const sheet = document.body.querySelector('[data-test-id="catalog-sheet"]');
+    const titles = [
+      ...sheet.querySelectorAll('[data-test-id="catalog-list-section"]'),
+    ].map(node => node.textContent.trim());
+    expect(titles).toEqual(['Kitchen', 'Living room']);
+    const rows = [
+      ...sheet.querySelectorAll('[data-test-id="catalog-list-row"]'),
+    ];
+    expect(rows.map(row => row.textContent.includes('Bowl'))).toEqual([
+      false,
+      true,
+      false,
+    ]);
+  });
+
+  it('shows no section titles when every product shares one section', async () => {
+    const wrapper = mountCatalog('product_list');
+    await wrapper.find('[data-test-id="catalog-list-header"]').trigger('click');
+    const sheet = document.body.querySelector('[data-test-id="catalog-sheet"]');
+    expect(
+      sheet.querySelectorAll('[data-test-id="catalog-list-section"]')
+    ).toHaveLength(0);
   });
 });

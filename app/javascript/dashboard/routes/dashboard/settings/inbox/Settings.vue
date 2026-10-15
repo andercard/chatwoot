@@ -722,7 +722,7 @@ export default {
         }
         await this.$store.dispatch('inboxes/updateInbox', payload);
         if (this.isAWhatsAppCloudChannel) {
-          const { catalog_id: previous, ...providerConfig } =
+          const { catalog_id: previous, ...otherConfig } =
             this.inbox.provider_config || {};
           const catalogId = this.catalogId?.trim();
           if ((previous || '') !== (catalogId || '')) {
@@ -731,8 +731,8 @@ export default {
               formData: false,
               channel: {
                 provider_config: catalogId
-                  ? { ...providerConfig, catalog_id: catalogId }
-                  : providerConfig,
+                  ? { ...otherConfig, catalog_id: catalogId }
+                  : otherConfig,
               },
             });
           }

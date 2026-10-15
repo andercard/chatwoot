@@ -14,6 +14,7 @@ import { useAdmin } from 'dashboard/composables/useAdmin';
 import {
   CATALOG_MAX_SELECTION,
   CATALOG_KINDS,
+  CATALOG_ERRORS,
   CATALOG_ITEM_LIMITS,
   CATALOG_TEXT_LIMITS,
   validateCatalogForm,
@@ -41,11 +42,6 @@ const { isAdmin } = useAdmin();
 
 const SEARCH_DEBOUNCE_MS = 400;
 
-const FORMAT_KEYS = {
-  [CATALOG_KINDS.CAROUSEL]: 'CAROUSEL',
-  [CATALOG_KINDS.PRODUCT]: 'PRODUCT',
-  [CATALOG_KINDS.PRODUCT_LIST]: 'PRODUCT_LIST',
-};
 const FIELDS_BY_KIND = {
   [CATALOG_KINDS.CAROUSEL]: [{ name: 'body', required: true }],
   [CATALOG_KINDS.PRODUCT]: [
@@ -132,17 +128,49 @@ const errors = computed(() =>
 );
 const limits = computed(() => CATALOG_ITEM_LIMITS[kind.value] || {});
 
+const formatTexts = computed(() => ({
+  [CATALOG_KINDS.CAROUSEL]: {
+    name: t('CATALOG.FORMATS.CAROUSEL.NAME'),
+    rule: t('CATALOG.FORMATS.CAROUSEL.RULE'),
+  },
+  [CATALOG_KINDS.PRODUCT]: {
+    name: t('CATALOG.FORMATS.PRODUCT.NAME'),
+    rule: t('CATALOG.FORMATS.PRODUCT.RULE'),
+  },
+  [CATALOG_KINDS.PRODUCT_LIST]: {
+    name: t('CATALOG.FORMATS.PRODUCT_LIST.NAME'),
+    rule: t('CATALOG.FORMATS.PRODUCT_LIST.RULE'),
+  },
+}));
+
+const fieldLabels = computed(() => ({
+  header: t('CATALOG.FIELDS.HEADER'),
+  body: t('CATALOG.FIELDS.BODY'),
+  footer: t('CATALOG.FIELDS.FOOTER'),
+}));
+
+const errorMessage = (code, { min, max } = {}) => {
+  switch (code) {
+    case CATALOG_ERRORS.MIN_ITEMS:
+      return t('CATALOG.ERRORS.MIN_ITEMS', { min });
+    case CATALOG_ERRORS.MAX_ITEMS:
+      return t('CATALOG.ERRORS.MAX_ITEMS', { max, count: max });
+    case CATALOG_ERRORS.REQUIRED:
+      return t('CATALOG.ERRORS.REQUIRED');
+    case CATALOG_ERRORS.TOO_LONG:
+      return t('CATALOG.ERRORS.TOO_LONG');
+    default:
+      return '';
+  }
+};
+
 const errorText = field =>
   submitted.value && errors.value[field]
-    ? t(errors.value[field], {
-        min: limits.value.min,
-        max: limits.value.max,
-        count: limits.value.max,
-      })
+    ? errorMessage(errors.value[field], limits.value)
     : '';
 
 const reasonText = reason =>
-  reason ? t(reason.key, { ...reason.params, count: reason.params.max }) : '';
+  reason ? errorMessage(reason.key, reason.params) : '';
 
 const isSelected = product => product.retailer_id in selected.value;
 
@@ -222,14 +250,18 @@ const loadNextPage = async () => {
 };
 
 const loadCatalogAndFirstPage = async ({ force = false } = {}) => {
+  // loadFirstPage starts a new request id synchronously, so a slow catalog
+  // answer from a previous open or inbox is ignored.
+  const firstPage = loadFirstPage({ force });
+  const currentRequest = requestId;
   const catalogRequest = loadCatalog(props.inboxId, { force })
     .then(data => {
-      catalog.value = data;
+      if (currentRequest === requestId) catalog.value = data;
     })
     .catch(() => {
-      loadFailed.value = true;
+      if (currentRequest === requestId) loadFailed.value = true;
     });
-  await Promise.all([catalogRequest, loadFirstPage({ force })]);
+  await Promise.all([catalogRequest, firstPage]);
 };
 
 const refresh = async () => {
@@ -600,10 +632,10 @@ watch(
               />
               <span class="flex flex-col gap-0.5">
                 <span class="text-sm font-medium text-n-slate-12">
-                  {{ $t(`CATALOG.FORMATS.${FORMAT_KEYS[format.kind]}.NAME`) }}
+                  {{ formatTexts[format.kind].name }}
                 </span>
                 <span class="text-xs text-n-slate-11">
-                  {{ $t(`CATALOG.FORMATS.${FORMAT_KEYS[format.kind]}.RULE`) }}
+                  {{ formatTexts[format.kind].rule }}
                 </span>
                 <span
                   v-if="!format.available"
@@ -629,9 +661,7 @@ watch(
               class="flex items-center justify-between gap-2 text-sm font-medium text-n-slate-12"
               :for="`catalog-${field.name}`"
             >
-              <span>{{
-                $t(`CATALOG.FIELDS.${field.name.toUpperCase()}`)
-              }}</span>
+              <span>{{ fieldLabels[field.name] }}</span>
               <span class="text-xs font-normal text-n-slate-11">
                 {{
                   field.required

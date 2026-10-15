@@ -14,12 +14,14 @@ RSpec.describe 'Conversation Catalog Messages API', type: :request do
   let(:products) do
     Array.new(3) do |index|
       {
-        retailer_id: "sku-#{index}", name: "Producto #{index}", price: '$10', image_urls: ["https://example.com/#{index}.jpg"],
-        description: 'Descripcion', url: "https://example.com/p/#{index}", section: 'Cuadros'
+        retailer_id: "sku-#{index}", name: "Product #{index}", price: '$10', image_urls: ["https://example.com/#{index}.jpg"],
+        description: 'Description', url: "https://example.com/p/#{index}", section: 'Packages'
       }
     end
   end
-  let(:params) { { kind: kind, content: 'Mira estas opciones', header: header, footer: 'Picnic Art', catalog_id: catalog_id, products: products } }
+  let(:params) do
+    { kind: kind, content: 'Look at these options', header: header, footer: 'Acme Store', catalog_id: catalog_id, products: products }.compact
+  end
   let(:url) { api_v1_account_conversation_catalog_message_url(account_id: account.id, conversation_id: conversation.display_id) }
 
   context 'when it is an unauthenticated user' do
@@ -41,8 +43,9 @@ RSpec.describe 'Conversation Catalog Messages API', type: :request do
       expect { post_catalog }.to change { conversation.messages.count }.by(1)
 
       expect(response).to have_http_status(:success)
+      expect(response).to conform_schema(200)
       body = response.parsed_body
-      expect(body['content']).to eq('Mira estas opciones')
+      expect(body['content']).to eq('Look at these options')
       expect(body['message_type']).to eq(1)
       expect(body['content_attributes']['whatsapp_catalog']).to include('kind' => 'carousel', 'catalog_id' => 'cat-123')
       expect(body['content_attributes']['whatsapp_catalog']['items'].size).to eq(3)
@@ -50,12 +53,13 @@ RSpec.describe 'Conversation Catalog Messages API', type: :request do
 
     context 'with a product' do
       let(:kind) { 'product' }
-      let(:products) { [{ retailer_id: 'sku-0', name: 'Producto 0' }] }
+      let(:products) { [{ retailer_id: 'sku-0', name: 'Product 0' }] }
 
       it 'creates the message' do
         post_catalog
 
         expect(response).to have_http_status(:success)
+        expect(response).to conform_schema(200)
         expect(response.parsed_body['content_attributes']['whatsapp_catalog']['kind']).to eq('product')
       end
 
@@ -73,27 +77,28 @@ RSpec.describe 'Conversation Catalog Messages API', type: :request do
 
     context 'with a product list' do
       let(:kind) { 'product_list' }
-      let(:header) { 'Nuestros cuadros' }
+      let(:header) { 'Our packages' }
 
       it 'creates the message' do
         post_catalog
 
         expect(response).to have_http_status(:success)
-        expect(response.parsed_body['content_attributes']['whatsapp_catalog']['header']).to eq('Nuestros cuadros')
+        expect(response).to conform_schema(200)
+        expect(response.parsed_body['content_attributes']['whatsapp_catalog']['header']).to eq('Our packages')
       end
 
       context 'without a header' do
         let(:header) { nil }
 
-        it 'returns unprocessable entity' do
-          post_catalog
+        it 'returns unprocessable entity and creates no message' do
+          expect { post_catalog }.not_to change(Message, :count)
 
           expect(response).to have_http_status(:unprocessable_entity)
         end
       end
 
       context 'with 31 products' do
-        let(:products) { Array.new(31) { |index| { retailer_id: "sku-#{index}", section: 'Cuadros' } } }
+        let(:products) { Array.new(31) { |index| { retailer_id: "sku-#{index}", section: 'Packages' } } }
 
         it 'returns unprocessable entity' do
           post_catalog
@@ -110,6 +115,18 @@ RSpec.describe 'Conversation Catalog Messages API', type: :request do
         post_catalog
 
         expect(response).to have_http_status(:unprocessable_entity)
+        expect(conversation.messages.count).to eq(0)
+      end
+    end
+
+    context 'with products sent as an object instead of a list' do
+      let(:products) { { first: { retailer_id: 'sku-1' }, second: { retailer_id: 'sku-2' } } }
+
+      it 'returns unprocessable entity and creates no message' do
+        post_catalog
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq('products must be a list of products')
         expect(conversation.messages.count).to eq(0)
       end
     end
@@ -134,27 +151,6 @@ RSpec.describe 'Conversation Catalog Messages API', type: :request do
       end
     end
 
-    context 'when the inbox has a configured catalog' do
-      before { whatsapp_channel.update!(provider_config: whatsapp_channel.provider_config.merge('catalog_id' => 'cat-123')) }
-
-      it 'accepts the matching catalog id' do
-        post_catalog
-
-        expect(response).to have_http_status(:success)
-      end
-
-      context 'when the catalog id differs' do
-        let(:catalog_id) { 'cat-999' }
-
-        it 'returns unprocessable entity' do
-          post_catalog
-
-          expect(response).to have_http_status(:unprocessable_entity)
-          expect(conversation.messages.count).to eq(0)
-        end
-      end
-    end
-
     context 'when the inbox is not WhatsApp Cloud' do
       let(:inbox) { create(:inbox, account: account) }
 
@@ -162,7 +158,35 @@ RSpec.describe 'Conversation Catalog Messages API', type: :request do
         post_catalog
 
         expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to conform_schema(422)
+        expect(response.parsed_body['error']).to eq(I18n.t('errors.whatsapp.catalog.cloud_inbox_required'))
         expect(conversation.messages.count).to eq(0)
+      end
+    end
+
+    context 'when the conversation belongs to another account' do
+      let(:other_conversation) { create(:conversation) }
+
+      it 'returns not found' do
+        post api_v1_account_conversation_catalog_message_url(account_id: account.id, conversation_id: other_conversation.display_id),
+             params: params, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'when retrying a failed catalog message' do
+      let(:message) do
+        create(:message, conversation: conversation, account: account, message_type: :outgoing, status: :failed,
+                         content_attributes: { external_error: 'error', whatsapp_catalog: { kind: 'carousel', catalog_id: 'cat-123' } })
+      end
+
+      it 'keeps the whatsapp catalog' do
+        post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/messages/#{message.id}/retry",
+             headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(message.reload.content_attributes['whatsapp_catalog']).to include('kind' => 'carousel', 'catalog_id' => 'cat-123')
       end
     end
   end

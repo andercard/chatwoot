@@ -3,15 +3,15 @@ require 'rails_helper'
 describe Whatsapp::CatalogMessagePayloadBuilder do
   subject(:payload) { described_class.new(body: body, catalog: catalog).perform }
 
-  let(:body) { 'Mira estas opciones' }
+  let(:body) { 'Check these options' }
   let(:kind) { 'carousel' }
   let(:header) { nil }
   let(:footer) { nil }
   let(:items) do
     [
-      { 'retailer_id' => 'sku-a', 'name' => 'Producto A', 'section' => 'Cuadros' },
-      { 'retailer_id' => 'sku-b', 'name' => 'Producto B', 'section' => 'Marcos' },
-      { 'retailer_id' => 'sku-c', 'name' => 'Producto C', 'section' => 'Cuadros' }
+      { 'retailer_id' => 'sku-a', 'name' => 'Product A', 'section' => 'Section one' },
+      { 'retailer_id' => 'sku-b', 'name' => 'Product B', 'section' => 'Section two' },
+      { 'retailer_id' => 'sku-c', 'name' => 'Product C', 'section' => 'Section one' }
     ]
   end
   let(:catalog) { { 'kind' => kind, 'catalog_id' => 'cat-123', 'header' => header, 'footer' => footer, 'items' => items } }
@@ -20,7 +20,7 @@ describe Whatsapp::CatalogMessagePayloadBuilder do
     it 'builds one product card per item without header or footer' do
       expect(payload).to eq(
         type: 'carousel',
-        body: { text: 'Mira estas opciones' },
+        body: { text: 'Check these options' },
         action: {
           cards: [
             { card_index: 0, type: 'product', action: { product_retailer_id: 'sku-a', catalog_id: 'cat-123' } },
@@ -34,19 +34,25 @@ describe Whatsapp::CatalogMessagePayloadBuilder do
     context 'when it has fewer than 2 products' do
       let(:items) { [{ 'retailer_id' => 'sku-a' }] }
 
-      it { expect { payload }.to raise_error(described_class::Error, /between 2 and 10 products/) }
+      it { expect { payload }.to raise_error(described_class::Error, 'carousel requires between 2 and 10 products') }
     end
 
     context 'when it has more than 10 products' do
       let(:items) { Array.new(11) { |i| { 'retailer_id' => "sku-#{i}" } } }
 
-      it { expect { payload }.to raise_error(described_class::Error, /between 2 and 10 products/) }
+      it { expect { payload }.to raise_error(described_class::Error, 'carousel requires between 2 and 10 products') }
     end
 
     context 'when the body is blank' do
       let(:body) { '' }
 
-      it { expect { payload }.to raise_error(described_class::Error, /requires a body/) }
+      it { expect { payload }.to raise_error(described_class::Error, 'carousel requires a body') }
+    end
+
+    context 'when the body is longer than 1024 characters' do
+      let(:body) { 'a' * 1025 }
+
+      it { expect { payload }.to raise_error(described_class::Error, 'The body must be at most 1024 characters long') }
     end
   end
 
@@ -62,13 +68,13 @@ describe Whatsapp::CatalogMessagePayloadBuilder do
     end
 
     context 'when body and footer are present' do
-      let(:footer) { 'Envío gratis' }
+      let(:footer) { 'Free shipping' }
 
       it 'includes them' do
         expect(payload).to eq(
           type: 'product',
-          body: { text: 'Mira estas opciones' },
-          footer: { text: 'Envío gratis' },
+          body: { text: 'Check these options' },
+          footer: { text: 'Free shipping' },
           action: { catalog_id: 'cat-123', product_retailer_id: 'sku-a' }
         )
       end
@@ -77,51 +83,75 @@ describe Whatsapp::CatalogMessagePayloadBuilder do
     context 'when it has more than one product' do
       let(:items) { [{ 'retailer_id' => 'sku-a' }, { 'retailer_id' => 'sku-b' }] }
 
-      it { expect { payload }.to raise_error(described_class::Error, /between 1 and 1 products/) }
+      it { expect { payload }.to raise_error(described_class::Error, 'product requires between 1 and 1 products') }
+    end
+
+    context 'when the footer is longer than 60 characters' do
+      let(:footer) { 'a' * 61 }
+
+      it { expect { payload }.to raise_error(described_class::Error, 'The footer must be at most 60 characters long') }
     end
   end
 
   describe 'product_list' do
     let(:kind) { 'product_list' }
-    let(:header) { 'Nuestro catálogo' }
+    let(:header) { 'Our catalog' }
 
     it 'groups products by section keeping the order' do
       expect(payload).to eq(
         type: 'product_list',
-        header: { type: 'text', text: 'Nuestro catálogo' },
-        body: { text: 'Mira estas opciones' },
+        header: { type: 'text', text: 'Our catalog' },
+        body: { text: 'Check these options' },
         action: {
           catalog_id: 'cat-123',
           sections: [
-            { title: 'Cuadros', product_items: [{ product_retailer_id: 'sku-a' }, { product_retailer_id: 'sku-c' }] },
-            { title: 'Marcos', product_items: [{ product_retailer_id: 'sku-b' }] }
+            { title: 'Section one', product_items: [{ product_retailer_id: 'sku-a' }, { product_retailer_id: 'sku-c' }] },
+            { title: 'Section two', product_items: [{ product_retailer_id: 'sku-b' }] }
           ]
         }
       )
     end
 
     context 'when a footer is present' do
-      let(:footer) { 'Precios en COP' }
+      let(:footer) { 'Prices in USD' }
 
-      it { expect(payload[:footer]).to eq(text: 'Precios en COP') }
+      it { expect(payload[:footer]).to eq(text: 'Prices in USD') }
     end
 
     context 'when it has more than 30 products' do
-      let(:items) { Array.new(31) { |i| { 'retailer_id' => "sku-#{i}", 'section' => 'Todos' } } }
+      let(:items) { Array.new(31) { |i| { 'retailer_id' => "sku-#{i}", 'section' => 'All' } } }
 
-      it { expect { payload }.to raise_error(described_class::Error, /between 1 and 30 products/) }
+      it { expect { payload }.to raise_error(described_class::Error, 'product_list requires between 1 and 30 products') }
     end
 
     context 'when the header is blank' do
       let(:header) { nil }
 
-      it { expect { payload }.to raise_error(described_class::Error, /requires a header/) }
+      it { expect { payload }.to raise_error(described_class::Error, 'product_list requires a header') }
+    end
+
+    context 'when the header is longer than 60 characters' do
+      let(:header) { 'a' * 61 }
+
+      it { expect { payload }.to raise_error(described_class::Error, 'The header must be at most 60 characters long') }
     end
 
     context 'when the body is blank' do
       let(:body) { nil }
 
-      it { expect { payload }.to raise_error(described_class::Error, /requires a body/) }
+      it { expect { payload }.to raise_error(described_class::Error, 'product_list requires a body') }
+    end
+
+    context 'when a section title is longer than 24 characters' do
+      let(:items) { [{ 'retailer_id' => 'sku-a', 'section' => 'a' * 25 }] }
+
+      it { expect { payload }.to raise_error(described_class::Error, 'The section must be at most 24 characters long') }
+    end
+
+    context 'when the products belong to more than 10 sections' do
+      let(:items) { Array.new(11) { |index| { 'retailer_id' => "sku-#{index}", 'section' => "Section #{index}" } } }
+
+      it { expect { payload }.to raise_error(described_class::Error, 'product_list supports at most 10 sections') }
     end
   end
 
@@ -129,19 +159,25 @@ describe Whatsapp::CatalogMessagePayloadBuilder do
     context 'when the catalog ID is missing' do
       let(:catalog) { { 'kind' => 'carousel', 'items' => items } }
 
-      it { expect { payload }.to raise_error(described_class::Error, /Catalog ID is required/) }
+      it { expect { payload }.to raise_error(described_class::Error, 'Catalog ID is required') }
     end
 
     context 'when a product has no retailer ID' do
       let(:items) { [{ 'retailer_id' => 'sku-a' }, { 'retailer_id' => '' }] }
 
-      it { expect { payload }.to raise_error(described_class::Error, /retailer ID/) }
+      it { expect { payload }.to raise_error(described_class::Error, 'Every product requires a retailer ID (SKU)') }
+    end
+
+    context 'when a product link is not an http or https URL' do
+      let(:items) { [{ 'retailer_id' => 'sku-a', 'url' => 'https://example.com/a' }, { 'retailer_id' => 'sku-b', 'url' => 'javascript:alert(1)' }] }
+
+      it { expect { payload }.to raise_error(described_class::Error, 'Product links must be http or https URLs') }
     end
 
     context 'when the kind is unknown' do
       let(:kind) { 'grid' }
 
-      it { expect { payload }.to raise_error(described_class::Error, /Unsupported catalog message kind/) }
+      it { expect { payload }.to raise_error(described_class::Error, 'Unsupported catalog message kind: grid') }
     end
   end
 end
