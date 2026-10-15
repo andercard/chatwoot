@@ -151,3 +151,21 @@ The settings of a WhatsApp Cloud inbox SHALL offer an optional catalog ID saved 
 - **GIVEN** the settings of a WhatsApp Cloud inbox
 - **WHEN** an administrator saves a catalog ID
 - **THEN** it is stored in the provider configuration and used to read the catalog
+
+### Requirement: One catalog surface at a time and native mobile sheets
+The catalog dialog and the product detail SHALL share one surface component: on desktop a centered dialog with a round close (X) button on the right, on phones (narrower than 640 px) a bottom sheet with a drag handle that closes when dragged down, without a close button. Opening a product from the catalog SHALL replace the catalog view inside the same surface instead of stacking a second dialog, and closing the detail SHALL return to the catalog view with its search, filter and selection intact.
+
+#### Scenario: Detail replaces the list
+- **GIVEN** the catalog dialog open on the products view
+- **WHEN** the agent opens a product with "See more"
+- **THEN** only the detail is visible and no second dialog or sheet is stacked
+
+#### Scenario: Closing the detail returns to the list
+- **GIVEN** the product detail open from the catalog with three products selected
+- **WHEN** the agent closes the detail with the X (desktop) or drags the sheet down (phone)
+- **THEN** the products view is shown again with the same search, filter and three selected products
+
+#### Scenario: Drag to close on phones
+- **GIVEN** the catalog sheet open on a 390 px viewport
+- **WHEN** the agent drags the handle down past a third of the sheet height
+- **THEN** the sheet slides down and closes
