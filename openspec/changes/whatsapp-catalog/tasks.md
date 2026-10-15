@@ -178,3 +178,11 @@ Se desechan los criterios obsoletos (marcadas arriba como «reemplazada por»). 
   - depende de: ninguna
   - listo cuando: la guía «sin permiso» (`CATALOG.SETUP_GUIDE.MISSING_PERMISSION`) nombra el permiso `catalog_management` y la alternativa de pegar el ID del catálogo en la configuración de la bandeja, en en y es; `whatsappCatalogCache.js` expone una lectura síncrona de lo ya cacheado (colecciones y primera página de «Todos») y el modal, si hay datos precargados (vigentes **o vencidos**), muestra la lista **sin pasar por el estado de carga** (sin parpadeo): con datos vigentes no hace ninguna petición y con datos vencidos los muestra igual y los refresca en segundo plano (la lista se actualiza sin reiniciar el scroll ni la selección); los specs agregan: «Ver más» abre el detalle sin seleccionar el producto, el tope 30/30 en la interfaz (el producto 31 no se marca y el contador dice 30 / 30), que con la caché precargada no aparece el estado de carga, que la selección sobrevive a scroll de página y búsqueda, el estado `missing_permission` mostrando la guía con `catalog_management`, que el evento `close` del asa (`SheetHandle`) cierra `CatalogSheet`, y en `ReplyBox.spec.js` que el evento `sent` del modal limpia el editor sin tocar los adjuntos; `peekCatalog`/`peekProductsPage` devuelven también lo vencido marcado como vencido y un spec lo cubre
   - commit: `test(whatsapp): cover the catalog scenarios and warm-cache open without flicker`
+
+## Ronda 8 · estabilidad del spec en el CI
+
+- [ ] **26 · El spec del modal no deja temporizadores de un test dentro del siguiente**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/WhatsappCatalog/specs/Modal.spec.js`
+  - depende de: ninguna
+  - listo cuando: el caso «paints fresh data without loading state or requests» (y cualquiera con la misma forma) pasa de forma determinista aunque un test anterior haya escrito en el buscador: cada test desmonta el componente y limpia temporizadores pendientes (`vi.clearAllTimers()` / `vi.useRealTimers()` en `afterEach`, o temporizadores simulados en todo el archivo) para que el debounce de 400 ms de una búsqueda («red») no se dispare en el test siguiente; el spec entero pasa 5 veces seguidas y también ejecutado en orden aleatorio (`--sequence.shuffle`)
+  - commit: `test(whatsapp): isolate the catalog dialog debounce between tests`
