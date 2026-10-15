@@ -27,7 +27,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en escritorio, al pasar el mouse sobre una burbuja aparecen una flecha (Responder, solo ícono) y un ⋯ con las opciones que el menú ya tiene (sin añadir ni quitar ninguna); en móvil, deslizar la burbuja a la derecha cita el mensaje (queda en la caja con `ReplyToMessage` y la burbuja enviada muestra la cita); en inboxes sin soporte (`inboxSupportsReplyTo` falso para ese sentido: Instagram, Email, SMS, Line, 360dialog saliente) no aparecen ni la flecha ni el gesto; usa `useSwipeGesture` de la tarea 2
   - commit: `feat(messages): visible reply button and swipe to reply`
 
-- [ ] **4 · Filtro "unread" en el finder**
+- [x] **4 · Filtro "unread" en el finder**
   - archivos: `app/finders/conversation_finder.rb`
   - depende de: 0
   - listo cuando: `GET /api/v1/accounts/:id/conversations?conversation_type=unread` devuelve solo conversaciones con mensajes entrantes posteriores a `agent_last_seen_at` (o con `agent_last_seen_at` nulo), usando `Conversation.unread_messages_condition` con `EXISTS`; los demás valores de `conversation_type` y las cuentas de `meta` no cambian; RuboCop sin ofensas
