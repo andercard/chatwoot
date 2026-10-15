@@ -1,11 +1,11 @@
 # Lista de conversaciones: escribiendo, gestos, no leídos, selección masiva y responder
 
 > **Rama:** `picnic/feat/chat-list-gestures`
-> **Base:** `7c91030a30`
+> **Base:** `5b6a7eba3c`
 
 ## Qué encontré
 
-Investigado en el worktree `~/Desarrollo/chatwoot-worktrees/production` (rama `picnic/feat/mobile-header-inbox-name`, HEAD `7c91030a30`). **Sin `.codegraph/` en ese worktree**: `codegraph_context` contestó con el índice del checkout `develop`, así que todo lo de abajo se confirmó leyendo los archivos del worktree.
+Investigado en el worktree `~/Desarrollo/chatwoot-worktrees/production` (rama `picnic/feat/mobile-header-inbox-name`, HEAD `5b6a7eba3c`). **Sin `.codegraph/` en ese worktree**: `codegraph_context` contestó con el índice del checkout `develop`, así que todo lo de abajo se confirmó leyendo los archivos del worktree.
 
 - **Escribiendo ya viaja completo hasta el store.** `actionCable.js:265-306` guarda en `conversationTypingStatus` al usuario que escribe (`{id,name,type}`) y lo apaga solo a los 30 s. `action_cable_listener.rb:191-200` lo emite a miembros del inbox, administradores y al contacto, sin el que escribe. Hoy solo se pinta en `MessagesView.vue:557-571`; `ConversationCard.vue` no lo lee.
 - **Lucía (bot) ya puede avisar sin tocar backend.** `Conversations::TypingStatusManager` usa `Current.user`, y `access_token_auth_helper.rb:20-37` deja entrar a un `AgentBot` en `toggle_typing_status`. El evento sale con `AgentBot#push_event_data` (`agent_bot.rb:50-57`, `type: 'agent_bot'`). Solo falta que n8n llame al endpoint.
