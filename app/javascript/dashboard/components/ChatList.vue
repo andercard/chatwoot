@@ -60,6 +60,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['conversationLoad']);
+const UNREAD_TAB_KEY = 'unread';
 const { uiSettings } = useUISettings();
 const { t } = useI18n();
 const router = useRouter();
@@ -69,6 +70,13 @@ const { buildConversationListPath } = useConversationRoutePath();
 const resolveAttributesModalRef = ref(null);
 
 const activeAssigneeTab = ref(wootConstants.ASSIGNEE_TYPE.ME);
+// The unread tab is a client-side tab: it asks the backend for all assignees
+// filtered by `conversation_type=unread`.
+const activeAssigneeType = computed(() =>
+  activeAssigneeTab.value === UNREAD_TAB_KEY
+    ? wootConstants.ASSIGNEE_TYPE.ALL
+    : activeAssigneeTab.value
+);
 const activeStatus = ref(wootConstants.STATUS_TYPE.OPEN);
 const activeSortBy = ref(wootConstants.SORT_BY_TYPE.LAST_ACTIVITY_AT_DESC);
 const showAdvancedFilters = ref(false);
@@ -173,7 +181,7 @@ const userPermissions = computed(() => {
 });
 
 const assigneeTabItems = computed(() => {
-  return filterItemsByPermission(
+  const items = filterItemsByPermission(
     ASSIGNEE_TYPE_TAB_PERMISSIONS,
     userPermissions.value,
     item => item.permissions
@@ -182,25 +190,36 @@ const assigneeTabItems = computed(() => {
     name: t(`CHAT_LIST.ASSIGNEE_TYPE_TABS.${key}`),
     count: conversationStats.value[countKey] || 0,
   }));
+  const hasAllTab = items.some(
+    ({ key }) => key === wootConstants.ASSIGNEE_TYPE.ALL
+  );
+  if (!hasAllTab) return items;
+  return [
+    ...items,
+    {
+      key: UNREAD_TAB_KEY,
+      name: t('CHAT_LIST.ASSIGNEE_TYPE_TABS.unread'),
+    },
+  ];
 });
 
 const showAssigneeInConversationCard = computed(() => {
   return (
     hasAppliedFiltersOrActiveFolders.value ||
-    activeAssigneeTab.value === wootConstants.ASSIGNEE_TYPE.ALL
+    activeAssigneeType.value === wootConstants.ASSIGNEE_TYPE.ALL
   );
 });
 
 const currentPageFilterKey = computed(() => {
   return hasAppliedFiltersOrActiveFolders.value
     ? 'appliedFilters'
-    : activeAssigneeTab.value;
+    : activeAssigneeType.value;
 });
 
 const inbox = useFunctionGetter('inboxes/getInbox', activeInbox);
 const currentPage = useFunctionGetter(
   'conversationPage/getCurrentPageFilter',
-  activeAssigneeTab
+  activeAssigneeType
 );
 const currentFiltersPage = useFunctionGetter(
   'conversationPage/getCurrentPageFilter',
@@ -246,13 +265,16 @@ const conversationListPagination = computed(() => {
 const conversationFilters = computed(() => {
   return {
     inboxId: props.conversationInbox ? props.conversationInbox : undefined,
-    assigneeType: activeAssigneeTab.value,
+    assigneeType: activeAssigneeType.value,
     status: activeStatus.value,
     sortBy: activeSortBy.value,
     page: conversationListPagination.value,
     labels: props.label ? [props.label] : undefined,
     teamId: props.teamId || undefined,
-    conversationType: props.conversationType || undefined,
+    conversationType:
+      activeAssigneeTab.value === UNREAD_TAB_KEY
+        ? UNREAD_TAB_KEY
+        : props.conversationType || undefined,
   };
 });
 
@@ -493,7 +515,7 @@ function initializeExistingFilterToModal() {
   const statusFilter = initializeStatusAndAssigneeFilterToModal(
     activeStatus.value,
     currentUserDetails.value,
-    activeAssigneeTab.value
+    activeAssigneeType.value
   );
   // TODO: Remove the usage of useCamelCase after migrating useFilter to camelcase
   if (statusFilter) {
@@ -605,10 +627,16 @@ function loadMoreConversations() {
 
 function updateAssigneeTab(selectedTab) {
   if (activeAssigneeTab.value !== selectedTab) {
+    const involvesUnreadTab = [activeAssigneeTab.value, selectedTab].includes(
+      UNREAD_TAB_KEY
+    );
     resetBulkActions();
     emitter.emit('clearSearchInput');
     activeAssigneeTab.value = selectedTab;
-    if (!currentPage.value) {
+    if (involvesUnreadTab) {
+      // The unread tab shares the `all` page state, so start from scratch
+      resetAndFetchData();
+    } else if (!currentPage.value) {
       fetchConversations();
     } else {
       store.dispatch('invalidateConversationListRequests');
@@ -797,7 +825,11 @@ function toggleSelectAll(check) {
 
 useEmitter('fetch_conversation_stats', () => {
   if (hasAppliedFiltersOrActiveFolders.value) return;
-  store.dispatch('conversationStats/get', conversationFilters.value);
+  // Tab counts must not be narrowed by the unread tab
+  store.dispatch('conversationStats/get', {
+    ...conversationFilters.value,
+    conversationType: props.conversationType || undefined,
+  });
 });
 
 onMounted(() => {

@@ -33,7 +33,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: `GET /api/v1/accounts/:id/conversations?conversation_type=unread` devuelve solo conversaciones con mensajes entrantes posteriores a `agent_last_seen_at` (o con `agent_last_seen_at` nulo), usando `Conversation.unread_messages_condition` con `EXISTS`; los demás valores de `conversation_type` y las cuentas de `meta` no cambian; RuboCop sin ofensas
   - commit: `feat(conversations): filter the list by unread messages`
 
-- [ ] **5 · Chip "No leídos" en la lista**
+- [x] **5 · Chip "No leídos" en la lista**
   - archivos: `app/javascript/dashboard/components/ChatList.vue`, `app/javascript/dashboard/store/modules/conversations/helpers.js`, `app/javascript/dashboard/i18n/locale/en/chatlist.json`, `app/javascript/dashboard/i18n/locale/es/chatlist.json`
   - depende de: 2, 4
   - listo cuando: junto a Mías / Sin asignar / Todos hay un chip "No leídos" sin número que pide la lista con `assignee_type=all` + `conversation_type=unread`; un mensaje entrante nuevo agrega la conversación al chip y marcarla leída la quita sin recargar (`applyPageFilters` filtra por `unread_count > 0`); al volver a otra pestaña se restauran los filtros previos
