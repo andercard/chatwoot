@@ -5,6 +5,8 @@ import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper';
 import ConversationCard from './widgets/conversation/ConversationCard.vue';
 import ConversationCardExpanded from 'dashboard/components-next/Conversation/ConversationCard/ConversationCardExpanded.vue';
+import SwipeActions from 'dashboard/components-next/Conversation/ConversationCard/SwipeActions.vue';
+import ConversationStatusSheet from 'dashboard/components-next/Conversation/ConversationCard/ConversationStatusSheet.vue';
 import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
 import ConversationContextMenu from './widgets/conversation/contextMenu/Index.vue';
 
@@ -52,6 +54,7 @@ watch(
 );
 
 const currentChat = useMapGetter('getSelectedChat');
+const currentUser = useMapGetter('getCurrentUser');
 const inboxesList = useMapGetter('inboxes/getInboxes');
 const activeInbox = useMapGetter('getSelectedInbox');
 const accountId = useMapGetter('getCurrentAccountId');
@@ -144,6 +147,20 @@ const onAssignAgent = agent => {
   closeContextMenu();
 };
 
+// --- Mobile swipe actions ---
+const showStatusSheet = ref(false);
+
+const showAssignMe = computed(() => assignee.value.id !== currentUser.value.id);
+
+const onSwipeAssignMe = () => {
+  assignAgent(currentUser.value, [props.source.id]);
+};
+
+const onStatusSheetUpdate = (status, snoozedUntil) => {
+  showStatusSheet.value = false;
+  updateConversationStatus(props.source.id, status, snoozedUntil);
+};
+
 const onAssignLabel = label => {
   assignLabels([label.title], [props.source.id]);
 };
@@ -179,39 +196,55 @@ const onDeleteConversation = () => {
 </script>
 
 <template>
-  <!-- Expanded layout: wide screen + expanded setting -->
-  <ConversationCardExpanded
-    v-if="showExpanded"
-    :chat="source"
-    :current-contact="currentContact"
-    :assignee="assignee"
-    :inbox="inbox"
-    :selected="isConversationSelected(source.id)"
-    :is-active-chat="isActiveChat"
-    :show-assignee="showAssigneeForExpandedCard"
-    :show-inbox-name="showInboxName"
-    :is-inbox-view="isInboxView"
-    @select-conversation="onExpandedSelect"
-    @de-select-conversation="onExpandedSelect"
-    @click="onCardClick"
-    @contextmenu="openContextMenu"
-  />
+  <SwipeActions
+    :has-unread="source.unread_count > 0"
+    :show-assign-me="showAssignMe"
+    @mark-unread="onMarkAsUnread"
+    @mark-read="onMarkAsRead"
+    @assign-me="onSwipeAssignMe"
+    @open-status="showStatusSheet = true"
+  >
+    <!-- Expanded layout: wide screen + expanded setting -->
+    <ConversationCardExpanded
+      v-if="showExpanded"
+      :chat="source"
+      :current-contact="currentContact"
+      :assignee="assignee"
+      :inbox="inbox"
+      :selected="isConversationSelected(source.id)"
+      :is-active-chat="isActiveChat"
+      :show-assignee="showAssigneeForExpandedCard"
+      :show-inbox-name="showInboxName"
+      :is-inbox-view="isInboxView"
+      @select-conversation="onExpandedSelect"
+      @de-select-conversation="onExpandedSelect"
+      @click="onCardClick"
+      @contextmenu="openContextMenu"
+    />
 
-  <!-- Default (condensed) layout -->
-  <ConversationCard
-    v-else
-    :chat="source"
-    :current-contact="currentContact"
-    :assignee="assignee"
-    :inbox="inbox"
-    :selected="isConversationSelected(source.id)"
-    :is-active-chat="isActiveChat"
-    :show-assignee="showAssignee"
-    :show-inbox-name="showInboxName"
-    @click="onCardClick"
-    @contextmenu="openContextMenu"
-    @select-conversation="selectConversation"
-    @de-select-conversation="deSelectConversation"
+    <!-- Default (condensed) layout -->
+    <ConversationCard
+      v-else
+      :chat="source"
+      :current-contact="currentContact"
+      :assignee="assignee"
+      :inbox="inbox"
+      :selected="isConversationSelected(source.id)"
+      :is-active-chat="isActiveChat"
+      :show-assignee="showAssignee"
+      :show-inbox-name="showInboxName"
+      @click="onCardClick"
+      @contextmenu="openContextMenu"
+      @select-conversation="selectConversation"
+      @de-select-conversation="deSelectConversation"
+    />
+  </SwipeActions>
+
+  <ConversationStatusSheet
+    :show="showStatusSheet"
+    :status="source.status"
+    @close="showStatusSheet = false"
+    @update="onStatusSheetUpdate"
   />
 
   <!-- Shared context menu for both layouts -->
