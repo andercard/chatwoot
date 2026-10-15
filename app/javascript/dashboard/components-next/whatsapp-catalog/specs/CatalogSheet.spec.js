@@ -5,7 +5,7 @@ import CatalogSheet from '../CatalogSheet.vue';
 const i18n = createI18n({
   legacy: false,
   locale: 'en',
-  messages: { en: { CATALOG: { ACTIONS: { CLOSE: 'Close' } } } },
+  messages: { en: { CATALOG: { ACTIONS: { CLOSE: 'Close', BACK: 'Back' } } } },
 });
 
 const mountSheet = (props = { show: true, title: 'Details' }, slots = {}) =>
@@ -54,6 +54,42 @@ describe('CatalogSheet', () => {
     const wrapper = mountSheet();
     q('[data-test-id="catalog-sheet-close"]').click();
     expect(wrapper.emitted('close')).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('shows a mobile-only back arrow before the title with backButton', () => {
+    const wrapper = mountSheet({
+      show: true,
+      title: 'Details',
+      backButton: true,
+    });
+    const header = q('[data-test-id="catalog-sheet-header"]');
+    const back = q('[data-test-id="catalog-sheet-back"]');
+    expect(header.firstElementChild).toBe(back);
+    expect(back.getAttribute('aria-label')).toBe('Back');
+    expect(back.className).toContain('sm:hidden');
+    back.click();
+    expect(wrapper.emitted('close')).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it('keeps the X at the end on desktop with backButton', () => {
+    const wrapper = mountSheet({
+      show: true,
+      title: 'Details',
+      backButton: true,
+    });
+    const close = q('[data-test-id="catalog-sheet-close"]');
+    expect(q('[data-test-id="catalog-sheet-header"]').lastElementChild).toBe(
+      close
+    );
+    expect(close.className).toContain('max-sm:hidden');
+    wrapper.unmount();
+  });
+
+  it('does not render the back arrow without backButton', () => {
+    const wrapper = mountSheet();
+    expect(q('[data-test-id="catalog-sheet-back"]')).toBeNull();
     wrapper.unmount();
   });
 

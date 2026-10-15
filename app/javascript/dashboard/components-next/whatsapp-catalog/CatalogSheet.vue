@@ -7,6 +7,7 @@ import SheetHandle from 'dashboard/components-next/sheet-handle/SheetHandle.vue'
 const props = defineProps({
   show: { type: Boolean, default: false },
   title: { type: String, default: '' },
+  backButton: { type: Boolean, default: false },
   size: {
     type: String,
     default: 'md',
@@ -59,7 +60,18 @@ onBeforeUnmount(stopListening);
           class="flex items-center justify-between gap-2 px-4 pt-6 pb-3 shrink-0 border-b border-n-weak sm:py-3"
           data-test-id="catalog-sheet-header"
         >
-          <h2 class="text-base font-medium truncate text-n-slate-12">
+          <NextButton
+            v-if="backButton"
+            icon="i-lucide-chevron-left"
+            slate
+            faded
+            sm
+            class="!rounded-full sm:hidden"
+            :aria-label="t('CATALOG.ACTIONS.BACK')"
+            data-test-id="catalog-sheet-back"
+            @click="emit('close')"
+          />
+          <h2 class="flex-1 text-base font-medium truncate text-n-slate-12">
             {{ title }}
           </h2>
           <NextButton
