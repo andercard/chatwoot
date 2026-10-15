@@ -2731,8 +2731,11 @@
             "description": "The type of the audited object (e.g., Conversation, Contact, User)"
           },
           "auditable": {
-            "type": "object",
-            "description": "The audited object data"
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "The audited object data. Null for message deletion entries, which are served without the message payload."
           },
           "associated_id": {
             "type": "integer",
@@ -2791,7 +2794,14 @@
               "string",
               "null"
             ],
-            "description": "IP address from which the action was performed"
+            "description": "IP address from which the action was performed. Masked to the network portion (for example 203.0.113.x) unless the account has the audit_log_ip_address feature enabled, in which case the full address is returned."
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "City and country resolved from remote_address, present only when the account has the ip_lookup feature enabled and the address has been resolved. Omitted when the account returns full IP addresses."
           }
         }
       },
@@ -4081,6 +4091,102 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      },
+      "conversation_catalog_message_create_payload": {
+        "type": "object",
+        "required": [
+          "kind",
+          "catalog_id",
+          "products"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "carousel",
+              "product",
+              "product_list"
+            ],
+            "description": "Type of catalog message to send",
+            "example": "carousel"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Message body text (max 1024 characters). Required for `carousel` and `product_list`, optional for `product`.",
+            "example": "Check out our new arrivals"
+          },
+          "header": {
+            "type": "string",
+            "maxLength": 60,
+            "description": "Header text (max 60 characters). Required for `product_list`, ignored for the other kinds.",
+            "example": "New arrivals"
+          },
+          "footer": {
+            "type": "string",
+            "maxLength": 60,
+            "description": "Footer text (max 60 characters)",
+            "example": "Free shipping over $50"
+          },
+          "catalog_id": {
+            "type": "string",
+            "description": "ID of the WhatsApp catalog that contains the products",
+            "example": "1234567890"
+          },
+          "products": {
+            "type": "array",
+            "description": "Products to send. `carousel` takes 2 to 10, `product` takes 1, `product_list` takes 1 to 30.",
+            "items": {
+              "type": "object",
+              "required": [
+                "retailer_id"
+              ],
+              "properties": {
+                "retailer_id": {
+                  "type": "string",
+                  "description": "Product identifier in the catalog",
+                  "example": "SKU-001"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Product name",
+                  "example": "Ceramic mug"
+                },
+                "price": {
+                  "type": "string",
+                  "description": "Product price",
+                  "example": "12.50"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Product description",
+                  "example": "Handmade 350 ml mug"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Product page URL",
+                  "example": "https://example.com/products/ceramic-mug"
+                },
+                "section": {
+                  "type": "string",
+                  "maxLength": 24,
+                  "description": "Section title (max 24 characters), used by `product_list`",
+                  "example": "Kitchen"
+                },
+                "image_urls": {
+                  "type": "array",
+                  "description": "Product image URLs",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "https://example.com/images/mug.png"
+                  ]
                 }
               }
             }
