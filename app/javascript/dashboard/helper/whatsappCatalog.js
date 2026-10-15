@@ -76,29 +76,6 @@ export const groupProductsBySection = (products = []) => {
 
 export const CATALOG_MAX_SELECTION = 30;
 
-const normalizeText = value =>
-  String(value || '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
-
-// Filters by collection (snake_case or camelCase ids) and by a free text
-// query matched against name and description, ignoring case and accents.
-export const filterCatalogProducts = (
-  products = [],
-  { query = '', collectionId = null } = {}
-) => {
-  const text = normalizeText(query).trim();
-  return products.filter(product => {
-    const ids = product.collection_ids || product.collectionIds || [];
-    if (collectionId && !ids.includes(collectionId)) return false;
-    if (!text) return true;
-    return normalizeText(`${product.name} ${product.description}`).includes(
-      text
-    );
-  });
-};
-
 // For each format tells whether the current selection size fits it and,
 // if not, the i18n reason.
 export const getAvailableFormats = count =>

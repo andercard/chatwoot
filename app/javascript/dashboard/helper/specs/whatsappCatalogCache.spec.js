@@ -3,14 +3,21 @@ import {
   CATALOG_CACHE_TTL,
   clearCatalogCache,
   loadCatalog,
+  loadProductsPage,
   prefetchCatalog,
 } from '../whatsappCatalogCache';
 
 vi.mock('../../api/inboxes', () => ({
-  default: { getWhatsappCatalog: vi.fn() },
+  default: { getWhatsappCatalog: vi.fn(), getWhatsappCatalogProducts: vi.fn() },
 }));
 
 const okData = { status: 'ok', catalog_id: '1', collections: [], products: [] };
+
+const page = {
+  status: 'ok',
+  products: [{ retailer_id: 'a' }],
+  next_cursor: 'c',
+};
 
 describe('whatsappCatalogCache', () => {
   beforeEach(() => {
@@ -18,6 +25,8 @@ describe('whatsappCatalogCache', () => {
     clearCatalogCache();
     inboxes.getWhatsappCatalog.mockReset();
     inboxes.getWhatsappCatalog.mockResolvedValue({ data: okData });
+    inboxes.getWhatsappCatalogProducts.mockReset();
+    inboxes.getWhatsappCatalogProducts.mockResolvedValue({ data: page });
   });
 
   afterEach(() => {
@@ -73,5 +82,56 @@ describe('whatsappCatalogCache', () => {
   it('prefetch swallows errors', async () => {
     inboxes.getWhatsappCatalog.mockRejectedValueOnce(new Error('boom'));
     await expect(prefetchCatalog(1)).resolves.toBeUndefined();
+  });
+
+  it('prefetch swallows products errors too', async () => {
+    inboxes.getWhatsappCatalogProducts.mockRejectedValueOnce(new Error('boom'));
+    await expect(prefetchCatalog(1)).resolves.toBeUndefined();
+  });
+
+  describe('loadProductsPage', () => {
+    it('caches the first page per inbox and collection', async () => {
+      await expect(loadProductsPage(1)).resolves.toEqual(page);
+      await loadProductsPage(1);
+      expect(inboxes.getWhatsappCatalogProducts).toHaveBeenCalledTimes(1);
+      await loadProductsPage(1, { collectionId: 'c1' });
+      await loadProductsPage(2);
+      expect(inboxes.getWhatsappCatalogProducts).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not cache pages with after or q', async () => {
+      await loadProductsPage(1, { after: 'c' });
+      await loadProductsPage(1, { after: 'c' });
+      await loadProductsPage(1, { q: 'taza' });
+      await loadProductsPage(1, { q: 'taza' });
+      expect(inboxes.getWhatsappCatalogProducts).toHaveBeenCalledTimes(4);
+    });
+
+    it('shares one request between simultaneous first-page calls', async () => {
+      await Promise.all([loadProductsPage(1), loadProductsPage(1)]);
+      expect(inboxes.getWhatsappCatalogProducts).toHaveBeenCalledTimes(1);
+    });
+
+    it('expires after the TTL', async () => {
+      await loadProductsPage(1);
+      vi.advanceTimersByTime(CATALOG_CACHE_TTL + 1);
+      await loadProductsPage(1);
+      expect(inboxes.getWhatsappCatalogProducts).toHaveBeenCalledTimes(2);
+    });
+
+    it('force refreshes, and errors are not cached', async () => {
+      await loadProductsPage(1);
+      await loadProductsPage(1, { force: true });
+      expect(inboxes.getWhatsappCatalogProducts).toHaveBeenLastCalledWith(1, {
+        after: undefined,
+        q: undefined,
+        collectionId: undefined,
+        refresh: true,
+      });
+      clearCatalogCache();
+      inboxes.getWhatsappCatalogProducts.mockRejectedValueOnce(new Error('x'));
+      await expect(loadProductsPage(1)).rejects.toThrow('x');
+      await expect(loadProductsPage(1)).resolves.toEqual(page);
+    });
   });
 });

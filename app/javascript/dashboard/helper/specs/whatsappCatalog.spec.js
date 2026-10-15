@@ -4,7 +4,6 @@ import {
   CATALOG_KINDS,
   CATALOG_MAX_SELECTION,
   CATALOG_TEXT_LIMITS,
-  filterCatalogProducts,
   getAvailableFormats,
   groupProductsBySection,
   validateCatalogForm,
@@ -126,32 +125,6 @@ describe('groupProductsBySection', () => {
         products: [{ retailer_id: 'b', section: long }],
       },
     ]);
-  });
-});
-
-describe('filterCatalogProducts', () => {
-  const products = [
-    { name: 'Camiseta Roja', description: 'Algodón', collection_ids: ['a'] },
-    { name: 'Taza', description: null, collection_ids: ['b'] },
-  ];
-
-  it('ignores case and accents in name and description', () => {
-    expect(filterCatalogProducts(products, { query: 'ALGODON' })).toEqual([
-      products[0],
-    ]);
-    expect(filterCatalogProducts(products, { query: ' taza ' })).toEqual([
-      products[1],
-    ]);
-  });
-
-  it('filters by collection and returns all when empty', () => {
-    expect(filterCatalogProducts(products, { collectionId: 'b' })).toEqual([
-      products[1],
-    ]);
-    expect(filterCatalogProducts(products, { collectionId: '' })).toEqual(
-      products
-    );
-    expect(filterCatalogProducts(products)).toEqual(products);
   });
 });
 
