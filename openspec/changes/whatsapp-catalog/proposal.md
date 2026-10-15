@@ -32,7 +32,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
 
 **Resultado:** en una conversación de WhatsApp Cloud, fuera de nota privada, el agente abre **Catálogo** (botón junto a los demás en escritorio, fila en el menú «+» en móvil) y en **un solo modal**:
 1. **Elige el formato** (carrusel / tarjeta / lista). El formato fija los límites desde el principio.
-2. **Elige productos**, agrupados por colección, con tope visible según el formato (contador «3 / 10»; al llegar al máximo no deja marcar más). Por eso **un envío = un mensaje de WhatsApp**: no hay reparto en varios mensajes.
+2. **Elige productos**, paginados desde Meta con buscador, filtro de colección y scroll infinito, con tope visible según el formato (contador «3 / 10»; al llegar al máximo no deja marcar más). Por eso **un envío = un mensaje de WhatsApp**: no hay reparto en varios mensajes.
 3. **Llena los campos del formato** (obligatorios marcados), ver tabla.
 4. **Envía desde el modal.** En la conversación el mensaje se ve como en WhatsApp (tarjetas, «Ver» abre el detalle con galería, título, precio, descripción y enlace).
 
@@ -56,14 +56,14 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
 - Mensaje de catálogo completo (`catalog_message`), vídeo, carrito, «añadir al pedido», checkout.
 - **Pedidos entrantes (`type: order`)**: otra tanda; el dev pidió dejarlo guardado en memoria (engram), lo hago al aprobar (en plan mode no puedo escribir).
 - Otros proveedores (360dialog) y otros canales; nota privada.
-- Editar el catálogo de Meta, búsqueda por texto, paginación infinita (se carga una vez, cacheado 5 min).
+- Editar el catálogo de Meta, la búsqueda dentro de la descripción (el filtro de Meta solo cubre el nombre) y la vista previa corta con «Ver todo» por colección.
 
 ## Con qué restricciones
 - Solo fork; sin PR a Chatwoot. Rama desde `origin/production`. Commits convencionales, **sin mencionar IA**; stagear por archivo; nunca `.env`, `docker-compose.override.yml`, `.claude/`, `.codegraph/`.
 - Rails: validar parámetros en el controlador (422), sin fallbacks especulativos, sin helpers de un solo uso; clases compactas `module/class`; RuboCop 150 cols. Sin migración (todo en JSON existente).
 - Enterprise: revisar `enterprise/` antes de tocar `WhatsappCloudService` (hay `prepend_mod_with` al final del archivo); no debería cambiar.
 - Vue: `<script setup>` en archivos nuevos, Tailwind únicamente (sin CSS propio ni inline), utilidades lógicas (`ms/me/start/end`), `rem` en medidas arbitrarias, constantes con nombre para los topes (2/10/1/30, 1024/60/24), i18n sin textos sueltos (`en` y `es` en `conversation.json`; fuente en `en`). Burbujas nuevas en `components-next/message/`.
-- Specs JS: `docker compose run --rm --no-deps -T vite pnpm exec vitest run <ruta>`; Ruby: `docker compose exec -e RAILS_ENV=test rails bundle exec rspec <ruta>`, ambos desde `~/Desarrollo/chatwoot-worktrees/production`. Los subagentes no usan `docker compose exec` contra otro worktree.
+- Specs JS: `docker compose exec -T vite pnpm exec vitest run <ruta>`; Ruby: `docker compose exec -e RAILS_ENV=test rails bundle exec rspec <ruta>`, ambos desde `~/Desarrollo/chatwoot-worktrees/production`. Los subagentes no usan `docker compose exec` contra otro worktree.
 - Las tareas que comparten archivo van en serie (reflejado en `depende de`); `ReplyBox.vue` y `config/routes.rb` los tocan pocas tareas a propósito.
 - Todo valor privado (token, IDs de WABA/catálogo/teléfono) vive en `~/.config/picnicart/` y en la BD local; nunca en el repo, specs ni commits. Los specs usan IDs inventados.
 
@@ -75,19 +75,19 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
 
 ## Encontrado de paso
 - `retry_content_attributes` descarta todo `content_attributes` salvo contact-info (`messages_controller.rb:83-87`): afecta a otros metadatos de mensajes fallidos; aquí solo se agrega `whatsapp_catalog`.
-- `whatsapp_cloud_service.rb:120,125` usan `v13.0`/`v14.0` fijos; para catálogo se usará la versión de `WHATSAPP_API_VERSION` como hace el servicio de contact-info. No se unifica aquí.
+- `whatsapp_cloud_service.rb:120,125` usan `v13.0`/`v14.0` fijos; el envío de catálogo usa `v24.0` fija, igual que `send_attachment_message`; no se unifica aquí.
 
 ## Cómo se verifica
 
-Provisional: todos los comandos crean archivos que este cambio todavía no escribe, así que no hay números que pegar; la ronda 1 de verify reemplaza lo provisional por lo que den.
+Los valores son los de la ronda 2 del verify sobre la rama terminada (referencia, no igualdad: los conteos crecen con el cambio).
 
 **Criterio del cambio entero (cambia lo que el sistema hace → lleva delta en `specs/whatsapp-catalog/spec.md`):** un agente con una bandeja WhatsApp Cloud conectada a un catálogo elige el formato, marca productos dentro del tope de ese formato, completa los campos obligatorios, envía desde el modal, y en la conversación ve lo mismo que el cliente (tarjetas, lista, detalle con fotos); sin catálogo, el modal le explica qué configurar.
 
 **A. Automático (cada comando debe salir con 0 fallos)**
 - Ruby: `docker compose exec -e RAILS_ENV=test rails bundle exec rspec spec/services/whatsapp/catalog_message_payload_builder_spec.rb spec/services/whatsapp/catalog_message_service_spec.rb spec/services/whatsapp/catalog_service_spec.rb spec/services/whatsapp/providers/whatsapp_cloud_service_spec.rb spec/controllers/api/v1/accounts/conversations spec/controllers/api/v1/accounts/inboxes_controller_spec.rb` → `0 failures`.
 - Estilo Ruby: `docker compose exec rails bundle exec rubocop <archivos .rb del diff>` → `no offenses`.
-- JS: `docker compose run --rm --no-deps -T vite pnpm exec vitest run app/javascript/dashboard/helper/specs/whatsappCatalog.spec.js app/javascript/dashboard/components/widgets/conversation app/javascript/dashboard/components-next/message` → `Failed = 0`.
-- Lint JS del diff: `F=$(git diff --name-only origin/production | grep -E '\.(js|vue)$' | tr '\n' ' '); docker compose run --rm --no-deps -T vite pnpm exec eslint ${=F}` → 0 errores.
+- JS: `docker compose exec -T vite pnpm exec vitest run app/javascript/dashboard/helper/specs/whatsappCatalog.spec.js app/javascript/dashboard/components/widgets/conversation app/javascript/dashboard/components-next/message` → `Failed = 0`.
+- Lint JS del diff: `F=$(git diff --name-only origin/production | grep -E '\.(js|vue)$' | tr '\n' ' '); docker compose exec -T vite pnpm exec eslint ${=F}` → 0 errores.
 - Alcance: `git diff --name-only origin/production -- db app/models` → vacío (sin migración ni cambios de modelo).
 - Invariante de topes (backend y front deben coincidir): para cada formato, un número de productos fuera de su rango se rechaza con 422 en el backend y con error de campo en `validateCatalogForm`, y dentro de su rango pasa en ambos (los specs de las tareas 1, 2 y 5 lo prueban en los bordes 0/1/2/10/11/30/31).
 
