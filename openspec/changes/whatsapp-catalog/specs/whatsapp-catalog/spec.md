@@ -47,11 +47,6 @@ The system SHALL expose the catalog of a WhatsApp Cloud inbox, grouped by collec
 ### Requirement: Browse-then-select catalog dialog with search
 The catalog dialog SHALL open on the products view showing the catalog with a search box, collection filters (the default Meta collection "All Products" SHALL NOT be listed) and each product exactly once with a "See more" action that opens its detail (photos, title, price, description, link, never video). A "Select" action SHALL enter selection mode with a counter limited to 30 products; continuing SHALL open a format view with a selector (carousel, single product card, product list) where the formats not allowed for the selected count are disabled with the reason, followed by the fields of the format: a carousel allows 2 to 10 products and requires a message text (up to 1024 characters) without header or footer; a card allows exactly 1 product with optional text (up to 1024) and optional footer (up to 60); a list allows 1 to 30 products and requires a header and a message text, with an optional footer (up to 60). The message text SHALL be prefilled with the text already typed in the composer.
 
-#### Scenario: Search filters the catalog
-- **GIVEN** the products view with 50 products
-- **WHEN** the agent types "mesa" in the search box
-- **THEN** only products whose name or description match are listed, ignoring case and accents
-
 #### Scenario: Product in several collections
 - **GIVEN** a product that belongs to two collections
 - **WHEN** the catalog is listed with the filter "All"
@@ -82,75 +77,33 @@ The catalog dialog SHALL open on the products view showing the catalog with a se
 - **WHEN** the agent opens the catalog dialog and reaches the format view
 - **THEN** the message text field starts with "Look at these options" and the composer is cleared once the catalog is sent
 
-### Requirement: Catalog loads fast
-The server SHALL read the catalog with one products request that includes each product's collections, cache a successful result for 15 minutes per inbox and allow forcing a refresh; the dashboard SHALL keep the loaded catalog in memory for 5 minutes, share one request between simultaneous callers and prefetch it silently when the composer of a WhatsApp Cloud conversation opens.
+### Requirement: Catalog loads in pages from Meta
+The server SHALL expose the collections of the catalog (with their product counts, without the default Meta collection "All Products") separately from the products, and SHALL expose the products one page at a time with a cursor, an optional name search and an optional collection, each request reading a single page from Meta; the first page without search SHALL be cached for 15 minutes per inbox and collection. The dashboard SHALL load the first page and the collections together, request the next page when the agent scrolls to the end of the list, run the name search and the collection filter on the server after a short pause in typing, keep the loaded first page in memory for 5 minutes, and prefetch it silently when the composer of a WhatsApp Cloud conversation opens.
+
+#### Scenario: Scrolling loads the next page
+- **GIVEN** a catalog with more products than one page
+- **WHEN** the agent scrolls to the end of the list
+- **THEN** the next page is requested with the cursor of the previous one and appended without duplicates
+
+#### Scenario: Search runs on the server
+- **GIVEN** the products view
+- **WHEN** the agent types "mesa" and stops typing
+- **THEN** the first page matching that name is requested from the server and replaces the list
+
+#### Scenario: Selection survives paging
+- **GIVEN** two products selected on the first page
+- **WHEN** the agent scrolls to a second page, searches, or changes collection
+- **THEN** the two products remain selected and counted
 
 #### Scenario: Prefetch makes the dialog instant
 - **GIVEN** a WhatsApp Cloud conversation whose composer has been open for a few seconds
 - **WHEN** the agent opens the catalog dialog
-- **THEN** the products are shown without a loading state
+- **THEN** the collections and the first page are shown without a loading state
 
 #### Scenario: Forced refresh
 - **GIVEN** a cached catalog
 - **WHEN** the agent presses the refresh action
-- **THEN** the catalog is read from Meta again and the cache is replaced
-
-### Requirement: One send creates one interactive WhatsApp message
-Sending from the catalog dialog SHALL create exactly one outgoing message whose content is the body text and whose `whatsapp_catalog` content attribute stores the format, catalog ID, header, footer and a snapshot of the products, and the provider SHALL deliver it as the matching Meta interactive message: `carousel` with one `product` card per item, `product` for a card, or `product_list` with the products grouped into sections by collection. The server SHALL reject with 422 a request whose product count is outside the limits of the format, whose required fields are missing, whose catalog does not match the inbox or whose inbox is not WhatsApp Cloud.
-
-#### Scenario: Carousel delivery
-- **GIVEN** a request for a carousel with three products and a body text
-- **WHEN** the message is delivered
-- **THEN** Meta receives an interactive carousel with three product cards with consecutive card indexes and the same catalog ID, and no header, footer or buttons
-
-#### Scenario: List delivery
-- **GIVEN** a request for a list with products from two collections, a header and a body
-- **WHEN** the message is delivered
-- **THEN** Meta receives a product list with one section per collection, in selection order
-
-#### Scenario: Over the limit
-- **GIVEN** a request for a carousel with eleven products
-- **WHEN** the server validates it
-- **THEN** it responds 422 and no message is created
-
-#### Scenario: Missing required field
-- **GIVEN** a request for a list without a header
-- **WHEN** the server validates it
-- **THEN** it responds 422 and no message is created
-
-### Requirement: Retrying a failed catalog message keeps the catalog
-Retrying a failed catalog message SHALL resend it as the same interactive catalog message and SHALL NOT downgrade it to plain text.
-
-#### Scenario: Retry after failure
-- **GIVEN** a catalog message that failed to deliver
-- **WHEN** the agent retries it
-- **THEN** the message keeps its `whatsapp_catalog` attributes and is delivered as an interactive message
-
-### Requirement: Catalog messages are shown like WhatsApp shows them
-The conversation SHALL render a message with a `whatsapp_catalog` content attribute as WhatsApp shows it to the customer: a carousel as horizontally scrollable product cards with photo, title, price and a View action; a card as a single product card; a list with its header, collection name, item count and a View items action; the body text above and the footer when present. Opening a product SHALL show its photo gallery, title, price, description and link, SHALL show images only (never video) and SHALL NOT offer cart or order actions.
-
-#### Scenario: Carousel bubble
-- **GIVEN** an outgoing carousel message with three products
-- **WHEN** the conversation is rendered
-- **THEN** three product cards with photo, title and price scroll horizontally inside the bubble
-
-#### Scenario: Product detail
-- **GIVEN** a catalog bubble with a product that has several photos
-- **WHEN** the agent clicks its View action
-- **THEN** a detail view shows the photo gallery, title, price, description and link, and no add-to-order button
-
-#### Scenario: Phone width
-- **GIVEN** a 390 px viewport
-- **WHEN** a catalog bubble is rendered
-- **THEN** the page has no horizontal scroll and the carousel scrolls inside its own container
-
-### Requirement: Optional catalog ID in the inbox settings
-The settings of a WhatsApp Cloud inbox SHALL offer an optional catalog ID saved in the provider configuration; empty SHALL mean automatic discovery.
-
-#### Scenario: Saving the catalog ID
-- **GIVEN** the settings of a WhatsApp Cloud inbox
-- **WHEN** an administrator saves a catalog ID
-- **THEN** it is stored in the provider configuration and used to read the catalog
+- **THEN** the collections and the first page are read from Meta again and the cache is replaced
 
 ### Requirement: One catalog surface at a time and native mobile sheets
 The catalog dialog and the product detail SHALL share one surface component: on desktop a centered dialog with a round close (X) button on the right, on phones (narrower than 640 px) a bottom sheet with a drag handle that closes when dragged down, without a close button. Opening a product from the catalog SHALL replace the catalog view inside the same surface instead of stacking a second dialog, and closing the detail SHALL return to the catalog view with its search, filter and selection intact.
@@ -169,3 +122,13 @@ The catalog dialog and the product detail SHALL share one surface component: on 
 - **GIVEN** the catalog sheet open on a 390 px viewport
 - **WHEN** the agent drags the handle down past a third of the sheet height
 - **THEN** the sheet slides down and closes
+
+#### Scenario: Back arrow when the detail comes from the catalog
+- **GIVEN** the catalog sheet on a phone and the agent opens a product with "See more"
+- **WHEN** the detail is shown
+- **THEN** a back arrow appears at the left of the header, and tapping it (or dragging the sheet down) returns to the products view
+
+#### Scenario: Detail opened from the chat closes by dragging
+- **GIVEN** a product opened from a catalog message in the conversation on a phone
+- **WHEN** the agent drags the sheet down
+- **THEN** the sheet closes, and no back arrow was shown
