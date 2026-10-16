@@ -1,5 +1,6 @@
 {
   "CHAT_LIST": {
+    "REFRESH": "Actualizar conversaciones",
     "LOADING": "Obteniendo conversaciones",
     "LOAD_MORE_CONVERSATIONS": "Cargar más conversaciones",
     "EOF": "Todas las conversaciones cargadas 🎉",

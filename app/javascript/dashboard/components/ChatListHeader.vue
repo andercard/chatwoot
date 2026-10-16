@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { formatNumber } from '@chatwoot/utils';
 import wootConstants from 'dashboard/constants/globals';
@@ -54,6 +54,18 @@ const title = computed(
   () => (isContactScoped.value && props.contactFilter.name) || props.pageTitle
 );
 
+const isRefreshing = ref(false);
+
+const refreshConversations = async () => {
+  if (isRefreshing.value) return;
+  isRefreshing.value = true;
+  try {
+    await window.reconnectService?.fetchConversationsOnReconnect();
+  } finally {
+    isRefreshing.value = false;
+  }
+};
+
 const toggleConversationLayout = () => {
   const { LAYOUT_TYPES } = wootConstants;
   const {
@@ -92,6 +104,18 @@ const toggleConversationLayout = () => {
       <h1 class="text-base font-medium truncate text-n-slate-12" :title="title">
         {{ title }}
       </h1>
+      <NextButton
+        v-tooltip.bottom="$t('CHAT_LIST.REFRESH')"
+        :aria-label="$t('CHAT_LIST.REFRESH')"
+        :disabled="isRefreshing"
+        icon="i-lucide-refresh-cw"
+        class="shrink-0 ms-1 [&>span]:transition-none"
+        :class="{ '[&>span]:animate-spin': isRefreshing }"
+        slate
+        xs
+        ghost
+        @click="refreshConversations"
+      />
       <span
         v-if="
           allCount > 0 && hasAppliedFiltersOrActiveFolders && !isListLoading
