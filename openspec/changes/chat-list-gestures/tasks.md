@@ -58,10 +58,10 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: `SwipeActions.vue` enlaza los handlers del gesto como listeners que Vue sí registra (`v-bind="handlers"`, no `v-on`, porque las claves son `onPointerdown`, `onClickCapture`…) y con eventos de puntero táctiles un arrastre a la izquierda deja `translateX` negativo en el contenedor `touch-pan-y` y a la derecha positivo; `TypingPill.vue` muestra el primer nombre de cada persona (no el nombre completo) con un ancho máximo suficiente para que "Tatiana escribe…" y "Tatiana y Lucía escriben…" se lean sin recorte en una columna de 340 px
   - commit: `fix(chat-list): bind the swipe handlers and show first names in the typing pill`
 
-- [ ] **9 · QA: el chip No leídos ensancha la lista, muestra 0 y encoge los conteos**
+- [x] **9 · QA: el chip No leídos ensancha la lista, muestra 0 y encoge los conteos**
   - archivos: `app/javascript/dashboard/components/ChatList.vue`, `app/javascript/dashboard/components/ChatListHeader.vue`, `app/javascript/dashboard/components/ui/Tabs/TabsItem.vue`, `app/javascript/dashboard/store/modules/conversations/actions.js`
   - depende de: 6
-  - listo cuando: con 375 px de ancho `.conversations-list-wrap` mide 375 px (hoy 417: el panel desborda y las tarjetas quedan cortadas a la derecha, y los botones de orden/colapsar del encabezado quedan fuera de pantalla); la pestaña "No leídos" no muestra ningún número (hoy pinta un badge "0"); con "No leídos" activa los conteos de Mías / Sin asignar / Todos conservan los valores de la lista completa (hoy bajan de 137/179 a 24/25); las demás pestañas siguen igual
+  - listo cuando: con 375 px de ancho `.conversations-list-wrap` mide 375 px (hoy 417: el panel desborda y las tarjetas quedan cortadas a la derecha, y los botones de orden/colapsar del encabezado quedan fuera de pantalla). Los puntos de la pestaña "No leídos" (badge 0 y conteos) quedaron sin objeto al quitarla la tarea 13
   - commit: `fix(chat-list): keep the list inside the viewport and the tab counts stable on the unread tab`
 
 - [x] **10 · QA: la barra de acciones masivas se desborda**
@@ -76,13 +76,13 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en móvil (menos de 640 px) con el modo selección activo, el botón flotante `#mobile-sidebar-launcher` queda oculto y no tapa los íconos ni el botón Leído de la barra (el launcher ya se oculta cuando existe `[data-mobile-sheet]` en el `body`); al salir del modo selección el launcher vuelve a verse; en escritorio no cambia nada
   - commit: `fix(chat-list): hide the floating menu button while the bulk bar is open on mobile`
 
-- [ ] **12 · Quitar el botón ☑ del encabezado de la lista**
+- [x] **12 · Quitar el botón ☑ del encabezado de la lista**
   - archivos: `app/javascript/dashboard/components/ChatListHeader.vue`, `app/javascript/dashboard/components/ChatList.vue`, `app/javascript/dashboard/i18n/locale/en/chatlist.json`, `app/javascript/dashboard/i18n/locale/es/chatlist.json`
   - depende de: 11
   - listo cuando: el encabezado de la lista ya no muestra el botón ☑ (solo quedan filtro, orden y colapsar) y no sobran la prop, el evento ni la clave i18n `CHAT_LIST.SELECTION.TOGGLE`; el modo selección sigue activándose con la pulsación larga en móvil y con el checkbox al pasar el mouse sobre el avatar en escritorio; salir del modo con la × de la barra sigue limpiando la selección
   - commit: `fix(chat-list): drop the selection toggle button from the list header`
 
-- [ ] **13 · Quitar la pestaña "No leídos" y su filtro por conversation_type**
+- [x] **13 · Quitar la pestaña "No leídos" y su filtro por conversation_type**
   - archivos: `app/javascript/dashboard/components/ChatList.vue`, `app/javascript/dashboard/store/modules/conversations/helpers.js`, `app/javascript/dashboard/store/modules/conversations/actions.js`, `app/javascript/dashboard/components/ui/Tabs/TabsItem.vue`, `app/finders/conversation_finder.rb`, `app/javascript/dashboard/i18n/locale/en/chatlist.json`, `app/javascript/dashboard/i18n/locale/es/chatlist.json`
   - depende de: 12
   - listo cuando: la lista vuelve a tener solo Mías / Sin asignar / Todos (sin pestaña "No leídos") y no queda código muerto de ella: sin `UNREAD_TAB_KEY`, sin `filterByUnread`, sin la rama `when 'unread'` del finder, sin el camino que evitaba sobrescribir los conteos en `fetchAllConversations`, sin la clave `CHAT_LIST.ASSIGNEE_TYPE_TABS.unread` ni el cambio de `index` en `TabsItem.vue` (que vuelva a como estaba en `origin/production`); `conversation_finder_spec.rb` sigue en verde y las demás pestañas igual

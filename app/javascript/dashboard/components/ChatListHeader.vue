@@ -17,7 +17,6 @@ const props = defineProps({
   isOnExpandedLayout: { type: Boolean, required: true },
   conversationStats: { type: Object, required: true },
   isListLoading: { type: Boolean, required: true },
-  isSelectionMode: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -26,7 +25,6 @@ const emit = defineEmits([
   'resetFilters',
   'basicFilterChange',
   'filtersModal',
-  'toggleSelection',
 ]);
 
 const { uiSettings, updateUISettings } = useUISettings();
@@ -111,17 +109,6 @@ const toggleConversationLayout = () => {
       </span>
     </div>
     <div class="flex items-center gap-1">
-      <NextButton
-        v-tooltip.top="$t('CHAT_LIST.SELECTION.TOGGLE')"
-        :aria-label="$t('CHAT_LIST.SELECTION.TOGGLE')"
-        :aria-pressed="isSelectionMode"
-        icon="i-lucide-square-check-big"
-        slate
-        xs
-        faded
-        :class="{ '!bg-n-slate-6': isSelectionMode }"
-        @click="emit('toggleSelection')"
-      />
       <template v-if="hasAppliedFilters && !hasActiveFolders">
         <div class="relative">
           <NextButton

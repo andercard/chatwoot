@@ -128,10 +128,6 @@ class ConversationFinder
       @conversations = @conversations.where(id: participant_conversation_ids)
     when 'unattended'
       @conversations = @conversations.unattended
-    when 'unread'
-      messages = Message.arel_table
-      unread = messages.project(1).where(Conversation.unread_messages_condition(messages, Conversation.arel_table))
-      @conversations = @conversations.where(unread.exists)
     end
     @conversations
   end
