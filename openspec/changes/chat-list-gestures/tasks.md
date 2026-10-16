@@ -130,7 +130,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: crear o evaluar una regla de automatización con la condición `unread` se rechaza como atributo inválido igual que cualquier clave desconocida, y las demás condiciones de conversaciones (status, assignee_id, inbox_id, …) siguen validándose igual; la exclusión es mínima y no cambia el filtro avanzado de conversaciones
   - commit: `fix(automation): keep the unread filter attribute out of automation conditions`
 
-- [ ] **21 · Telón y bloqueo de scroll compartidos para las hojas móviles**
+- [x] **21 · Telón y bloqueo de scroll compartidos para las hojas móviles**
   - archivos: `app/javascript/dashboard/components-next/sheet-backdrop/SheetBackdrop.vue` (nuevo), `app/javascript/dashboard/composables/useBodyScrollLock.js` (nuevo), `app/javascript/dashboard/App.vue`
   - depende de: 20
   - listo cuando: existe `SheetBackdrop.vue` (telón `fixed inset-0` con desenfoque que emite `close` al tocarlo, sin dejar pasar el toque a lo de abajo, con prop para el z-index) y `useBodyScrollLock` (bloquea el scroll del documento mientras haya al menos una hoja abierta, cuenta referencias para que varias hojas no se pisen y lo libera al cerrar o desmontar, también en iOS); la raíz de la app no hace "rebote" que arrastre toda la página (`overscroll-behavior` contenido) y las listas internas con scroll no lo encadenan al documento; sin CSS propio, solo Tailwind
