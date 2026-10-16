@@ -30,13 +30,13 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
 - [x] **4 · Filtro "unread" en el finder**
   - archivos: `app/finders/conversation_finder.rb`
   - depende de: 0
-  - listo cuando: `GET /api/v1/accounts/:id/conversations?conversation_type=unread` devuelve solo conversaciones con mensajes entrantes posteriores a `agent_last_seen_at` (o con `agent_last_seen_at` nulo), usando `Conversation.unread_messages_condition` con `EXISTS`; los demás valores de `conversation_type` y las cuentas de `meta` no cambian; RuboCop sin ofensas
+  - listo cuando: REEMPLAZADA por las tareas 13 y 14: el filtro por `conversation_type=unread` del finder se quitó (la tarea 13 deja el finder igual que `origin/production`) y "no leídos" pasa al filtro avanzado (tarea 14)
   - commit: `feat(conversations): filter the list by unread messages`
 
 - [x] **5 · Chip "No leídos" en la lista**
   - archivos: `app/javascript/dashboard/components/ChatList.vue`, `app/javascript/dashboard/store/modules/conversations/helpers.js`, `app/javascript/dashboard/i18n/locale/en/chatlist.json`, `app/javascript/dashboard/i18n/locale/es/chatlist.json`
   - depende de: 2, 4
-  - listo cuando: junto a Mías / Sin asignar / Todos hay un chip "No leídos" sin número que pide la lista con `assignee_type=all` + `conversation_type=unread`; un mensaje entrante nuevo agrega la conversación al chip y marcarla leída la quita sin recargar (`applyPageFilters` filtra por `unread_count > 0`); al volver a otra pestaña se restauran los filtros previos
+  - listo cuando: REEMPLAZADA por las tareas 13 y 14: la pestaña "No leídos" se quitó por decisión del dev y "no leídos" pasa al filtro avanzado (tarea 14)
   - commit: `feat(chat-list): add an unread tab`
 
 - [x] **6 · Modo selección masiva y Leído/No leído en lote**
@@ -112,10 +112,10 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en escritorio la flecha de responder y el ⋯ están siempre visibles junto a la burbuja (sin necesitar hover); en móvil el ⋯ está siempre visible junto a la burbuja (responder sigue siendo deslizar); el menú conserva sus opciones actuales, incluida "Añadir como respuesta predeterminada" donde ya existía, salvo "Traducir", que solo aparece si la integración de Google Translate de la cuenta está habilitada (hoy aparece siempre y no hace nada); sin Eliminar ni Editar nuevos
   - commit: `fix(messages): keep the reply and options buttons visible and hide translate without the integration`
 
-- [x] **18 · Tocar una cita lleva al mensaje original**
+- [ ] **18 · Tocar una cita lleva al mensaje original**
   - archivos: `app/javascript/dashboard/components-next/message/bubbles/Base.vue`, `app/javascript/dashboard/components/widgets/conversation/MessagesView.vue`
   - depende de: 11
-  - listo cuando: al tocar la cita dentro de una burbuja la conversación se desplaza al mensaje original y lo resalta unos instantes; si el original no está cargado todavía se piden mensajes anteriores hasta encontrarlo (con un tope razonable) y si no aparece no se salta al final; funciona igual para cualquier canal con respuestas (todos guardan `in_reply_to`)
+  - listo cuando: al tocar la cita dentro de una burbuja la conversación se desplaza al mensaje original y lo resalta unos instantes; si el original no está cargado todavía se piden mensajes anteriores hasta encontrarlo (con un tope razonable) y si no aparece no se salta al final; funciona igual para cualquier canal con respuestas (todos guardan `in_reply_to`); las demás emisiones de `SCROLL_TO_MESSAGE` sin `messageId` (al enviar un mensaje, al llegar uno nuevo o actualizarse la conversación abierta, y al abrir una conversación) siguen bajando al final como antes y NO piden páginas anteriores
   - commit: `fix(messages): scroll to the quoted message when tapping a reply`
 
 - [x] **19 · QA: el filtro "No leídos" deja la lista vacía en el navegador**
@@ -123,3 +123,9 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 14
   - listo cuando: al aplicar "Mensajes no leídos = Verdadero" desde el filtro, la lista muestra las conversaciones que devuelve el servidor (hoy el contador dice 20 y la lista queda vacía porque la comparación en el cliente no entiende que el valor llega como `{ id: true, name: 'Verdadero' }`); con "Falso" muestra solo las leídas; combinar con otro filtro sigue funcionando
   - commit: `fix(filters): read the unread filter value the way the selector sends it`
+
+- [ ] **20 · Las automatizaciones no deben aceptar el atributo `unread`**
+  - archivos: `app/services/automation_rules/condition_validation_service.rb`, `app/services/automation_rules/conditions_filter_service.rb`
+  - depende de: 14
+  - listo cuando: crear o evaluar una regla de automatización con la condición `unread` se rechaza como atributo inválido igual que cualquier clave desconocida, y las demás condiciones de conversaciones (status, assignee_id, inbox_id, …) siguen validándose igual; la exclusión es mínima y no cambia el filtro avanzado de conversaciones
+  - commit: `fix(automation): keep the unread filter attribute out of automation conditions`
