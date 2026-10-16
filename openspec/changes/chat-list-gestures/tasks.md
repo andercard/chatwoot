@@ -172,7 +172,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: el diálogo de confirmación de eliminar un mensaje (`CONVERSATION.CONTEXT_MENU.DELETE_CONFIRMATION`) dice con claridad que el mensaje se elimina solo en Chatwoot y que el cliente lo seguirá viendo en su canal (WhatsApp, Telegram…), en `en` y `es`; el aviso de éxito (`SUCCESS_DELETE_MESSAGE`) mantiene esa precisión; el comportamiento de borrar no cambia
   - commit: `fix(messages): say that deleting a message only removes it in Chatwoot`
 
-- [ ] **28 · Actualizar al volver a primer plano y al tirar de la lista**
+- [x] **28 · Actualizar al volver a primer plano y al tirar de la lista**
   - archivos: `app/javascript/dashboard/helper/ReconnectService.js`, `app/javascript/dashboard/components/ConversationList.vue`, `app/javascript/dashboard/composables/usePullToRefresh.js` (nuevo)
   - depende de: 20
   - listo cuando: cuando la pestaña o la app vuelve a ser visible (`visibilitychange`/`pageshow`) tras más de 20 segundos oculta, o vuelve la red (`online`), se vuelve a pedir la lista de conversaciones vigente (con los filtros activos), la conversación abierta con sus mensajes y los conteos, igual que hoy al reconectar el websocket, sin recargar la página y sin lanzar la petición dos veces cuando el websocket ya se reconectó; en móvil, al tirar hacia abajo desde el tope de la lista (solo con puntero táctil) aparece un indicador de carga, se vuelve a pedir la lista y el indicador desaparece al terminar; el scroll normal de la lista y el deslizar de las tarjetas no se afectan; en escritorio la lista no cambia

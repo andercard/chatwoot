@@ -7,12 +7,19 @@ import {
 } from 'dashboard/helper/routeHelpers';
 
 const MAX_DISCONNECT_SECONDS = 10800;
+const HIDDEN_REFRESH_THRESHOLD_SECONDS = 20;
+// A refresh finished this recently already covers any other trigger
+// (websocket reconnect, online, visibility), so we skip the duplicate.
+const REFRESH_DEDUPE_WINDOW_MS = 10000;
 
 class ReconnectService {
   constructor(store, router) {
     this.store = store;
     this.router = router;
     this.disconnectTime = null;
+    this.hiddenAt = null;
+    this.lastRefreshAt = 0;
+    this.isRefreshing = false;
 
     this.setupEventListeners();
   }
@@ -21,12 +28,21 @@ class ReconnectService {
 
   setupEventListeners = () => {
     window.addEventListener('online', this.handleOnlineEvent);
+    window.addEventListener('pageshow', this.handleVisible);
+    window.addEventListener('pagehide', this.markHidden);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
     emitter.on(BUS_EVENTS.WEBSOCKET_RECONNECT, this.onReconnect);
     emitter.on(BUS_EVENTS.WEBSOCKET_DISCONNECT, this.onDisconnect);
   };
 
   removeEventListeners = () => {
     window.removeEventListener('online', this.handleOnlineEvent);
+    window.removeEventListener('pageshow', this.handleVisible);
+    window.removeEventListener('pagehide', this.markHidden);
+    document.removeEventListener(
+      'visibilitychange',
+      this.handleVisibilityChange
+    );
     emitter.off(BUS_EVENTS.WEBSOCKET_RECONNECT, this.onReconnect);
     emitter.off(BUS_EVENTS.WEBSOCKET_DISCONNECT, this.onDisconnect);
   };
@@ -40,7 +56,48 @@ class ReconnectService {
   handleOnlineEvent = () => {
     if (this.getSecondsSinceDisconnect() >= MAX_DISCONNECT_SECONDS) {
       window.location.reload();
+      return;
     }
+    this.refreshQuietly();
+  };
+
+  refreshQuietly = () => this.refreshData().catch(() => {});
+
+  markHidden = () => {
+    this.hiddenAt ??= new Date();
+  };
+
+  handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden') this.markHidden();
+    else this.handleVisible();
+  };
+
+  handleVisible = () => {
+    if (!this.hiddenAt) return;
+    const hiddenSeconds = differenceInSeconds(new Date(), this.hiddenAt);
+    this.hiddenAt = null;
+    if (hiddenSeconds > HIDDEN_REFRESH_THRESHOLD_SECONDS) this.refreshQuietly();
+  };
+
+  // Single entry point for every refresh trigger. Skips if one is running
+  // or just finished, so a websocket reconnect plus a visibility/online
+  // event do not fetch twice.
+  refreshData = async () => {
+    if (
+      this.isRefreshing ||
+      Date.now() - this.lastRefreshAt < REFRESH_DEDUPE_WINDOW_MS
+    ) {
+      return false;
+    }
+    this.isRefreshing = true;
+    try {
+      await this.handleRouteSpecificFetch();
+      await this.revalidateCaches();
+    } finally {
+      this.isRefreshing = false;
+      this.lastRefreshAt = Date.now();
+    }
+    return true;
   };
 
   fetchConversations = async () => {
@@ -134,8 +191,7 @@ class ReconnectService {
   };
 
   onReconnect = async () => {
-    await this.handleRouteSpecificFetch();
-    await this.revalidateCaches();
+    await this.refreshData();
     emitter.emit(BUS_EVENTS.WEBSOCKET_RECONNECT_COMPLETED);
   };
 }

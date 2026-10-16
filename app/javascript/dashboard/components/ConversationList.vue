@@ -2,6 +2,7 @@
 import { ref, computed, provide } from 'vue';
 import { Virtualizer } from 'virtua/vue';
 import { useBreakpoints } from '@vueuse/core';
+import { usePullToRefresh } from 'dashboard/composables/usePullToRefresh';
 import { useChatListKeyboardEvents } from 'dashboard/composables/chatlist/useChatListKeyboardEvents';
 import ConversationItem from './ConversationItem.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
@@ -39,6 +40,12 @@ const showExpandedCards = computed(
 
 useChatListKeyboardEvents(conversationListRef);
 
+const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
+  scrollEl: conversationListRef,
+  onRefresh: () => window.reconnectService?.fetchConversationsOnReconnect(),
+});
+const showPullIndicator = computed(() => isPulling.value || isRefreshing.value);
+
 const intersectionObserverOptions = computed(() => ({
   root: conversationListRef.value,
   rootMargin: '100px 0px 100px 0px',
@@ -63,6 +70,18 @@ defineExpose({ conversationListRef });
     class="flex-1 min-h-0 overflow-y-auto conversations-list"
     :class="{ '!overflow-hidden': isContextMenuOpen }"
   >
+    <div
+      v-if="showPullIndicator"
+      class="flex justify-center items-center h-0 overflow-visible sticky top-0 z-10"
+    >
+      <div
+        class="flex items-center justify-center size-8 rounded-full bg-n-solid-2 shadow"
+        :class="{ 'transition-transform duration-200': !isPulling }"
+        :style="{ transform: `translateY(${pullDistance / 2}px)` }"
+      >
+        <Spinner class="text-n-brand" />
+      </div>
+    </div>
     <Virtualizer
       ref="virtualListRef"
       v-slot="{ item }"
