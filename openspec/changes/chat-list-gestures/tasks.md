@@ -117,3 +117,9 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 11
   - listo cuando: al tocar la cita dentro de una burbuja la conversación se desplaza al mensaje original y lo resalta unos instantes; si el original no está cargado todavía se piden mensajes anteriores hasta encontrarlo (con un tope razonable) y si no aparece no se salta al final; funciona igual para cualquier canal con respuestas (todos guardan `in_reply_to`)
   - commit: `fix(messages): scroll to the quoted message when tapping a reply`
+
+- [ ] **19 · QA: el filtro "No leídos" deja la lista vacía en el navegador**
+  - archivos: `app/javascript/dashboard/store/modules/conversations/helpers/filterHelpers.js`
+  - depende de: 14
+  - listo cuando: al aplicar "Mensajes no leídos = Verdadero" desde el filtro, la lista muestra las conversaciones que devuelve el servidor (hoy el contador dice 20 y la lista queda vacía porque la comparación en el cliente no entiende que el valor llega como `{ id: true, name: 'Verdadero' }`); con "Falso" muestra solo las leídas; combinar con otro filtro sigue funcionando
+  - commit: `fix(filters): read the unread filter value the way the selector sends it`
