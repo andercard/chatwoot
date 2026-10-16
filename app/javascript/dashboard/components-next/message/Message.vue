@@ -3,7 +3,7 @@ import { onMounted, computed, ref, toRefs } from 'vue';
 import { useTimeoutFn } from '@vueuse/core';
 import { provideMessageContext } from './provider.js';
 import { useTrack } from 'dashboard/composables';
-import { useMapGetter } from 'dashboard/composables/store';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { emitter } from 'shared/helpers/mitt';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -159,6 +159,14 @@ const { t } = useI18n();
 const route = useRoute();
 const inboxGetter = useMapGetter('inboxes/getInbox');
 const inbox = computed(() => inboxGetter.value(props.inboxId) || {});
+const store = useStore();
+const appIntegrations = useMapGetter('integrations/getAppIntegrations');
+const integrationUIFlags = useMapGetter('integrations/getUIFlags');
+const isTranslateEnabled = computed(
+  () =>
+    !!store.getters['integrations/getIntegration']('google_translate').hooks
+      ?.length
+);
 const isOnChatwootCloud = useMapGetter('globalConfig/isOnChatwootCloud');
 const { replaceInstallationName } = useBranding();
 
@@ -417,7 +425,11 @@ const contextMenuEnabledOptions = computed(() => {
       !isMessageDeleted.value,
     cannedResponse: isOutgoing && hasText && !isMessageDeleted.value,
     copyLink: !isFailedOrProcessing,
-    translate: !isFailedOrProcessing && !isMessageDeleted.value && hasText,
+    translate:
+      isTranslateEnabled.value &&
+      !isFailedOrProcessing &&
+      !isMessageDeleted.value &&
+      hasText,
     replyTo:
       !props.private &&
       props.inboxSupportsReplyTo.outgoing &&
@@ -577,7 +589,16 @@ const setupHighlightTimer = () => {
   }, HIGHLIGHT_TIMER);
 };
 
-onMounted(setupHighlightTimer);
+const fetchIntegrationsIfRequired = () => {
+  if (!appIntegrations.value.length && !integrationUIFlags.value.isFetching) {
+    store.dispatch('integrations/get');
+  }
+};
+
+onMounted(() => {
+  setupHighlightTimer();
+  fetchIntegrationsIfRequired();
+});
 
 provideMessageContext({
   ...toRefs(props),
@@ -647,13 +668,14 @@ provideMessageContext({
           :class="{ 'order-last': orientation === ORIENTATION.LEFT }"
         >
           <div
-            class="absolute top-1/2 -translate-y-1/2 hidden group-hover/bubble:flex items-center gap-0.5 max-sm:!hidden"
+            class="absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5"
             :class="
               orientation === ORIENTATION.LEFT ? 'start-0 ps-1' : 'end-0 pe-1'
             "
           >
             <NextButton
               v-if="canReplyTo"
+              class="max-sm:!hidden !text-n-slate-10 hover:!text-n-slate-11"
               ghost
               slate
               xs
@@ -663,6 +685,7 @@ provideMessageContext({
               @click="handleReplyTo"
             />
             <NextButton
+              class="!text-n-slate-10 hover:!text-n-slate-11"
               ghost
               slate
               xs

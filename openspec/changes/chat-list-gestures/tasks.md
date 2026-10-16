@@ -106,7 +106,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: al deslizar a la derecha se ven juntos Leído/No leído y Asignarme; al deslizar a la izquierda se ven Estados y Etiquetas (Asignarme ya no está a ese lado); los botones de acción no tienen bordes redondeados ni huecos entre sí ni respecto a la tarjeta; "Etiquetas" abre una hoja desde abajo con las etiquetas de la cuenta (las de la conversación marcadas), permite marcar/desmarcar y un botón Guardar que aplica solo las diferencias a esa conversación con `assignLabels`/`removeLabels` inyectados, y cierra la hoja; el fondo de la hoja al tocarlo solo cierra; sigue sin haber Eliminar ni "Más"
   - commit: `feat(chat-list): rearrange the swipe actions and add a labels sheet`
 
-- [ ] **17 · Mensaje: botones fijos, Traducir solo si hay integración**
+- [x] **17 · Mensaje: botones fijos, Traducir solo si hay integración**
   - archivos: `app/javascript/dashboard/components-next/message/Message.vue`, `app/javascript/dashboard/modules/conversations/components/MessageContextMenu.vue`, `app/javascript/dashboard/i18n/locale/en/conversation.json`, `app/javascript/dashboard/i18n/locale/es/conversation.json`
   - depende de: 11
   - listo cuando: en escritorio la flecha de responder y el ⋯ están siempre visibles junto a la burbuja (sin necesitar hover); en móvil el ⋯ está siempre visible junto a la burbuja (responder sigue siendo deslizar); el menú conserva sus opciones actuales, incluida "Añadir como respuesta predeterminada" donde ya existía, salvo "Traducir", que solo aparece si la integración de Google Translate de la cuenta está habilitada (hoy aparece siempre y no hace nada); sin Eliminar ni Editar nuevos
