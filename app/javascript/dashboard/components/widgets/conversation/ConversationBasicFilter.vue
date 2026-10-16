@@ -164,10 +164,7 @@ const handleSortChange = value => {
       }"
     >
       <SheetHandle @close="toggleDropdown(false)" />
-      <div
-        v-if="showStatusFilter"
-        class="flex items-center justify-between gap-2"
-      >
+      <div class="flex items-center justify-between last:mt-4 gap-2">
         <span class="text-sm truncate text-n-slate-12">
           {{ $t('CHAT_LIST.CHAT_SORT.STATUS') }}
         </span>

@@ -211,13 +211,7 @@ defineExpose({ validate, resetValidation });
         class="shrink-0"
         :options="currentFilter?.filterOperators"
       />
-      <div
-        :class="
-          currentOperator?.hasInput
-            ? 'flex items-start gap-2 min-w-0'
-            : 'contents'
-        "
-      >
+      <div class="flex items-start gap-2 min-w-0">
         <template v-if="currentOperator?.hasInput">
           <MultiSelect
             v-if="inputType === 'multiSelect'"
