@@ -1,4 +1,3 @@
-# rubocop:disable Metrics/ModuleLength
 module Filters::FilterHelper
   def build_condition_query(model_filters, query_hash, current_index)
     current_filter = model_filters[query_hash['attribute_key']]
@@ -68,7 +67,6 @@ module Filters::FilterHelper
       tag_filter_query(query_hash, current_index)
     when 'text_case_insensitive'
       text_case_insensitive_filter(query_hash, filter_operator_value)
-    when 'unread' then unread_filter(query_hash)
     else
       return text_cast_filter(query_hash, filter_operator_value) if text_search_on_display_id?(query_hash)
 
@@ -134,4 +132,3 @@ module Filters::FilterHelper
     values.map { |x| Message.message_types[x.to_sym] }
   end
 end
-# rubocop:enable Metrics/ModuleLength

@@ -59,6 +59,12 @@ class Conversations::FilterService < FilterService
 
   private
 
+  def default_filter(query_hash, filter_operator_value)
+    return unread_filter(query_hash) if query_hash[:attribute_key] == 'unread'
+
+    super
+  end
+
   def unread_filter(query_hash)
     value = Array.wrap(query_hash['values']).map(&:to_s).first
     raise CustomExceptions::CustomFilter::InvalidValue.new(attribute_name: query_hash['attribute_key']) unless %w[true false].include?(value)
