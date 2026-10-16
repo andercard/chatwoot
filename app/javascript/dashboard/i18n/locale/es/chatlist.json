@@ -8,14 +8,13 @@
     },
     "FAILED_TO_SEND": "Error al enviar",
     "FETCH_ERROR": "No se pudieron cargar las conversaciones. Inténtalo de nuevo.",
-    "SELECTION": {
-      "TOGGLE": "Seleccionar conversaciones"
-    },
     "SWIPE": {
       "MARK_UNREAD": "No leído",
       "MARK_READ": "Leído",
       "ASSIGN_ME": "Asignarme",
       "STATUS": "Estados",
+      "LABELS": "Etiquetas",
+      "SAVE": "Guardar",
       "STATUS_TITLE": "Cambiar estado",
       "RESOLVE": "Resolver",
       "REOPEN": "Reabrir",
@@ -38,8 +37,7 @@
     "ASSIGNEE_TYPE_TABS": {
       "me": "Mías",
       "unassigned": "Sin asignar",
-      "all": "Todos",
-      "unread": "No leídos"
+      "all": "Todos"
     },
     "CHAT_STATUS_FILTER_ITEMS": {
       "open": {

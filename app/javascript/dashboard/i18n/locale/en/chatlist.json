@@ -8,14 +8,13 @@
     },
     "FAILED_TO_SEND": "Failed to send",
     "FETCH_ERROR": "Couldn't load conversations. Please try again.",
-    "SELECTION": {
-      "TOGGLE": "Select conversations"
-    },
     "SWIPE": {
       "MARK_UNREAD": "Unread",
       "MARK_READ": "Read",
       "ASSIGN_ME": "Assign to me",
       "STATUS": "Status",
+      "LABELS": "Labels",
+      "SAVE": "Save",
       "STATUS_TITLE": "Change status",
       "RESOLVE": "Resolve",
       "REOPEN": "Reopen",
@@ -38,8 +37,7 @@
     "ASSIGNEE_TYPE_TABS": {
       "me": "Mine",
       "unassigned": "Unassigned",
-      "all": "All",
-      "unread": "Unread"
+      "all": "All"
     },
     "CHAT_STATUS_FILTER_ITEMS": {
       "open": {

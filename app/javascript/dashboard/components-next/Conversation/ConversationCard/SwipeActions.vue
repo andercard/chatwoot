@@ -11,7 +11,13 @@ const props = defineProps({
   showAssignMe: { type: Boolean, default: true },
 });
 
-const emit = defineEmits(['markUnread', 'markRead', 'assignMe', 'openStatus']);
+const emit = defineEmits([
+  'markUnread',
+  'markRead',
+  'assignMe',
+  'openStatus',
+  'openLabels',
+]);
 
 const { t } = useI18n();
 
@@ -53,8 +59,13 @@ const onOpenStatus = () => {
   close();
 };
 
+const onOpenLabels = () => {
+  emit('openLabels');
+  close();
+};
+
 const ACTION_CLASSES =
-  'flex flex-col items-center justify-center w-20 h-full gap-1 text-xs font-medium text-white';
+  '!rounded-none flex flex-col items-center justify-center w-20 h-full gap-1 text-xs font-medium text-white';
 </script>
 
 <template>
@@ -79,13 +90,6 @@ const ACTION_CLASSES =
               : t('CHAT_LIST.SWIPE.MARK_UNREAD')
           }}
         </button>
-      </div>
-    </div>
-    <div
-      class="absolute inset-y-0 end-0 flex"
-      :class="{ invisible: offsetX === 0 }"
-    >
-      <div ref="endActionsRef" class="flex h-full">
         <button
           v-if="showAssignMe"
           type="button"
@@ -97,6 +101,13 @@ const ACTION_CLASSES =
           <span class="i-lucide-user-plus size-5" />
           {{ t('CHAT_LIST.SWIPE.ASSIGN_ME') }}
         </button>
+      </div>
+    </div>
+    <div
+      class="absolute inset-y-0 end-0 flex"
+      :class="{ invisible: offsetX === 0 }"
+    >
+      <div ref="endActionsRef" class="flex h-full">
         <button
           type="button"
           class="bg-n-slate-9"
@@ -106,6 +117,16 @@ const ACTION_CLASSES =
         >
           <span class="i-lucide-circle-check-big size-5" />
           {{ t('CHAT_LIST.SWIPE.STATUS') }}
+        </button>
+        <button
+          type="button"
+          class="bg-n-teal-9"
+          :class="ACTION_CLASSES"
+          tabindex="-1"
+          @click="onOpenLabels"
+        >
+          <span class="i-lucide-tag size-5" />
+          {{ t('CHAT_LIST.SWIPE.LABELS') }}
         </button>
       </div>
     </div>

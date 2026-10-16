@@ -7,6 +7,7 @@ import ConversationCard from './widgets/conversation/ConversationCard.vue';
 import ConversationCardExpanded from 'dashboard/components-next/Conversation/ConversationCard/ConversationCardExpanded.vue';
 import SwipeActions from 'dashboard/components-next/Conversation/ConversationCard/SwipeActions.vue';
 import ConversationStatusSheet from 'dashboard/components-next/Conversation/ConversationCard/ConversationStatusSheet.vue';
+import ConversationLabelsSheet from 'dashboard/components-next/Conversation/ConversationCard/ConversationLabelsSheet.vue';
 import ContextMenu from 'dashboard/components/ui/ContextMenu.vue';
 import ConversationContextMenu from './widgets/conversation/contextMenu/Index.vue';
 
@@ -207,6 +208,7 @@ const onAssignAgent = agent => {
 
 // --- Mobile swipe actions ---
 const showStatusSheet = ref(false);
+const showLabelsSheet = ref(false);
 
 const showAssignMe = computed(() => assignee.value.id !== currentUser.value.id);
 
@@ -253,6 +255,9 @@ const swipeProps = computed(() =>
         onAssignMe: onSwipeAssignMe,
         onOpenStatus: () => {
           showStatusSheet.value = true;
+        },
+        onOpenLabels: () => {
+          showLabelsSheet.value = true;
         },
       }
 );
@@ -319,6 +324,15 @@ const onDeleteConversation = () => {
     :status="source.status"
     @close="showStatusSheet = false"
     @update="onStatusSheetUpdate"
+  />
+
+  <ConversationLabelsSheet
+    v-if="showLabelsSheet"
+    :conversation-id="source.id"
+    :conversation-labels="source.labels"
+    :assign-labels="assignLabels"
+    :remove-labels="removeLabels"
+    @close="showLabelsSheet = false"
   />
 
   <!-- Shared context menu for both layouts -->
