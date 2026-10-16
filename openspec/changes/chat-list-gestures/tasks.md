@@ -142,7 +142,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: ambas hojas usan `SheetBackdrop` y `useBodyScrollLock`: al tocar el telón se cierran, la página de atrás no se mueve al arrastrar la hoja (solo hace scroll el contenido de la hoja, con `overscroll-contain`), y el comportamiento actual de las hojas no cambia
   - commit: `fix(mobile): backdrop and scroll lock on the status and bulk sheets`
 
-- [ ] **23 · Telón y bloqueo en las hojas de filtros y de orden**
+- [x] **23 · Telón y bloqueo en las hojas de filtros y de orden**
   - archivos: `app/javascript/dashboard/components-next/filter/ConversationFilter.vue`, `app/javascript/dashboard/components-next/filter/ContactsFilter.vue`, `app/javascript/dashboard/components/widgets/conversation/ConversationBasicFilter.vue`, `app/javascript/dashboard/components-next/Contacts/ContactsHeader/components/ContactSortMenu.vue`, `app/javascript/dashboard/components-next/Companies/CompaniesHeader/components/CompanySortMenu.vue`
   - depende de: 21
   - listo cuando: en móvil (menos de 640 px) cada hoja muestra el telón desenfocado detrás, se cierra al tocarlo y bloquea el scroll de la página mientras está abierta (solo hace scroll la hoja); los desplegables de los filtros siguen funcionando y no cierran la hoja al elegir una opción; en escritorio no cambia nada
