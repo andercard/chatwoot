@@ -14,6 +14,11 @@
 ### ----- Conversation Filters ----- ###
 
 conversations:
+  unread:
+    attribute_type: "standard"
+    data_type: "unread"
+    filter_operators:
+      - "equal_to"
   status:
     attribute_type: "standard"
     data_type: "text"

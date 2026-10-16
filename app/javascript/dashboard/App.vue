@@ -88,6 +88,9 @@ export default {
     },
   },
   mounted() {
+    // html/body are outside the template; stop page-level rubber banding
+    document.documentElement.classList.add('overscroll-none');
+    document.body.classList.add('overscroll-none');
     this.initializeColorTheme();
     this.listenToThemeChanges();
     // If user locale is set, use it; otherwise use account locale
@@ -154,7 +157,7 @@ export default {
   <div
     v-if="!authUIFlags.isFetching"
     id="app"
-    class="flex flex-col w-full h-screen min-h-0 bg-n-background"
+    class="flex flex-col w-full h-screen min-h-0 overflow-hidden overscroll-none bg-n-background"
     :dir="isRTL ? 'rtl' : 'ltr'"
   >
     <UpdateBanner :latest-chatwoot-version="latestChatwootVersion" />

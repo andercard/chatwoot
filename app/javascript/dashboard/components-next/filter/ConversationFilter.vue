@@ -4,14 +4,18 @@ import { useI18n } from 'vue-i18n';
 import { useTrack } from 'dashboard/composables';
 import { useStore } from 'dashboard/composables/store';
 import { vOnClickOutside } from '@vueuse/components';
+import { useBreakpoints, breakpointsTailwind } from '@vueuse/core';
+import { useBodyScrollLock } from 'dashboard/composables/useBodyScrollLock';
 import { CONVERSATION_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { useConversationFilterContext } from './provider.js';
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
+import { provideDropdownTeleport } from 'next/dropdown-menu/base/provider';
 
 import Button from 'next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ConditionRow from './ConditionRow.vue';
 import SheetHandle from 'next/sheet-handle/SheetHandle.vue';
+import SheetBackdrop from 'next/sheet-backdrop/SheetBackdrop.vue';
 
 const props = defineProps({
   isFolderView: {
@@ -26,6 +30,7 @@ const props = defineProps({
 
 const emit = defineEmits(['applyFilter', 'updateFolder', 'close']);
 const { attributeFilterTypes } = useConversationFilterContext();
+provideDropdownTeleport();
 
 const filters = defineModel({
   type: Array,
@@ -96,18 +101,25 @@ const filterModalHeaderTitle = computed(() => {
     : t('FILTER.EDIT_CUSTOM_FILTER');
 });
 
+const isMobile = useBreakpoints(breakpointsTailwind).smaller('sm');
+useBodyScrollLock(isMobile);
+
 onBeforeUnmount(() => emit('close'));
+// On mobile the backdrop closes the sheet, so click-outside only runs on desktop.
 const outsideClickHandler = [
-  () => emit('close'),
-  { ignore: ['#toggleConversationFilterButton'] },
+  () => {
+    if (!isMobile.value) emit('close');
+  },
+  { ignore: ['#toggleConversationFilterButton', '[data-dropdown-menu]'] },
 ];
 </script>
 
 <template>
+  <SheetBackdrop v-if="isMobile" z-index-class="z-30" @close="emit('close')" />
   <div
     v-on-click-outside="outsideClickHandler"
     data-mobile-sheet
-    class="fixed inset-x-0 bottom-0 z-40 max-h-[85dvh] overflow-y-auto rounded-t-xl rounded-b-none sm:static sm:max-h-none sm:overflow-visible sm:rounded-xl sm:w-full sm:max-w-3xl lg:w-[750px] border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg p-6 grid gap-6"
+    class="fixed inset-x-0 bottom-0 z-40 max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-xl rounded-b-none sm:static sm:max-h-none sm:overflow-visible sm:rounded-xl sm:w-full sm:max-w-3xl lg:w-[750px] border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg p-6 grid gap-6"
   >
     <SheetHandle @close="emit('close')" />
     <h3 class="text-base font-medium leading-6 text-n-slate-12">

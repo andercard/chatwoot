@@ -49,6 +49,7 @@
       "FALSE": "Falso"
     },
     "ATTRIBUTES": {
+      "UNREAD": "Mensajes no leídos",
       "STATUS": "Estado",
       "ASSIGNEE_NAME": "Nombre Asignado",
       "INBOX_NAME": "Nombre de la bandeja de entrada",

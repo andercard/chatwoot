@@ -795,6 +795,13 @@ function toggleSelectAll(check) {
   selectAllConversations(check, conversationList);
 }
 
+const isSelectionMode = ref(false);
+
+function setSelectionMode(value) {
+  isSelectionMode.value = value;
+  if (!value) resetBulkActions();
+}
+
 useEmitter('fetch_conversation_stats', () => {
   if (hasAppliedFiltersOrActiveFolders.value) return;
   store.dispatch('conversationStats/get', conversationFilters.value);
@@ -843,6 +850,8 @@ provide('markAsRead', markAsRead);
 provide('assignPriority', assignPriority);
 provide('isConversationSelected', isConversationSelected);
 provide('deleteConversation', handleDelete);
+provide('isSelectionMode', isSelectionMode);
+provide('setSelectionMode', setSelectionMode);
 
 watch(activeTeam, () => resetAndFetchData());
 
@@ -876,7 +885,7 @@ watch(appliedFilters, () => resetBulkActions());
 
 <template>
   <div
-    class="flex flex-col flex-shrink-0 conversations-list-wrap bg-n-surface-1 relative"
+    class="flex flex-col flex-shrink-0 min-w-0 conversations-list-wrap bg-n-surface-1 relative"
     :class="[
       { hidden: !showConversationList },
       isOnExpandedLayout ? 'basis-full' : 'w-[340px] 2xl:w-[412px]',
@@ -941,8 +950,10 @@ watch(appliedFilters, () => resetBulkActions());
       :show-open-action="allSelectedConversationsStatus('open')"
       :show-resolved-action="allSelectedConversationsStatus('resolved')"
       :show-snoozed-action="allSelectedConversationsStatus('snoozed')"
+      :selection-mode="isSelectionMode"
       :class="isOnExpandedLayout && 'sm:!w-[24rem] !w-full'"
       @select-all-conversations="toggleSelectAll"
+      @exit-selection="setSelectionMode(false)"
     />
     <ConversationList
       :conversation-list="conversationList"

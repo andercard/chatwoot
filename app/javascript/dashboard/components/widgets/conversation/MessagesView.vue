@@ -42,6 +42,10 @@ import wootConstants, {
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 
+const MAX_PAGES_TO_FIND_REPLIED_MESSAGE = 10;
+const REPLIED_MESSAGE_HIGHLIGHT_MS = 1500;
+const REPLIED_MESSAGE_HIGHLIGHT_CLASSES = ['bg-n-alpha-2', 'rounded-lg'];
+
 export default {
   components: {
     MessageList,
@@ -348,18 +352,53 @@ export default {
     removeBusListeners() {
       emitter.off(BUS_EVENTS.SCROLL_TO_MESSAGE, this.onScrollToMessage);
     },
-    onScrollToMessage({ messageId = '' } = {}) {
-      this.$nextTick(() => {
-        const messageElement = document.getElementById('message' + messageId);
-        if (messageElement) {
-          this.isProgrammaticScroll = true;
-          messageElement.scrollIntoView({ behavior: 'smooth' });
-          this.fetchPreviousMessages();
-        } else {
-          this.scrollToBottom();
+    async onScrollToMessage({ messageId = '' } = {}) {
+      if (!messageId) {
+        this.$nextTick(() => this.scrollToBottom());
+        this.makeMessagesRead();
+        return;
+      }
+      let messageElement = document.getElementById('message' + messageId);
+      let pagesFetched = 0;
+      while (
+        !messageElement &&
+        pagesFetched < MAX_PAGES_TO_FIND_REPLIED_MESSAGE &&
+        this.currentChat.dataFetched === true &&
+        !this.isLoadingPrevious
+      ) {
+        const loadedCount = this.currentChat.messages.length;
+        this.isLoadingPrevious = true;
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await this.$store.dispatch('fetchPreviousMessages', {
+            conversationId: this.currentChat.id,
+            before: this.currentChat.messages[0].id,
+          });
+        } catch (error) {
+          break;
+        } finally {
+          this.isLoadingPrevious = false;
         }
-      });
+        pagesFetched += 1;
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(resolve => {
+          setTimeout(resolve, 0);
+        });
+        messageElement = document.getElementById('message' + messageId);
+        // no older messages left to load
+        if (this.currentChat.messages.length === loadedCount) break;
+      }
+      // if the original message is not found, keep the current position
       this.makeMessagesRead();
+      if (!messageElement) return;
+      this.isProgrammaticScroll = true;
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      messageElement.classList.add(...REPLIED_MESSAGE_HIGHLIGHT_CLASSES);
+      setTimeout(
+        () =>
+          messageElement.classList.remove(...REPLIED_MESSAGE_HIGHLIGHT_CLASSES),
+        REPLIED_MESSAGE_HIGHLIGHT_MS
+      );
     },
     addScrollListener() {
       this.conversationPanel = this.$el.querySelector('.conversation-panel');
@@ -571,6 +610,7 @@ export default {
       </div>
       <ResizableEditorWrapper
         ref="resizableEditorWrapperRef"
+        class="[@media(display-mode:standalone)]:max-sm:pb-4"
         :container-height="Math.max(0, containerHeight - topBannerHeight)"
       >
         <ReplyBox @toggle-editor-size="toggleReplyEditorSize" />

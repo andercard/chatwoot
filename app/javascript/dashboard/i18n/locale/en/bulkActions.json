@@ -3,6 +3,13 @@
     "CONVERSATIONS_SELECTED": "{conversationCount} selected",
     "NONE": "None",
     "CLEAR_SELECTION": "Clear",
+    "EXIT_SELECTION": "Exit selection mode",
+    "SELECT_ALL": "All",
+    "MARK_READ": "Read",
+    "MARK_UNREAD": "Unread",
+    "UPDATING": "Updating {count} conversations...",
+    "READ_LIMIT_EXCEEDED": "You can update up to {limit} conversations at a time",
+    "READ_PARTIAL_FAILURE": "{count} conversations could not be updated",
     "ASSIGN_AGENT_CONFIRMATION_LABEL": "Are you sure you want to assign {n} conversation to {agentName}? | Are you sure you want to assign {n} conversations to {agentName}?",
     "UNASSIGN_AGENT_CONFIRMATION_LABEL": "Are you sure you want to unassign {n} conversation? | Are you sure you want to unassign {n} conversations?",
     "YES": "Yes",
@@ -18,6 +25,7 @@
     "UPDATE": {
       "CHANGE_STATUS": "Change status",
       "SNOOZE_UNTIL": "Snooze",
+      "PENDING": "Pending",
       "UPDATE_SUCCESFUL": "Conversation status updated successfully.",
       "UPDATE_FAILED": "Failed to update conversations. Please try again."
     },

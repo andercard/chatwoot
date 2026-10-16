@@ -44,6 +44,8 @@ const {
   isOnExpandedLayout,
 } = useUISettings();
 
+const REORDER_LONG_PRESS_MS = 500;
+
 const dragging = ref(false);
 const conversationSidebarItems = ref([]);
 
@@ -153,6 +155,8 @@ onMounted(() => {
         animation="200"
         ghost-class="ghost"
         handle=".drag-handle"
+        :delay="REORDER_LONG_PRESS_MS"
+        delay-on-touch-only
         item-key="name"
         class="flex flex-col gap-3"
         @start="dragging = true"

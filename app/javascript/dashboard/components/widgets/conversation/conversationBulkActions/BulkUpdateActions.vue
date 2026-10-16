@@ -1,10 +1,11 @@
 <script setup>
 import { useTemplateRef, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useToggle } from '@vueuse/core';
+import { useToggle, useBreakpoints, breakpointsTailwind } from '@vueuse/core';
 import { vOnClickOutside } from '@vueuse/components';
 
 import Button from 'dashboard/components-next/button/Button.vue';
+import BulkActionSheet from './BulkActionSheet.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 
 const props = defineProps({
@@ -20,6 +21,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  showPending: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const emit = defineEmits(['update']);
@@ -28,6 +33,7 @@ const { t } = useI18n();
 
 const containerRef = useTemplateRef('containerRef');
 const [showDropdown, toggleDropdown] = useToggle(false);
+const isMobile = useBreakpoints(breakpointsTailwind).smaller('sm');
 
 const updateMenuItems = computed(() => {
   const items = [];
@@ -47,6 +53,15 @@ const updateMenuItems = computed(() => {
       value: 'open',
       label: t('CONVERSATION.HEADER.REOPEN_ACTION'),
       icon: 'i-lucide-redo',
+    });
+  }
+
+  if (props.showPending) {
+    items.push({
+      action: 'update',
+      value: 'pending',
+      label: t('BULK_ACTION.UPDATE.PENDING'),
+      icon: 'i-lucide-clock',
     });
   }
 
@@ -83,27 +98,28 @@ const handleUpdate = item => {
       slate
       xs
       ghost
+      class="max-sm:!size-10 max-sm:[&>span]:!size-6"
       :class="{ 'bg-n-alpha-2': showDropdown }"
       @click="toggleDropdown()"
     />
-    <Transition
-      enter-active-class="transition-all duration-150 ease-out origin-bottom"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition-all duration-100 ease-in origin-bottom"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
+    <BulkActionSheet
+      :show="showDropdown"
+      :sheet="isMobile"
+      @close="toggleDropdown(false)"
     >
       <DropdownMenu
-        v-if="showDropdown"
         v-on-click-outside="[
-          () => toggleDropdown(false),
+          () => !isMobile && toggleDropdown(false),
           { ignore: [containerRef] },
         ]"
         :menu-items="updateMenuItems"
-        class="ltr:-right-[4.5rem] rtl:-left-[4.5rem] ltr:2xl:right-0 rtl:2xl:left-0 bottom-8 w-36"
+        :class="
+          isMobile
+            ? '!static !w-full max-h-[70dvh]'
+            : 'ltr:-right-[4.5rem] rtl:-left-[4.5rem] ltr:2xl:right-0 rtl:2xl:left-0 bottom-8 w-36'
+        "
         @action="handleUpdate"
       />
-    </Transition>
+    </BulkActionSheet>
   </div>
 </template>

@@ -1,5 +1,7 @@
 class AutomationRules::ConditionValidationService
   ATTRIBUTE_MODEL = 'conversation_attribute'.freeze
+  # Advanced-filter-only conversation attributes that automation rules must not accept
+  EXCLUDED_CONVERSATION_ATTRIBUTES = %w[unread].freeze
 
   def initialize(rule)
     @rule = rule
@@ -8,7 +10,7 @@ class AutomationRules::ConditionValidationService
     file = File.read('./lib/filters/filter_keys.yml')
     @filters = YAML.safe_load(file)
 
-    @conversation_filters = @filters['conversations']
+    @conversation_filters = @filters['conversations'].except(*EXCLUDED_CONVERSATION_ATTRIBUTES)
     @contact_filters = @filters['contacts']
     @message_filters = @filters['messages']
   end

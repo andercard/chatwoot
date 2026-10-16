@@ -1,9 +1,9 @@
 <script setup>
 import { onMounted, computed, ref, toRefs } from 'vue';
-import { useTimeoutFn } from '@vueuse/core';
+import { useTimeoutFn, useMediaQuery } from '@vueuse/core';
 import { provideMessageContext } from './provider.js';
 import { useTrack } from 'dashboard/composables';
-import { useMapGetter } from 'dashboard/composables/store';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { emitter } from 'shared/helpers/mitt';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -48,6 +48,14 @@ import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 import MessageError from './MessageError.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
 import { useBranding } from 'shared/composables/useBranding';
+import {
+  useSwipeGesture,
+  OPEN_RATIO,
+} from 'dashboard/composables/useSwipeGesture';
+import NextButton from 'dashboard/components-next/button/Button.vue';
+
+// Max distance the bubble can be dragged to the right to quote it.
+const REPLY_SWIPE_MAX_PX = 80;
 
 /**
  * @typedef {Object} Attachment
@@ -150,6 +158,14 @@ const { t } = useI18n();
 const route = useRoute();
 const inboxGetter = useMapGetter('inboxes/getInbox');
 const inbox = computed(() => inboxGetter.value(props.inboxId) || {});
+const store = useStore();
+const appIntegrations = useMapGetter('integrations/getAppIntegrations');
+const integrationUIFlags = useMapGetter('integrations/getUIFlags');
+const isTranslateEnabled = computed(
+  () =>
+    !!store.getters['integrations/getIntegration']('google_translate').hooks
+      ?.length
+);
 const isOnChatwootCloud = useMapGetter('globalConfig/isOnChatwootCloud');
 const { replaceInstallationName } = useBranding();
 
@@ -391,6 +407,9 @@ const payloadForContextMenu = computed(() => {
   };
 });
 
+// Tailwind `sm` breakpoint (640px): delete is not offered below it
+const isMobile = useMediaQuery('(max-width: 639px)');
+
 const contextMenuEnabledOptions = computed(() => {
   const hasText = !!props.content;
   const hasAttachments = !!(props.attachments && props.attachments.length > 0);
@@ -403,12 +422,17 @@ const contextMenuEnabledOptions = computed(() => {
   return {
     copy: hasText,
     delete:
+      !isMobile.value &&
       (hasText || hasAttachments) &&
       !isFailedOrProcessing &&
       !isMessageDeleted.value,
     cannedResponse: isOutgoing && hasText && !isMessageDeleted.value,
     copyLink: !isFailedOrProcessing,
-    translate: !isFailedOrProcessing && !isMessageDeleted.value && hasText,
+    translate:
+      isTranslateEnabled.value &&
+      !isFailedOrProcessing &&
+      !isMessageDeleted.value &&
+      hasText,
     replyTo:
       !props.private &&
       props.inboxSupportsReplyTo.outgoing &&
@@ -478,6 +502,30 @@ function handleReplyTo() {
   emitter.emit(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, props);
 }
 
+const canReplyTo = computed(() => !!contextMenuEnabledOptions.value.replyTo);
+
+const { offsetX, isSwiping, handlers } = useSwipeGesture({
+  maxRight: REPLY_SWIPE_MAX_PX,
+  onRelease: ({ offsetX: releasedAt }) => {
+    if (releasedAt >= REPLY_SWIPE_MAX_PX * OPEN_RATIO) handleReplyTo();
+    return 0;
+  },
+});
+
+const swipeHandlers = computed(() => (canReplyTo.value ? handlers : {}));
+
+const swipeStyle = computed(() =>
+  offsetX.value ? { transform: `translateX(${offsetX.value}px)` } : {}
+);
+
+function openContextMenuFromButton(e) {
+  contextMenuPosition.value = {
+    x: e.pageX || e.clientX,
+    y: e.pageY || e.clientY,
+  };
+  showContextMenu.value = true;
+}
+
 const avatarInfo = computed(() => {
   if (props.contentAttributes?.externalEcho) {
     const { name, avatar_url, channel_type, medium, voice_enabled } =
@@ -539,7 +587,16 @@ const setupHighlightTimer = () => {
   }, HIGHLIGHT_TIMER);
 };
 
-onMounted(setupHighlightTimer);
+const fetchIntegrationsIfRequired = () => {
+  if (!appIntegrations.value.length && !integrationUIFlags.value.isFetching) {
+    store.dispatch('integrations/get');
+  }
+};
+
+onMounted(() => {
+  setupHighlightTimer();
+  fetchIntegrationsIfRequired();
+});
 
 provideMessageContext({
   ...toRefs(props),
@@ -591,14 +648,52 @@ provideMessageContext({
         <Avatar v-bind="avatarInfo" :size="24" />
       </div>
       <div
-        class="[grid-area:bubble] flex min-w-0"
+        class="[grid-area:bubble] flex min-w-0 group/bubble"
         :class="{
+          'touch-pan-y': canReplyTo,
+          'transition-transform duration-200': !isSwiping,
           'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
           'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
           'flex-col items-start gap-2': shouldShowWhatsappReferral,
         }"
+        :style="swipeStyle"
+        v-bind="swipeHandlers"
         @contextmenu="openContextMenu($event)"
       >
+        <div
+          v-if="shouldShowContextMenu && isBubble"
+          class="relative w-0 self-center"
+          :class="{ 'order-last': orientation === ORIENTATION.LEFT }"
+        >
+          <div
+            class="absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5"
+            :class="
+              orientation === ORIENTATION.LEFT ? 'start-0 ps-1' : 'end-0 pe-1'
+            "
+          >
+            <NextButton
+              v-if="canReplyTo"
+              class="max-sm:!hidden !text-n-slate-10 hover:!text-n-slate-11"
+              ghost
+              slate
+              xs
+              icon="i-lucide-reply"
+              :aria-label="t('CONVERSATION.CONTEXT_MENU.REPLY_TO')"
+              :title="t('CONVERSATION.CONTEXT_MENU.REPLY_TO')"
+              @click="handleReplyTo"
+            />
+            <NextButton
+              class="!text-n-slate-10 hover:!text-n-slate-11 max-sm:!size-7 max-sm:!p-0 max-sm:!rounded-full max-sm:!bg-n-alpha-2 max-sm:border max-sm:border-solid max-sm:!border-n-weak"
+              ghost
+              slate
+              xs
+              icon="i-lucide-ellipsis"
+              :aria-label="t('CONVERSATION.CONTEXT_MENU.MORE_OPTIONS')"
+              :title="t('CONVERSATION.CONTEXT_MENU.MORE_OPTIONS')"
+              @click="openContextMenuFromButton"
+            />
+          </div>
+        </div>
         <WhatsappReferral
           v-if="shouldShowWhatsappReferral"
           :referral="contentAttributes.referral"

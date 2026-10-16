@@ -19,6 +19,7 @@ import BulkAgentActions from './BulkAgentActions.vue';
 import BulkUpdateActions from './BulkUpdateActions.vue';
 import BulkLabelActions from './BulkLabelActions.vue';
 import BulkTeamActions from './BulkTeamActions.vue';
+import BulkReadActions from './BulkReadActions.vue';
 import CustomSnoozeModal from 'dashboard/components/CustomSnoozeModal.vue';
 
 const props = defineProps({
@@ -46,9 +47,13 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  selectionMode: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['selectAllConversations']);
+const emit = defineEmits(['selectAllConversations', 'exitSelection']);
 
 defineOptions({
   inheritAttrs: false,
@@ -76,6 +81,15 @@ const appliedLabelsForSelection = computed(() => {
   });
   return Array.from(applied);
 });
+
+const showPendingAction = computed(
+  () =>
+    !selectedConversations.value.every(
+      id =>
+        getConversationById.value(id)?.status ===
+        wootConstants.STATUS_TYPE.PENDING
+    )
+);
 
 const selectedLabel = computed(() =>
   t('BULK_ACTION.CONVERSATIONS_SELECTED', {
@@ -145,9 +159,10 @@ onUnmounted(() => {
     leave-to-class="opacity-0 scale-95 translate-y-2"
   >
     <div
-      v-if="conversations.length > 0"
+      v-if="selectionMode || conversations.length > 0"
       v-bind="attrs"
-      class="px-2 absolute bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 w-full origin-bottom"
+      data-mobile-sheet
+      class="px-4 sm:px-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:pb-0 fixed sm:absolute bottom-0 sm:bottom-4 start-0 sm:start-1/2 sm:-translate-x-1/2 z-40 sm:z-30 w-full origin-bottom"
     >
       <div
         v-if="allConversationsSelected"
@@ -156,10 +171,12 @@ onUnmounted(() => {
         {{ $t('BULK_ACTION.ALL_CONVERSATIONS_SELECTED_ALERT') }}
       </div>
       <div
-        class="flex items-center justify-between gap-2 p-2 bg-n-button-color outline outline-1 -outline-offset-1 rounded-[10px] outline-n-weak shadow-[0_0_12px_0_rgba(27,40,59,0.08)]"
+        class="flex flex-col gap-2 p-3 sm:p-2 min-w-0 bg-n-button-color outline outline-1 -outline-offset-1 rounded-3xl sm:rounded-[10px] outline-n-weak shadow-lg sm:shadow-[0_0_12px_0_rgba(27,40,59,0.08)]"
       >
-        <div class="ms-0.5 flex items-center gap-1 min-w-0">
-          <label class="cursor-pointer flex items-center gap-1.5 min-w-0">
+        <div class="ms-0.5 flex items-center gap-1 min-w-0 w-full">
+          <label
+            class="cursor-pointer flex items-center gap-1.5 min-w-0 flex-1"
+          >
             <Checkbox
               v-model="allSelected"
               :indeterminate="!allConversationsSelected"
@@ -177,8 +194,29 @@ onUnmounted(() => {
             sm
             @click="allSelected = false"
           />
+          <NextButton
+            v-if="!allConversationsSelected"
+            :label="$t('BULK_ACTION.SELECT_ALL')"
+            ghost
+            class="!text-n-blue-11 !px-1 !h-6 flex-shrink-0"
+            sm
+            @click="allSelected = true"
+          />
+          <NextButton
+            v-tooltip.top="$t('BULK_ACTION.EXIT_SELECTION')"
+            :aria-label="$t('BULK_ACTION.EXIT_SELECTION')"
+            icon="i-lucide-x"
+            slate
+            ghost
+            xs
+            class="flex-shrink-0"
+            @click="emit('exitSelection')"
+          />
         </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
+        <div
+          v-if="conversations.length > 0"
+          class="flex flex-wrap items-center justify-around sm:justify-start gap-2 min-w-0 w-full"
+        >
           <BulkLabelActions @assign="onAssignLabels" />
           <BulkLabelActions
             action="remove"
@@ -189,6 +227,7 @@ onUnmounted(() => {
             :show-resolve="!showResolvedAction"
             :show-reopen="!showOpenAction"
             :show-snooze="!showSnoozedAction"
+            :show-pending="showPendingAction"
             @update="onUpdateConversations"
           />
           <BulkAgentActions
@@ -200,6 +239,7 @@ onUnmounted(() => {
             :conversation-count="conversations.length"
             @select="onAssignTeam"
           />
+          <BulkReadActions :conversation-ids="selectedConversations" />
         </div>
       </div>
     </div>

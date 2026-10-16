@@ -59,6 +59,21 @@ class Conversations::FilterService < FilterService
 
   private
 
+  def default_filter(query_hash, filter_operator_value)
+    return unread_filter(query_hash) if query_hash[:attribute_key] == 'unread'
+
+    super
+  end
+
+  def unread_filter(query_hash)
+    value = Array.wrap(query_hash['values']).map(&:to_s).first
+    raise CustomExceptions::CustomFilter::InvalidValue.new(attribute_name: query_hash['attribute_key']) unless %w[true false].include?(value)
+
+    unread_condition = Conversation.unread_messages_condition(Message.arel_table, Conversation.arel_table)
+    unread_subquery = Message.unscoped.select(Arel.sql('1')).where(unread_condition).to_sql
+    "#{'NOT ' if value == 'false'}EXISTS (#{unread_subquery}) #{query_hash[:query_operator]}"
+  end
+
   # The planner hint only pays off when the label condition positively narrows the
   # result set: `equal_to` joined by AND. Negative/presence operators or an OR in the
   # payload leave the result broad, where the inbox index is the better driver.

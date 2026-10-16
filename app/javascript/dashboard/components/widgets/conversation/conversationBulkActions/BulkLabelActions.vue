@@ -2,11 +2,12 @@
 import { ref, useTemplateRef, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMapGetter } from 'dashboard/composables/store';
-import { useToggle } from '@vueuse/core';
+import { useToggle, useBreakpoints, breakpointsTailwind } from '@vueuse/core';
 import { vOnClickOutside } from '@vueuse/components';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
+import BulkActionSheet from './BulkActionSheet.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 
 const props = defineProps({
@@ -45,6 +46,9 @@ const selectedLabels = ref([]);
 
 const isTypeContact = computed(() => props.type === 'contact');
 const isRemoveAction = computed(() => props.action === 'remove');
+const isMobile = useBreakpoints(breakpointsTailwind).smaller('sm');
+// Contact bulk actions keep their dropdown; only the conversation bar uses the sheet.
+const useSheet = computed(() => isMobile.value && !isTypeContact.value);
 
 const buttonLabel = computed(() => {
   if (!isTypeContact.value) return '';
@@ -128,6 +132,7 @@ const handleDismiss = () => {
       ghost
       :class="{
         'bg-n-alpha-2': showDropdown,
+        'max-sm:!size-10 max-sm:[&>span]:!size-6': !isTypeContact,
         '[&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline w-fit !text-n-blue-11 [&>span]:!text-n-blue-11 !px-2':
           isTypeContact,
       }"
@@ -135,34 +140,30 @@ const handleDismiss = () => {
       :is-loading="isLoading"
       @click="toggleDropdown()"
     />
-    <Transition
-      :enter-active-class="
-        !isTypeContact
-          ? 'transition-all duration-150 ease-out origin-bottom'
-          : 'transition-all duration-150 ease-out origin-top'
-      "
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      :leave-active-class="
-        !isTypeContact
-          ? 'transition-all duration-100 ease-in origin-bottom'
-          : 'transition-all duration-100 ease-in origin-top'
-      "
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
+    <BulkActionSheet
+      :show="showDropdown"
+      :sheet="useSheet"
+      :origin="isTypeContact ? 'top' : 'bottom'"
+      @close="handleDismiss"
     >
       <DropdownMenu
-        v-if="showDropdown"
-        v-on-click-outside="[handleDismiss, { ignore: [containerRef] }]"
+        v-on-click-outside="[
+          () => !useSheet && handleDismiss(),
+          { ignore: [containerRef] },
+        ]"
         :menu-items="labelMenuItems"
         show-search
         :search-placeholder="t('BULK_ACTION.SEARCH_INPUT_PLACEHOLDER')"
-        class="w-60 max-h-80"
-        :class="{
-          'ltr:-right-[6.5rem] rtl:-left-[6.5rem] ltr:2xl:right-0 rtl:2xl:left-0 bottom-8':
-            !isTypeContact,
-          'ltr:right-0 rtl:left-0 mb-1 top-10': isTypeContact,
-        }"
+        :class="
+          useSheet
+            ? '!static !w-full max-h-[70dvh]'
+            : [
+                'w-60 max-h-80',
+                isTypeContact
+                  ? 'ltr:right-0 rtl:left-0 mb-1 top-10'
+                  : 'ltr:-right-[6.5rem] rtl:-left-[6.5rem] ltr:2xl:right-0 rtl:2xl:left-0 bottom-8',
+              ]
+        "
         @action="item => toggleLabelSelection(item.value)"
       >
         <template #thumbnail="{ item }">
@@ -186,7 +187,11 @@ const handleDismiss = () => {
           >
             <NextButton
               sm
-              class="w-full [&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline-flex"
+              class="w-full"
+              :class="{
+                '[&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline-flex':
+                  !useSheet,
+              }"
               :label="confirmLabel"
               :disabled="!selectedLabels.length"
               @click="handleApply"
@@ -194,6 +199,6 @@ const handleDismiss = () => {
           </div>
         </template>
       </DropdownMenu>
-    </Transition>
+    </BulkActionSheet>
   </div>
 </template>

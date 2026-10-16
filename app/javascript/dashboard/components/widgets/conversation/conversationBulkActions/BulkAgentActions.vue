@@ -1,12 +1,13 @@
 <script setup>
 import { useTemplateRef, computed, ref } from 'vue';
 import { useI18n, I18nT } from 'vue-i18n';
-import { useToggle } from '@vueuse/core';
+import { useToggle, useBreakpoints, breakpointsTailwind } from '@vueuse/core';
 import { vOnClickOutside } from '@vueuse/components';
 import { useStore } from 'vuex';
 import { useMapGetter } from 'dashboard/composables/store';
 
 import Button from 'dashboard/components-next/button/Button.vue';
+import BulkActionSheet from './BulkActionSheet.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 
 const props = defineProps({
@@ -27,6 +28,7 @@ const store = useStore();
 
 const containerRef = useTemplateRef('containerRef');
 const [showDropdown, toggleDropdown] = useToggle(false);
+const isMobile = useBreakpoints(breakpointsTailwind).smaller('sm');
 const selectedAgent = ref(null);
 
 const assignableAgentsUiFlags = useMapGetter(
@@ -118,25 +120,29 @@ const handleToggleDropdown = () => {
       slate
       xs
       ghost
+      class="max-sm:!size-10 max-sm:[&>span]:!size-6"
       :class="{ 'bg-n-alpha-2': showDropdown }"
       @click="handleToggleDropdown"
     />
-    <Transition
-      enter-active-class="transition-all duration-150 ease-out origin-bottom"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition-all duration-100 ease-in origin-bottom"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
+    <BulkActionSheet
+      :show="showDropdown"
+      :sheet="isMobile"
+      @close="handleDismiss"
     >
       <DropdownMenu
-        v-if="showDropdown"
-        v-on-click-outside="[handleDismiss, { ignore: [containerRef] }]"
+        v-on-click-outside="[
+          () => !isMobile && handleDismiss(),
+          { ignore: [containerRef] },
+        ]"
         :menu-items="agentMenuItems"
         :is-loading="isLoading"
         show-search
         :search-placeholder="t('BULK_ACTION.SEARCH_INPUT_PLACEHOLDER')"
-        class="ltr:-right-10 rtl:-left-10 ltr:2xl:right-0 rtl:2xl:left-0 bottom-8 w-60 max-h-80"
+        :class="
+          isMobile
+            ? '!static !w-full max-h-[70dvh]'
+            : 'ltr:-right-10 rtl:-left-10 ltr:2xl:right-0 rtl:2xl:left-0 bottom-8 w-60 max-h-80'
+        "
         @action="handleSelectAgent"
       >
         <template v-if="selectedAgent" #footer>
@@ -197,6 +203,6 @@ const handleToggleDropdown = () => {
           </div>
         </template>
       </DropdownMenu>
-    </Transition>
+    </BulkActionSheet>
   </div>
 </template>

@@ -68,6 +68,9 @@ const getValueFromConversation = (conversation, attributeKey) => {
     case 'created_at':
     case 'last_activity_at':
       return conversation[attributeKey];
+    case 'unread':
+      // The backend filter matches on unread incoming messages; the list payload exposes the same as unread_count
+      return (conversation.unread_count || 0) > 0;
     case 'display_id':
       // Frontend uses 'id' but backend expects 'display_id'
       return conversation.display_id || conversation.id;
@@ -305,9 +308,20 @@ const matchesConversationCondition = (conversation, filter) => {
     return false;
   }
 
+  // The boolean selector may send true/false or 'true'/'false'; compare them as booleans
+  const normalizedFilter =
+    filter.attribute_key === 'unread'
+      ? {
+          ...filter,
+          values: []
+            .concat(filter.values)
+            .map(v => `${resolveValue(v)}` === 'true'),
+        }
+      : filter;
+
   return matchesCondition(
     getValueFromConversation(conversation, filter.attribute_key),
-    filter
+    normalizedFilter
   );
 };
 

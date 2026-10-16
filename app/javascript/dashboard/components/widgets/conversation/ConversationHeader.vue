@@ -154,12 +154,8 @@ const copyConversationId = async () => {
           >
             {{ `#${chat.id}` }}
           </button>
-          <span v-if="hasMultipleInboxes" class="max-sm:hidden">•</span>
-          <InboxName
-            v-if="hasMultipleInboxes"
-            :inbox="inbox"
-            class="!mx-0 max-sm:hidden"
-          />
+          <span v-if="hasMultipleInboxes">•</span>
+          <InboxName v-if="hasMultipleInboxes" :inbox="inbox" class="!mx-0" />
           <span v-if="isSnoozed">•</span>
           <span v-if="isSnoozed" class="font-medium text-n-amber-10">
             {{ snoozedDisplayText }}

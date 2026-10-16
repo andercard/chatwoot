@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useToggle } from '@vueuse/core';
+import { useToggle, useBreakpoints, breakpointsTailwind } from '@vueuse/core';
 import { vOnClickOutside } from '@vueuse/components';
 import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useMapGetter, useStore } from 'dashboard/composables/store.js';
@@ -9,6 +9,8 @@ import wootConstants from 'dashboard/constants/globals';
 import SelectMenu from 'dashboard/components-next/selectmenu/SelectMenu.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import SheetHandle from 'dashboard/components-next/sheet-handle/SheetHandle.vue';
+import SheetBackdrop from 'dashboard/components-next/sheet-backdrop/SheetBackdrop.vue';
+import { useBodyScrollLock } from 'dashboard/composables/useBodyScrollLock';
 
 defineProps({
   isOnExpandedLayout: {
@@ -32,6 +34,13 @@ const chatStatusFilter = useMapGetter('getChatStatusFilter');
 const chatSortFilter = useMapGetter('getChatSortFilter');
 
 const [showActionsDropdown, toggleDropdown] = useToggle();
+const isMobile = useBreakpoints(breakpointsTailwind).smaller('sm');
+useBodyScrollLock(() => isMobile.value && showActionsDropdown.value);
+
+// On mobile the backdrop closes the sheet, so click-outside only runs on desktop.
+const closeOnClickOutside = () => {
+  if (!isMobile.value) toggleDropdown(false);
+};
 
 const currentStatusFilter = computed(() => {
   return chatStatusFilter.value || wootConstants.STATUS_TYPE.OPEN;
@@ -153,11 +162,16 @@ const handleSortChange = value => {
       xs
       @click="toggleDropdown()"
     />
+    <SheetBackdrop
+      v-if="isMobile && showActionsDropdown"
+      z-index-class="z-30"
+      @close="toggleDropdown(false)"
+    />
     <div
       v-if="showActionsDropdown"
-      v-on-click-outside="() => toggleDropdown()"
+      v-on-click-outside="closeOnClickOutside"
       data-mobile-sheet
-      class="fixed inset-x-0 bottom-0 max-h-[85dvh] min-h-[55dvh] overflow-y-auto rounded-t-xl p-4 pt-6 sm:pt-4 sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-full sm:mt-1 sm:w-72 sm:min-h-0 sm:max-h-none sm:overflow-visible sm:rounded-xl bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak z-40"
+      class="fixed inset-x-0 bottom-0 max-h-[85dvh] min-h-[55dvh] overflow-y-auto overscroll-contain rounded-t-xl p-4 pt-6 sm:pt-4 sm:absolute sm:inset-x-auto sm:bottom-auto sm:top-full sm:mt-1 sm:w-72 sm:min-h-0 sm:max-h-none sm:overflow-visible sm:rounded-xl bg-n-alpha-3 backdrop-blur-[100px] border border-n-weak z-40"
       :class="{
         'ltr:left-0 rtl:right-0': !isOnExpandedLayout,
         'ltr:right-0 rtl:left-0': isOnExpandedLayout,
