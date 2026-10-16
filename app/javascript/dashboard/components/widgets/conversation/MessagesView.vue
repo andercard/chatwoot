@@ -610,6 +610,7 @@ export default {
       </div>
       <ResizableEditorWrapper
         ref="resizableEditorWrapperRef"
+        class="[@media(display-mode:standalone)]:max-sm:pb-4"
         :container-height="Math.max(0, containerHeight - topBannerHeight)"
       >
         <ReplyBox @toggle-editor-size="toggleReplyEditorSize" />

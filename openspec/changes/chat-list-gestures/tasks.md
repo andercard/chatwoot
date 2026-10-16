@@ -267,3 +267,9 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 42
   - listo cuando: mientras corren las peticiones de Leído/No leído, una capa sobre toda la vista (con desenfoque y bloqueando toques) muestra un spinner con «Actualizando N conversaciones…» (es/en) y desaparece al terminar, sin dejar nada bloqueado si una petición falla
   - commit: `feat(chat-list): full screen loading state while bulk marking read or unread`
+
+- [x] **44 · Margen inferior de la caja de respuesta cuando la app está instalada (PWA) en móvil**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/MessagesView.vue`
+  - depende de: 43
+  - listo cuando: con la app instalada en la pantalla de inicio (`display-mode: standalone`) y ancho móvil, la caja de respuesta tiene 1 rem de margen inferior y no queda pegada al borde; en el navegador normal y en escritorio no cambia
+  - commit: `fix(messages): add a bottom margin to the reply box in the installed mobile app`
