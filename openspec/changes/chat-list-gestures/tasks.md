@@ -226,7 +226,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: el gesto de jalar para refrescar desaparece (se elimina `usePullToRefresh.js` y su uso y indicador en `ConversationList.vue`); en el encabezado de la lista, junto al título de la lista («Conversaciones»/«Abiertas») hay un botón solo de ícono de recarga con `aria-label` y tooltip traducidos (en+es); al tocarlo llama a `window.reconnectService?.fetchConversationsOnReconnect()`, el ícono gira y el botón queda deshabilitado mientras dura la petición, y al terminar vuelve a su estado; funciona en móvil y escritorio; los gestos de deslizar de las tarjetas y el refresco en segundo plano no cambian
   - commit: `feat(chat-list): replace pull to refresh with a refresh button`
 
-- [ ] **37 · Sin rebote ni hueco al jalar la lista hacia abajo en móvil**
+- [x] **37 · Sin rebote ni hueco al jalar la lista hacia abajo en móvil**
   - archivos: `app/javascript/dashboard/components/ConversationList.vue`
   - depende de: 36
   - listo cuando: al llegar al tope y seguir jalando hacia abajo, la lista no se estira ni deja un hueco vacío entre las pestañas y la primera tarjeta (el contenedor con scroll de la lista no tiene rebote ni encadena scroll); el scroll normal de la lista, el deslizar de las tarjetas y el botón de refrescar no cambian

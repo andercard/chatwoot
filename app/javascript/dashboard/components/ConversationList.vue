@@ -60,7 +60,7 @@ defineExpose({ conversationListRef });
 <template>
   <div
     ref="conversationListRef"
-    class="flex-1 min-h-0 overflow-y-auto conversations-list"
+    class="flex-1 min-h-0 overflow-y-auto overscroll-y-none conversations-list"
     :class="{ '!overflow-hidden': isContextMenuOpen }"
   >
     <Virtualizer
