@@ -126,7 +126,7 @@ watch(
     :class="{
       'active animate-card-select bg-n-background !border-n-surface-1':
         isActiveChat,
-      'selected bg-n-slate-2 !border-n-surface-1': selected,
+      'selected bg-n-alpha-3 !border-n-surface-1': selected,
       'px-0': compact,
       'px-3': !compact,
     }"

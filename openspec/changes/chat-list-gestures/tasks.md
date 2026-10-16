@@ -243,3 +243,9 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 36
   - listo cuando: en móvil el botón ⋯ de cada burbuja siempre se ve dentro de un contenedor completamente circular (fondo y borde sutiles); el menú ⋯ no ofrece «Eliminar» en móvil (en escritorio se conserva); el resto de opciones del menú no cambia; si estos archivos no son los que pintan el ⋯ y el menú, se ajusta el archivo equivalente dentro de `components-next/message/` o `components/widgets/conversation/` y se dice
   - commit: `feat(messages): circular options button and no delete option on mobile`
+
+- [x] **40 · Tarjeta seleccionada más oscura y «Agregar como respuesta rápida»**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/ConversationCard.vue`, `app/javascript/dashboard/i18n/locale/en/conversation.json`, `app/javascript/dashboard/i18n/locale/es/conversation.json`
+  - depende de: 39
+  - listo cuando: en modo selección cada tarjeta marcada se ve con el mismo fondo oscurecido que al pasar el cursor (`bg-n-alpha-3`), no solo con el check; la opción del menú del mensaje para guardarlo como respuesta guardada se llama «Agregar como respuesta rápida» (es) y «Add as quick reply» (en)
+  - commit: `feat(chat-list): darker selected cards and clearer quick reply label`
