@@ -75,3 +75,45 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 10
   - listo cuando: en móvil (menos de 640 px) con el modo selección activo, el botón flotante `#mobile-sidebar-launcher` queda oculto y no tapa los íconos ni el botón Leído de la barra (el launcher ya se oculta cuando existe `[data-mobile-sheet]` en el `body`); al salir del modo selección el launcher vuelve a verse; en escritorio no cambia nada
   - commit: `fix(chat-list): hide the floating menu button while the bulk bar is open on mobile`
+
+- [ ] **12 · Quitar el botón ☑ del encabezado de la lista**
+  - archivos: `app/javascript/dashboard/components/ChatListHeader.vue`, `app/javascript/dashboard/components/ChatList.vue`, `app/javascript/dashboard/i18n/locale/en/chatlist.json`, `app/javascript/dashboard/i18n/locale/es/chatlist.json`
+  - depende de: 11
+  - listo cuando: el encabezado de la lista ya no muestra el botón ☑ (solo quedan filtro, orden y colapsar) y no sobran la prop, el evento ni la clave i18n `CHAT_LIST.SELECTION.TOGGLE`; el modo selección sigue activándose con la pulsación larga en móvil y con el checkbox al pasar el mouse sobre el avatar en escritorio; salir del modo con la × de la barra sigue limpiando la selección
+  - commit: `fix(chat-list): drop the selection toggle button from the list header`
+
+- [ ] **13 · Quitar la pestaña "No leídos" y su filtro por conversation_type**
+  - archivos: `app/javascript/dashboard/components/ChatList.vue`, `app/javascript/dashboard/store/modules/conversations/helpers.js`, `app/javascript/dashboard/store/modules/conversations/actions.js`, `app/javascript/dashboard/components/ui/Tabs/TabsItem.vue`, `app/finders/conversation_finder.rb`, `app/javascript/dashboard/i18n/locale/en/chatlist.json`, `app/javascript/dashboard/i18n/locale/es/chatlist.json`
+  - depende de: 12
+  - listo cuando: la lista vuelve a tener solo Mías / Sin asignar / Todos (sin pestaña "No leídos") y no queda código muerto de ella: sin `UNREAD_TAB_KEY`, sin `filterByUnread`, sin la rama `when 'unread'` del finder, sin el camino que evitaba sobrescribir los conteos en `fetchAllConversations`, sin la clave `CHAT_LIST.ASSIGNEE_TYPE_TABS.unread` ni el cambio de `index` en `TabsItem.vue` (que vuelva a como estaba en `origin/production`); `conversation_finder_spec.rb` sigue en verde y las demás pestañas igual
+  - commit: `refactor(chat-list): remove the unread tab in favor of the advanced filter`
+
+- [ ] **14 · "No leídos" como atributo del filtro avanzado**
+  - archivos: `lib/filters/filter_keys.yml`, `app/helpers/filters/filter_helper.rb`, `app/javascript/dashboard/components-next/filter/provider.js`, `app/javascript/dashboard/components-next/filter/helper/filterHelper.js`, `app/javascript/dashboard/components-next/filter/helper/filterAttributeIcons.js`, `app/javascript/dashboard/store/modules/conversations/helpers/filterHelpers.js`, `app/javascript/dashboard/i18n/locale/en/advancedFilters.json`, `app/javascript/dashboard/i18n/locale/es/advancedFilters.json`
+  - depende de: 11
+  - listo cuando: en el filtro de conversaciones (icono de filtro) aparece el atributo "Mensajes no leídos" con valor Sí/No (selector booleano) y operador "es igual a"; `POST /api/v1/accounts/:id/conversations/filter` con `attribute_key: unread`, `filter_operator: equal_to`, `values: ['true']` devuelve solo conversaciones con mensajes entrantes posteriores a `agent_last_seen_at` (o con `agent_last_seen_at` nulo) usando `EXISTS` sobre `messages` con `account_id` y `conversation_id` (con `false` devuelve las leídas con `NOT EXISTS`), combinable con otras condiciones y con AND/OR; en tiempo real una conversación se agrega o sale según `unread_count`; los demás atributos y las automatizaciones no cambian; RuboCop limpio
+  - commit: `feat(filters): filter conversations by unread messages in the advanced filter`
+
+- [ ] **15 · Barra de acciones masivas: hoja inferior en móvil y solo íconos**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/Index.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkLabelActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkAgentActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkTeamActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkUpdateActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkReadActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkActionSheet.vue` (nuevo), `app/javascript/dashboard/i18n/locale/en/bulkActions.json`, `app/javascript/dashboard/i18n/locale/es/bulkActions.json`
+  - depende de: 11
+  - listo cuando: en móvil (menos de 640 px) tocar el ícono de etiquetas, agente, equipo o estado de la barra abre una hoja desde abajo (con asa y fondo que al tocarlo solo cierra, sin dejar pasar el clic) con las mismas opciones que hoy salían en un desplegable que se salía de pantalla; al aplicar o cerrar la hoja se cierra y la barra con la selección vuelve a verse sin perder lo seleccionado; en escritorio los desplegables actuales no cambian; Leído y No leído muestran solo el ícono (con `aria-label` y `title` con el texto actual)
+  - commit: `fix(chat-list): open the bulk actions in a bottom sheet on mobile and keep icons only`
+
+- [ ] **16 · Deslizar: acciones reordenadas, sin bordes redondeados y hoja de etiquetas**
+  - archivos: `app/javascript/dashboard/components-next/Conversation/ConversationCard/SwipeActions.vue`, `app/javascript/dashboard/components-next/Conversation/ConversationCard/ConversationLabelsSheet.vue` (nuevo), `app/javascript/dashboard/components/ConversationItem.vue`, `app/javascript/dashboard/i18n/locale/en/chatlist.json`, `app/javascript/dashboard/i18n/locale/es/chatlist.json`
+  - depende de: 13
+  - listo cuando: al deslizar a la derecha se ven juntos Leído/No leído y Asignarme; al deslizar a la izquierda se ven Estados y Etiquetas (Asignarme ya no está a ese lado); los botones de acción no tienen bordes redondeados ni huecos entre sí ni respecto a la tarjeta; "Etiquetas" abre una hoja desde abajo con las etiquetas de la cuenta (las de la conversación marcadas), permite marcar/desmarcar y un botón Guardar que aplica solo las diferencias a esa conversación con `assignLabels`/`removeLabels` inyectados, y cierra la hoja; el fondo de la hoja al tocarlo solo cierra; sigue sin haber Eliminar ni "Más"
+  - commit: `feat(chat-list): rearrange the swipe actions and add a labels sheet`
+
+- [ ] **17 · Mensaje: botones fijos, Traducir solo si hay integración**
+  - archivos: `app/javascript/dashboard/components-next/message/Message.vue`, `app/javascript/dashboard/modules/conversations/components/MessageContextMenu.vue`, `app/javascript/dashboard/i18n/locale/en/conversation.json`, `app/javascript/dashboard/i18n/locale/es/conversation.json`
+  - depende de: 11
+  - listo cuando: en escritorio la flecha de responder y el ⋯ están siempre visibles junto a la burbuja (sin necesitar hover); en móvil el ⋯ está siempre visible junto a la burbuja (responder sigue siendo deslizar); el menú conserva sus opciones actuales, incluida "Añadir como respuesta predeterminada" donde ya existía, salvo "Traducir", que solo aparece si la integración de Google Translate de la cuenta está habilitada (hoy aparece siempre y no hace nada); sin Eliminar ni Editar nuevos
+  - commit: `fix(messages): keep the reply and options buttons visible and hide translate without the integration`
+
+- [ ] **18 · Tocar una cita lleva al mensaje original**
+  - archivos: `app/javascript/dashboard/components-next/message/bubbles/Base.vue`, `app/javascript/dashboard/components/widgets/conversation/MessagesView.vue`
+  - depende de: 11
+  - listo cuando: al tocar la cita dentro de una burbuja la conversación se desplaza al mensaje original y lo resalta unos instantes; si el original no está cargado todavía se piden mensajes anteriores hasta encontrarlo (con un tope razonable) y si no aparece no se salta al final; funciona igual para cualquier canal con respuestas (todos guardan `in_reply_to`)
+  - commit: `fix(messages): scroll to the quoted message when tapping a reply`
