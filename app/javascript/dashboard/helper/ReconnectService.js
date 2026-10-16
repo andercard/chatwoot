@@ -1,6 +1,7 @@
 import { emitter } from 'shared/helpers/mitt';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { differenceInSeconds } from 'date-fns';
+import BaseActionCableConnector from 'shared/helpers/BaseActionCableConnector';
 import {
   isAConversationRoute,
   isAInboxViewRoute,
@@ -8,8 +9,9 @@ import {
 
 const MAX_DISCONNECT_SECONDS = 10800;
 const HIDDEN_REFRESH_THRESHOLD_SECONDS = 20;
-// A refresh finished this recently already covers any other trigger
-// (websocket reconnect, online, visibility), so we skip the duplicate.
+// A refresh finished this recently already covers any other
+// visibility/online/pull-to-refresh trigger, so we skip the duplicate.
+// A websocket reconnect is never deduplicated.
 const REFRESH_DEDUPE_WINDOW_MS = 10000;
 
 class ReconnectService {
@@ -20,6 +22,7 @@ class ReconnectService {
     this.hiddenAt = null;
     this.lastRefreshAt = 0;
     this.isRefreshing = false;
+    this.reconnectRefresh = null;
 
     this.setupEventListeners();
   }
@@ -79,11 +82,21 @@ class ReconnectService {
     if (hiddenSeconds > HIDDEN_REFRESH_THRESHOLD_SECONDS) this.refreshQuietly();
   };
 
-  // Single entry point for every refresh trigger. Skips if one is running
-  // or just finished, so a websocket reconnect plus a visibility/online
-  // event do not fetch twice.
+  runRefresh = async () => {
+    try {
+      await this.handleRouteSpecificFetch();
+      await this.revalidateCaches();
+    } finally {
+      this.lastRefreshAt = Date.now();
+    }
+  };
+
+  // Entry point for visibility, online and pull-to-refresh triggers. While
+  // the websocket is down it does nothing: onReconnect does the refresh.
+  // Skips if one is running or just finished to avoid bursts.
   refreshData = async () => {
     if (
+      BaseActionCableConnector.isDisconnected ||
       this.isRefreshing ||
       Date.now() - this.lastRefreshAt < REFRESH_DEDUPE_WINDOW_MS
     ) {
@@ -91,11 +104,9 @@ class ReconnectService {
     }
     this.isRefreshing = true;
     try {
-      await this.handleRouteSpecificFetch();
-      await this.revalidateCaches();
+      await this.runRefresh();
     } finally {
       this.isRefreshing = false;
-      this.lastRefreshAt = Date.now();
     }
     return true;
   };
@@ -190,8 +201,13 @@ class ReconnectService {
     this.setConversationLastMessageId();
   };
 
+  // Real websocket reconnect: always runs the full refresh, bypassing the
+  // dedupe window. Only a second reconnect while one is in flight reuses it.
   onReconnect = async () => {
-    await this.refreshData();
+    this.reconnectRefresh ??= this.runRefresh().finally(() => {
+      this.reconnectRefresh = null;
+    });
+    await this.reconnectRefresh;
     emitter.emit(BUS_EVENTS.WEBSOCKET_RECONNECT_COMPLETED);
   };
 }

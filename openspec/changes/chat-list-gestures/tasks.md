@@ -178,7 +178,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: cuando la pestaña o la app vuelve a ser visible (`visibilitychange`/`pageshow`) tras más de 20 segundos oculta, o vuelve la red (`online`), se vuelve a pedir la lista de conversaciones vigente (con los filtros activos), la conversación abierta con sus mensajes y los conteos, igual que hoy al reconectar el websocket, sin recargar la página y sin lanzar la petición dos veces cuando el websocket ya se reconectó; en móvil, al tirar hacia abajo desde el tope de la lista (solo con puntero táctil) aparece un indicador de carga, se vuelve a pedir la lista y el indicador desaparece al terminar; el scroll normal de la lista y el deslizar de las tarjetas no se afectan; en escritorio la lista no cambia
   - commit: `feat(chat-list): refresh on resume and pull to refresh on mobile`
 
-- [ ] **29 · Revisión: el refresco por reconexión del websocket no puede descartarse**
+- [x] **29 · Revisión: el refresco por reconexión del websocket no puede descartarse**
   - archivos: `app/javascript/dashboard/helper/ReconnectService.js`
   - depende de: 28
   - listo cuando: `onReconnect` (reconexión real del websocket) SIEMPRE ejecuta el refresco completo (lista, conversación abierta con `syncActiveConversationMessages`, cachés) sin que la deduplicación lo descarte; el refresco por visibilidad/`pageshow`/`online` no se ejecuta mientras el websocket esté caído (`BaseActionCableConnector.isDisconnected`) y deja el trabajo a `onReconnect`; no se lanzan dos refrescos simultáneos de la misma fuente; sin recargar la página; los 21 tests de `ReconnectService.spec.js` siguen pasando (si alguno asumía el comportamiento anterior se actualiza)
