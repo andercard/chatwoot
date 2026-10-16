@@ -353,10 +353,11 @@ export default {
       emitter.off(BUS_EVENTS.SCROLL_TO_MESSAGE, this.onScrollToMessage);
     },
     async onScrollToMessage({ messageId = '' } = {}) {
-      this.makeMessagesRead();
-      await new Promise(resolve => {
-        setTimeout(resolve, 0);
-      });
+      if (!messageId) {
+        this.$nextTick(() => this.scrollToBottom());
+        this.makeMessagesRead();
+        return;
+      }
       let messageElement = document.getElementById('message' + messageId);
       let pagesFetched = 0;
       while (
@@ -389,6 +390,7 @@ export default {
       }
       // if the original message is not found, keep the current position
       if (!messageElement) return;
+      this.makeMessagesRead();
       this.isProgrammaticScroll = true;
       messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       messageElement.classList.add(...REPLIED_MESSAGE_HIGHLIGHT_CLASSES);

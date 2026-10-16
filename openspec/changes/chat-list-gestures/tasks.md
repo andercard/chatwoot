@@ -112,7 +112,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en escritorio la flecha de responder y el ⋯ están siempre visibles junto a la burbuja (sin necesitar hover); en móvil el ⋯ está siempre visible junto a la burbuja (responder sigue siendo deslizar); el menú conserva sus opciones actuales, incluida "Añadir como respuesta predeterminada" donde ya existía, salvo "Traducir", que solo aparece si la integración de Google Translate de la cuenta está habilitada (hoy aparece siempre y no hace nada); sin Eliminar ni Editar nuevos
   - commit: `fix(messages): keep the reply and options buttons visible and hide translate without the integration`
 
-- [ ] **18 · Tocar una cita lleva al mensaje original**
+- [x] **18 · Tocar una cita lleva al mensaje original**
   - archivos: `app/javascript/dashboard/components-next/message/bubbles/Base.vue`, `app/javascript/dashboard/components/widgets/conversation/MessagesView.vue`
   - depende de: 11
   - listo cuando: al tocar la cita dentro de una burbuja la conversación se desplaza al mensaje original y lo resalta unos instantes; si el original no está cargado todavía se piden mensajes anteriores hasta encontrarlo (con un tope razonable) y si no aparece no se salta al final; funciona igual para cualquier canal con respuestas (todos guardan `in_reply_to`); las demás emisiones de `SCROLL_TO_MESSAGE` sin `messageId` (al enviar un mensaje, al llegar uno nuevo o actualizarse la conversación abierta, y al abrir una conversación) siguen bajando al final como antes y NO piden páginas anteriores
@@ -124,7 +124,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: al aplicar "Mensajes no leídos = Verdadero" desde el filtro, la lista muestra las conversaciones que devuelve el servidor (hoy el contador dice 20 y la lista queda vacía porque la comparación en el cliente no entiende que el valor llega como `{ id: true, name: 'Verdadero' }`); con "Falso" muestra solo las leídas; combinar con otro filtro sigue funcionando
   - commit: `fix(filters): read the unread filter value the way the selector sends it`
 
-- [ ] **20 · Las automatizaciones no deben aceptar el atributo `unread`**
+- [x] **20 · Las automatizaciones no deben aceptar el atributo `unread`**
   - archivos: `app/services/automation_rules/condition_validation_service.rb`, `app/services/automation_rules/conditions_filter_service.rb`
   - depende de: 14
   - listo cuando: crear o evaluar una regla de automatización con la condición `unread` se rechaza como atributo inválido igual que cualquier clave desconocida, y las demás condiciones de conversaciones (status, assignee_id, inbox_id, …) siguen validándose igual; la exclusión es mínima y no cambia el filtro avanzado de conversaciones
