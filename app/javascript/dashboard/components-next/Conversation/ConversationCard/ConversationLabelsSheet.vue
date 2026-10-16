@@ -1,7 +1,12 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useMapGetter } from 'dashboard/composables/store';
+import { frontendURL } from 'dashboard/helper/URLHelper';
+import { useBodyScrollLock } from 'dashboard/composables/useBodyScrollLock';
+import SheetBackdrop from 'dashboard/components-next/sheet-backdrop/SheetBackdrop.vue';
+import Input from 'dashboard/components-next/input/Input.vue';
 import SheetHandle from 'dashboard/components-next/sheet-handle/SheetHandle.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import Label from 'dashboard/components-next/label/Label.vue';
@@ -17,13 +22,35 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const { t } = useI18n();
+const router = useRouter();
+
+useBodyScrollLock(true);
+
+const normalize = value =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 
 const accountLabels = useMapGetter('labels/getLabels');
+const accountId = useMapGetter('getCurrentAccountId');
+const searchQuery = ref('');
+const filteredLabels = computed(() => {
+  const query = normalize(searchQuery.value.trim());
+  return accountLabels.value.filter(item =>
+    normalize(item.title).includes(query)
+  );
+});
 const selected = ref(new Set(props.conversationLabels));
 
 const toggle = title => {
   if (selected.value.has(title)) selected.value.delete(title);
   else selected.value.add(title);
+};
+
+const onEditLabels = () => {
+  emit('close');
+  router.push(frontendURL(`accounts/${accountId.value}/settings/labels`));
 };
 
 const onSave = () => {
@@ -38,31 +65,61 @@ const onSave = () => {
 
 <template>
   <Teleport to="body">
-    <div
-      data-mobile-sheet
-      class="fixed inset-0 z-[10000] flex items-end justify-center bg-n-alpha-black1 backdrop-blur-sm"
-      @click.self.stop.prevent="emit('close')"
-    >
+    <SheetBackdrop data-mobile-sheet @close="emit('close')">
       <div
         role="dialog"
         aria-modal="true"
-        class="relative flex flex-col w-full max-h-[90dvh] pt-6 pb-4 overflow-y-auto border bg-n-solid-2 border-n-weak shadow-lg rounded-t-2xl"
+        class="relative flex flex-col w-full max-h-[90dvh] pt-6 pb-4 border bg-n-solid-2 border-n-weak shadow-lg rounded-t-2xl"
       >
         <SheetHandle @close="emit('close')" />
-        <h3 class="px-4 pb-2 text-sm font-medium text-n-slate-11">
-          {{ t('CHAT_LIST.SWIPE.LABELS') }}
-        </h3>
-        <label
-          v-for="item in accountLabels"
-          :key="item.id"
-          class="flex items-center w-full gap-3 px-4 py-3 cursor-pointer hover:bg-n-alpha-2"
+        <div class="flex items-center justify-between gap-2 px-4 pb-2">
+          <h3 class="text-sm font-medium text-n-slate-11">
+            {{ t('CHAT_LIST.SWIPE.LABELS') }}
+          </h3>
+          <button
+            type="button"
+            class="text-sm font-medium text-n-brand"
+            @click="onEditLabels"
+          >
+            {{ t('CHAT_LIST.SWIPE.EDIT_LABELS') }}
+          </button>
+        </div>
+        <div class="px-4 pb-2">
+          <Input
+            v-model="searchQuery"
+            type="search"
+            size="sm"
+            :placeholder="t('CHAT_LIST.SWIPE.SEARCH_LABELS')"
+            custom-input-class="!ps-9"
+          >
+            <template #prefix>
+              <span
+                class="absolute i-lucide-search size-4 start-3 top-2 text-n-slate-10 pointer-events-none"
+              />
+            </template>
+          </Input>
+        </div>
+        <div
+          class="flex-1 min-h-0 max-h-[50dvh] overflow-y-auto overscroll-contain"
         >
-          <Checkbox
-            :model-value="selected.has(item.title)"
-            @change="toggle(item.title)"
-          />
-          <Label :label="item" compact />
-        </label>
+          <label
+            v-for="item in filteredLabels"
+            :key="item.id"
+            class="flex items-center w-full gap-3 px-4 py-3 cursor-pointer hover:bg-n-alpha-2"
+          >
+            <Checkbox
+              :model-value="selected.has(item.title)"
+              @change="toggle(item.title)"
+            />
+            <Label :label="item" compact />
+          </label>
+          <p
+            v-if="!filteredLabels.length"
+            class="px-4 py-3 text-sm text-n-slate-11"
+          >
+            {{ t('CHAT_LIST.SWIPE.NO_LABELS_FOUND') }}
+          </p>
+        </div>
         <div class="px-4 pt-2">
           <Button
             :label="t('CHAT_LIST.SWIPE.SAVE')"
@@ -71,6 +128,6 @@ const onSave = () => {
           />
         </div>
       </div>
-    </div>
+    </SheetBackdrop>
   </Teleport>
 </template>

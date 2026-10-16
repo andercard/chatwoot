@@ -154,7 +154,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en móvil el selector de fechas y el menú principal (hamburguesa) muestran el telón desenfocado detrás, se cierran al tocarlo y bloquean el scroll de la página mientras están abiertos; el menú principal sigue cerrándose al navegar; en escritorio no cambia nada
   - commit: `fix(mobile): backdrop and scroll lock on the date picker and the main menu`
 
-- [ ] **25 · Hoja de etiquetas: buscar, scroll y enlace para editar etiquetas**
+- [x] **25 · Hoja de etiquetas: buscar, scroll y enlace para editar etiquetas**
   - archivos: `app/javascript/dashboard/components-next/Conversation/ConversationCard/ConversationLabelsSheet.vue`, `app/javascript/dashboard/i18n/locale/en/chatlist.json`, `app/javascript/dashboard/i18n/locale/es/chatlist.json`
   - depende de: 21
   - listo cuando: la hoja usa `SheetBackdrop` y `useBodyScrollLock`; tiene un campo de búsqueda "Buscar etiquetas" que filtra la lista (sin diferenciar mayúsculas ni tildes); con muchas etiquetas la lista tiene su propio scroll con altura máxima y el botón Guardar queda siempre visible; junto al título "Etiquetas" hay un enlace "Editar" que lleva a la configuración de etiquetas de la cuenta (`/app/accounts/:id/settings/labels`) para editar o agregar más; el campo de búsqueda no tapa su ícono con el texto; guardar sigue aplicando solo las diferencias
