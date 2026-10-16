@@ -190,7 +190,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: marcar Leído/No leído respeta el mismo tope de 100 conversaciones que las demás acciones masivas (con más de 100 seleccionadas avisa con `useAlert` y no lanza peticiones), envía las peticiones por tandas pequeñas (p. ej. 10 en paralelo) en vez de todas a la vez, y avisa al terminar si alguna falló (cuántas); con éxito limpia la selección como hoy; textos nuevos en `en` y `es`
   - commit: `fix(chat-list): cap and batch the bulk read and unread requests`
 
-- [ ] **31 · Revisión: "Editar etiquetas" solo para administradores**
+- [x] **31 · Revisión: "Editar etiquetas" solo para administradores**
   - archivos: `app/javascript/dashboard/components-next/Conversation/ConversationCard/ConversationLabelsSheet.vue`
   - depende de: 28
   - listo cuando: el enlace "Editar" de la hoja de etiquetas solo se muestra a administradores (usa el composable `useAdmin()` ya existente); para los demás roles no aparece y el resto de la hoja no cambia

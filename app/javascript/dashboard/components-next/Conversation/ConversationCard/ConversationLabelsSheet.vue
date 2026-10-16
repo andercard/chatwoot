@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useMapGetter } from 'dashboard/composables/store';
+import { useAdmin } from 'dashboard/composables/useAdmin';
 import { frontendURL } from 'dashboard/helper/URLHelper';
 import { useBodyScrollLock } from 'dashboard/composables/useBodyScrollLock';
 import SheetBackdrop from 'dashboard/components-next/sheet-backdrop/SheetBackdrop.vue';
@@ -22,6 +23,7 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const { t } = useI18n();
+const { isAdmin } = useAdmin();
 const router = useRouter();
 
 useBodyScrollLock(true);
@@ -77,6 +79,7 @@ const onSave = () => {
             {{ t('CHAT_LIST.SWIPE.LABELS') }}
           </h3>
           <button
+            v-if="isAdmin"
             type="button"
             class="text-sm font-medium text-n-brand"
             @click="onEditLabels"
