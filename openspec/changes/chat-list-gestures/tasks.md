@@ -166,7 +166,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: el campo "Buscar" de etiquetas, agentes y equipos ya no superpone el ícono de la lupa con el texto (ícono y texto no se tapan); el menú de Estado ofrece Reabrir/Abrir, Pendiente, Resolver y Posponer (todos menos el estado que ya tienen todas las seleccionadas) y aplicar Pendiente cambia el estado de las conversaciones; los íconos de la barra y los botones Leído/No leído son más grandes (objetivo táctil de al menos 40 px y ícono de unos 24 px) sin romper el ancho de 375 px; Posponer sigue pidiendo la fecha como hoy
   - commit: `fix(chat-list): bulk bar search field, pending status and larger icons`
 
-- [ ] **27 · Eliminar mensaje: dejar claro que solo se borra en Chatwoot**
+- [x] **27 · Eliminar mensaje: dejar claro que solo se borra en Chatwoot**
   - archivos: `app/javascript/dashboard/i18n/locale/en/conversation.json`, `app/javascript/dashboard/i18n/locale/es/conversation.json`
   - depende de: 20
   - listo cuando: el diálogo de confirmación de eliminar un mensaje (`CONVERSATION.CONTEXT_MENU.DELETE_CONFIRMATION`) dice con claridad que el mensaje se elimina solo en Chatwoot y que el cliente lo seguirá viendo en su canal (WhatsApp, Telegram…), en `en` y `es`; el aviso de éxito (`SUCCESS_DELETE_MESSAGE`) mantiene esa precisión; el comportamiento de borrar no cambia

@@ -85,7 +85,7 @@
     "WHATSAPP_REFERRAL": {
       "AD": "Publicidad"
     },
-    "SUCCESS_DELETE_MESSAGE": "Mensaje eliminado correctamente",
+    "SUCCESS_DELETE_MESSAGE": "Mensaje eliminado en Chatwoot",
     "FAIL_DELETE_MESSSAGE": "¡No se pudo eliminar el mensaje! Inténtalo de nuevo",
     "NO_RESPONSE": "No hay respuesta",
     "RESPONSE": "Respuesta",
@@ -392,8 +392,8 @@
       "COPY_PERMALINK": "Copiar el enlace al mensaje",
       "LINK_COPIED": "URL del mensaje copiado al portapapeles",
       "DELETE_CONFIRMATION": {
-        "TITLE": "¿Está seguro que desea eliminar este mensaje?",
-        "MESSAGE": "No puede deshacer esta acción",
+        "TITLE": "¿Eliminar este mensaje en Chatwoot?",
+        "MESSAGE": "Solo se eliminará aquí, en Chatwoot. El cliente lo seguirá viendo en su canal y no se puede deshacer.",
         "DELETE": "Eliminar",
         "CANCEL": "Cancelar"
       },
