@@ -14,7 +14,7 @@ class AutomationRules::ConditionsFilterService < FilterService
     file = File.read('./lib/filters/filter_keys.yml')
     @filters = YAML.safe_load(file)
 
-    @conversation_filters = @filters['conversations']
+    @conversation_filters = @filters['conversations'].except(*AutomationRules::ConditionValidationService::EXCLUDED_CONVERSATION_ATTRIBUTES)
     @contact_filters = @filters['contacts']
     @message_filters = @filters['messages']
 
