@@ -313,7 +313,9 @@ const matchesConversationCondition = (conversation, filter) => {
     filter.attribute_key === 'unread'
       ? {
           ...filter,
-          values: [].concat(filter.values).map(v => `${v}` === 'true'),
+          values: []
+            .concat(filter.values)
+            .map(v => `${resolveValue(v)}` === 'true'),
         }
       : filter;
 
