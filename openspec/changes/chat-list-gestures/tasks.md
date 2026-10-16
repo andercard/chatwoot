@@ -58,7 +58,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: `SwipeActions.vue` enlaza los handlers del gesto como listeners que Vue sí registra (`v-bind="handlers"`, no `v-on`, porque las claves son `onPointerdown`, `onClickCapture`…) y con eventos de puntero táctiles un arrastre a la izquierda deja `translateX` negativo en el contenedor `touch-pan-y` y a la derecha positivo; `TypingPill.vue` muestra el primer nombre de cada persona (no el nombre completo) con un ancho máximo suficiente para que "Tatiana escribe…" y "Tatiana y Lucía escriben…" se lean sin recorte en una columna de 340 px
   - commit: `fix(chat-list): bind the swipe handlers and show first names in the typing pill`
 
-- [x] **9 · QA: el chip No leídos ensancha la lista, muestra 0 y encoge los conteos**
+- [ ] **9 · QA: el chip No leídos ensancha la lista, muestra 0 y encoge los conteos**
   - archivos: `app/javascript/dashboard/components/ChatList.vue`, `app/javascript/dashboard/components/ChatListHeader.vue`, `app/javascript/dashboard/components/ui/Tabs/TabsItem.vue`, `app/javascript/dashboard/store/modules/conversations/actions.js`
   - depende de: 6
   - listo cuando: con 375 px de ancho `.conversations-list-wrap` mide 375 px (hoy 417: el panel desborda y las tarjetas quedan cortadas a la derecha, y los botones de orden/colapsar del encabezado quedan fuera de pantalla); la pestaña "No leídos" no muestra ningún número (hoy pinta un badge "0"); con "No leídos" activa los conteos de Mías / Sin asignar / Todos conservan los valores de la lista completa (hoy bajan de 137/179 a 24/25); las demás pestañas siguen igual
