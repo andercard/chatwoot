@@ -4,7 +4,6 @@ import { ref, toValue } from 'vue';
 export const AXIS_LOCK_THRESHOLD_PX = 8;
 // Horizontal pull needed to settle open instead of snapping back.
 export const OPEN_RATIO = 0.4;
-export const SWIPE_TRANSITION_MS = 200;
 
 const TOUCH_POINTER_TYPES = ['touch', 'pen'];
 

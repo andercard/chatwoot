@@ -50,7 +50,6 @@ import ContextMenu from 'dashboard/modules/conversations/components/MessageConte
 import { useBranding } from 'shared/composables/useBranding';
 import {
   useSwipeGesture,
-  SWIPE_TRANSITION_MS,
   OPEN_RATIO,
 } from 'dashboard/composables/useSwipeGesture';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -516,12 +515,7 @@ const { offsetX, isSwiping, handlers } = useSwipeGesture({
 const swipeHandlers = computed(() => (canReplyTo.value ? handlers : {}));
 
 const swipeStyle = computed(() =>
-  offsetX.value
-    ? {
-        transform: `translateX(${offsetX.value}px)`,
-        transitionDuration: `${SWIPE_TRANSITION_MS}ms`,
-      }
-    : {}
+  offsetX.value ? { transform: `translateX(${offsetX.value}px)` } : {}
 );
 
 function openContextMenuFromButton(e) {
@@ -657,7 +651,7 @@ provideMessageContext({
         class="[grid-area:bubble] flex min-w-0 group/bubble"
         :class="{
           'touch-pan-y': canReplyTo,
-          'transition-transform': !isSwiping,
+          'transition-transform duration-200': !isSwiping,
           'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
           'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,
           'flex-col items-start gap-2': shouldShowWhatsappReferral,

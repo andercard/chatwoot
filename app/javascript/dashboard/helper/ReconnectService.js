@@ -10,7 +10,7 @@ import {
 const MAX_DISCONNECT_SECONDS = 10800;
 const HIDDEN_REFRESH_THRESHOLD_SECONDS = 20;
 // A refresh finished this recently already covers any other
-// visibility/online/pull-to-refresh trigger, so we skip the duplicate.
+// visibility/online trigger, so we skip the duplicate.
 // A websocket reconnect is never deduplicated.
 const REFRESH_DEDUPE_WINDOW_MS = 10000;
 
@@ -91,7 +91,7 @@ class ReconnectService {
     }
   };
 
-  // Entry point for visibility, online and pull-to-refresh triggers. While
+  // Entry point for visibility and online triggers. While
   // the websocket is down it does nothing: onReconnect does the refresh.
   // Skips if one is running or just finished to avoid bursts.
   refreshData = async () => {
