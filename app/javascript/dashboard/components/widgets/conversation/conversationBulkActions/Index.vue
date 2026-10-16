@@ -152,6 +152,7 @@ onUnmounted(() => {
     <div
       v-if="selectionMode || conversations.length > 0"
       v-bind="attrs"
+      data-mobile-sheet
       class="px-2 pb-[env(safe-area-inset-bottom)] sm:pb-0 fixed sm:absolute bottom-0 sm:bottom-4 start-0 sm:start-1/2 sm:-translate-x-1/2 z-40 sm:z-30 w-full origin-bottom"
     >
       <div

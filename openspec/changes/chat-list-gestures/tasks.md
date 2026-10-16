@@ -70,7 +70,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en una lista de 340 px (escritorio) y de 375 px (móvil) la barra muestra el contador de seleccionadas, "Limpiar", "Todas", cerrar, los íconos de etiquetas/agente/equipo/estado y los botones Leído y No leído dentro de su propio contenedor, sin salirse ni taparse con el editor de respuesta
   - commit: `fix(chat-list): lay out the bulk action bar inside its container`
 
-- [ ] **11 · QA: el botón flotante de menú tapa la barra de acciones masivas en móvil**
+- [x] **11 · QA: el botón flotante de menú tapa la barra de acciones masivas en móvil**
   - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/Index.vue`
   - depende de: 10
   - listo cuando: en móvil (menos de 640 px) con el modo selección activo, el botón flotante `#mobile-sidebar-launcher` queda oculto y no tapa los íconos ni el botón Leído de la barra (el launcher ya se oculta cuando existe `[data-mobile-sheet]` en el `body`); al salir del modo selección el launcher vuelve a verse; en escritorio no cambia nada
