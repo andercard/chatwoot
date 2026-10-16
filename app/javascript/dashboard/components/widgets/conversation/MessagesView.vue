@@ -389,8 +389,8 @@ export default {
         if (this.currentChat.messages.length === loadedCount) break;
       }
       // if the original message is not found, keep the current position
-      if (!messageElement) return;
       this.makeMessagesRead();
+      if (!messageElement) return;
       this.isProgrammaticScroll = true;
       messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       messageElement.classList.add(...REPLIED_MESSAGE_HIGHLIGHT_CLASSES);

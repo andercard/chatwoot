@@ -196,7 +196,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: el enlace "Editar" de la hoja de etiquetas solo se muestra a administradores (usa el composable `useAdmin()` ya existente); para los demás roles no aparece y el resto de la hoja no cambia
   - commit: `fix(chat-list): show the edit labels link only to administrators`
 
-- [ ] **32 · Revisión: tocar una cita no deja la conversación sin marcar como leída**
+- [x] **32 · Revisión: tocar una cita no deja la conversación sin marcar como leída**
   - archivos: `app/javascript/dashboard/components/widgets/conversation/MessagesView.vue`
   - depende de: 28
   - listo cuando: si tras la carga acotada de páginas anteriores el mensaje citado no aparece, `onScrollToMessage` igualmente llama a `makeMessagesRead()` (sin saltar al final ni cambiar la posición), como hacía el original; el resto del comportamiento (con `messageId` encontrado: centrar y resaltar; sin `messageId`: bajar al final) no cambia
