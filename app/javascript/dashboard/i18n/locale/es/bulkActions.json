@@ -7,6 +7,8 @@
     "SELECT_ALL": "Todas",
     "MARK_READ": "Leído",
     "MARK_UNREAD": "No leído",
+    "READ_LIMIT_EXCEEDED": "Puedes actualizar hasta {limit} conversaciones a la vez",
+    "READ_PARTIAL_FAILURE": "No se pudieron actualizar {count} conversaciones",
     "ASSIGN_AGENT_CONFIRMATION_LABEL": "¿Estás seguro de que quieres asignar {n} conversación a {agentName}? | ¿Estás seguro de que quieres asignar {n} conversaciones a {agentName}?",
     "UNASSIGN_AGENT_CONFIRMATION_LABEL": "¿Estás seguro de que quieres desasignar {n} conversación? | ¿Estás seguro de que quieres desasignar las {n} conversaciones?",
     "YES": "Si",

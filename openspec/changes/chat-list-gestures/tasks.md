@@ -184,7 +184,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: `onReconnect` (reconexión real del websocket) SIEMPRE ejecuta el refresco completo (lista, conversación abierta con `syncActiveConversationMessages`, cachés) sin que la deduplicación lo descarte; el refresco por visibilidad/`pageshow`/`online` no se ejecuta mientras el websocket esté caído (`BaseActionCableConnector.isDisconnected`) y deja el trabajo a `onReconnect`; no se lanzan dos refrescos simultáneos de la misma fuente; sin recargar la página; los 21 tests de `ReconnectService.spec.js` siguen pasando (si alguno asumía el comportamiento anterior se actualiza)
   - commit: `fix(chat-list): never skip the refresh that follows a websocket reconnect`
 
-- [ ] **30 · Revisión: Leído/No leído en lote con tope y aviso**
+- [x] **30 · Revisión: Leído/No leído en lote con tope y aviso**
   - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkReadActions.vue`, `app/javascript/dashboard/i18n/locale/en/bulkActions.json`, `app/javascript/dashboard/i18n/locale/es/bulkActions.json`
   - depende de: 28
   - listo cuando: marcar Leído/No leído respeta el mismo tope de 100 conversaciones que las demás acciones masivas (con más de 100 seleccionadas avisa con `useAlert` y no lanza peticiones), envía las peticiones por tandas pequeñas (p. ej. 10 en paralelo) en vez de todas a la vez, y avisa al terminar si alguna falló (cuántas); con éxito limpia la selección como hoy; textos nuevos en `en` y `es`
