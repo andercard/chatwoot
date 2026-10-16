@@ -156,7 +156,7 @@ const handleDismiss = () => {
         :search-placeholder="t('BULK_ACTION.SEARCH_INPUT_PLACEHOLDER')"
         :class="
           useSheet
-            ? '!static !w-full max-h-[70dvh] [&_input]:!ps-10'
+            ? '!static !w-full max-h-[70dvh]'
             : [
                 'w-60 max-h-80',
                 isTypeContact

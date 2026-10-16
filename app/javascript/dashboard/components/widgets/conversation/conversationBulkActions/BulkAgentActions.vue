@@ -140,7 +140,7 @@ const handleToggleDropdown = () => {
         :search-placeholder="t('BULK_ACTION.SEARCH_INPUT_PLACEHOLDER')"
         :class="
           isMobile
-            ? '!static !w-full max-h-[70dvh] [&_input]:!ps-10'
+            ? '!static !w-full max-h-[70dvh]'
             : 'ltr:-right-10 rtl:-left-10 ltr:2xl:right-0 rtl:2xl:left-0 bottom-8 w-60 max-h-80'
         "
         @action="handleSelectAgent"

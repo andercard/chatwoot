@@ -208,7 +208,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: el método que arma el `EXISTS`/`NOT EXISTS` de `unread` está en `Conversations::FilterService` (no en el helper compartido) y el helper solo lo invoca desde su rama `when 'unread'`; se elimina el `# rubocop:disable Metrics/ModuleLength` de `filter_helper.rb` y RuboCop sale limpio en ambos archivos; el SQL generado y el comportamiento de `unread` (true/false, valores inválidos con `InvalidValue`, combinación con AND/OR) son idénticos a los de antes y `spec/services/conversations/filter_service_spec.rb` sigue en verde; los filtros de contactos y automatizaciones no cambian
   - commit: `refactor(filters): move the unread filter into the conversation filter service`
 
-- [ ] **34 · Revisión: la lupa de los buscadores se corrige en el componente de origen**
+- [x] **34 · Revisión: la lupa de los buscadores se corrige en el componente de origen**
   - archivos: `app/javascript/dashboard/components-next/dropdown-menu/DropdownMenu.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkLabelActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkAgentActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkTeamActions.vue`
   - depende de: 28
   - listo cuando: el campo de búsqueda de `DropdownMenu.vue` deja de superponer el ícono de la lupa con el texto (padding inicial del input e ícono con utilidades lógicas, sin `!important`), y desaparece el parche `[&_input]:!ps-10` de las tres `Bulk*Actions`; los demás usos del `DropdownMenu` con buscador no cambian de aspecto salvo por quedar sin la lupa pisada
