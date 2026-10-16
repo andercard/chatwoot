@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 
 const props = defineProps({
   conversationIds: {
@@ -48,6 +49,21 @@ const applyToSelection = async action => {
 </script>
 
 <template>
+  <Teleport to="body">
+    <div
+      v-if="loadingAction"
+      role="status"
+      aria-live="polite"
+      class="fixed inset-0 z-[10000] flex flex-col items-center justify-center gap-3 bg-n-alpha-black2 backdrop-blur-sm"
+    >
+      <div
+        class="flex items-center gap-3 px-5 py-3 border shadow-lg rounded-2xl bg-n-solid-2 border-n-weak text-n-slate-12"
+      >
+        <Spinner class="!w-5 !h-5" />
+        {{ t('BULK_ACTION.UPDATING', { count: conversationIds.length }) }}
+      </div>
+    </div>
+  </Teleport>
   <div class="flex flex-wrap items-center gap-2 min-w-0">
     <NextButton
       v-tooltip="$t('BULK_ACTION.MARK_READ')"

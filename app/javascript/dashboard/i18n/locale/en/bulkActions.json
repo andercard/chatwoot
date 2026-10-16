@@ -7,6 +7,7 @@
     "SELECT_ALL": "All",
     "MARK_READ": "Read",
     "MARK_UNREAD": "Unread",
+    "UPDATING": "Updating {count} conversations...",
     "READ_LIMIT_EXCEEDED": "You can update up to {limit} conversations at a time",
     "READ_PARTIAL_FAILURE": "{count} conversations could not be updated",
     "ASSIGN_AGENT_CONFIRMATION_LABEL": "Are you sure you want to assign {n} conversation to {agentName}? | Are you sure you want to assign {n} conversations to {agentName}?",

@@ -261,3 +261,9 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 41
   - listo cuando: tras marcar Leído o No leído en la selección múltiple las conversaciones siguen seleccionadas (también si alguna petición falla); las demás acciones masivas siguen limpiando la selección como hoy
   - commit: `feat(chat-list): keep the selection after bulk read and unread`
+
+- [x] **43 · Pantalla de carga completa al marcar Leído/No leído en lote**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkReadActions.vue`, `app/javascript/dashboard/i18n/locale/en/bulkActions.json`, `app/javascript/dashboard/i18n/locale/es/bulkActions.json`
+  - depende de: 42
+  - listo cuando: mientras corren las peticiones de Leído/No leído, una capa sobre toda la vista (con desenfoque y bloqueando toques) muestra un spinner con «Actualizando N conversaciones…» (es/en) y desaparece al terminar, sin dejar nada bloqueado si una petición falla
+  - commit: `feat(chat-list): full screen loading state while bulk marking read or unread`
