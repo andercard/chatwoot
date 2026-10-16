@@ -112,7 +112,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en escritorio la flecha de responder y el ⋯ están siempre visibles junto a la burbuja (sin necesitar hover); en móvil el ⋯ está siempre visible junto a la burbuja (responder sigue siendo deslizar); el menú conserva sus opciones actuales, incluida "Añadir como respuesta predeterminada" donde ya existía, salvo "Traducir", que solo aparece si la integración de Google Translate de la cuenta está habilitada (hoy aparece siempre y no hace nada); sin Eliminar ni Editar nuevos
   - commit: `fix(messages): keep the reply and options buttons visible and hide translate without the integration`
 
-- [ ] **18 · Tocar una cita lleva al mensaje original**
+- [x] **18 · Tocar una cita lleva al mensaje original**
   - archivos: `app/javascript/dashboard/components-next/message/bubbles/Base.vue`, `app/javascript/dashboard/components/widgets/conversation/MessagesView.vue`
   - depende de: 11
   - listo cuando: al tocar la cita dentro de una burbuja la conversación se desplaza al mensaje original y lo resalta unos instantes; si el original no está cargado todavía se piden mensajes anteriores hasta encontrarlo (con un tope razonable) y si no aparece no se salta al final; funciona igual para cualquier canal con respuestas (todos guardan `in_reply_to`)
