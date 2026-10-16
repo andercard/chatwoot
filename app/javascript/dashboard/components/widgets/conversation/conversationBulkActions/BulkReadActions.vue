@@ -24,19 +24,23 @@ const applyToSelection = async action => {
 <template>
   <div class="flex flex-wrap items-center gap-2 min-w-0">
     <NextButton
-      :label="$t('BULK_ACTION.MARK_READ')"
+      v-tooltip="$t('BULK_ACTION.MARK_READ')"
+      :aria-label="$t('BULK_ACTION.MARK_READ')"
+      :title="$t('BULK_ACTION.MARK_READ')"
       icon="i-lucide-mail-open"
       slate
-      faded
-      sm
+      ghost
+      xs
       @click="applyToSelection('markMessagesRead')"
     />
     <NextButton
-      :label="$t('BULK_ACTION.MARK_UNREAD')"
+      v-tooltip="$t('BULK_ACTION.MARK_UNREAD')"
+      :aria-label="$t('BULK_ACTION.MARK_UNREAD')"
+      :title="$t('BULK_ACTION.MARK_UNREAD')"
       icon="i-lucide-mail"
       slate
-      faded
-      sm
+      ghost
+      xs
       @click="applyToSelection('markMessagesUnread')"
     />
   </div>
