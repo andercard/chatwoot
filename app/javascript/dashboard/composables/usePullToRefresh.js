@@ -1,7 +1,18 @@
 import { ref, onMounted, onBeforeUnmount, toValue } from 'vue';
 
-// Pixels the finger must travel before we decide which axis the gesture follows.
-export const AXIS_LOCK_THRESHOLD_PX = 8;
+// Pixels the finger must travel before the pull is claimed. Larger than the
+// card swipe axis threshold (8px) so swipes never reach it.
+export const PULL_AXIS_LOCK_THRESHOLD_PX = 24;
+// Vertical travel must be at least this many times the horizontal travel.
+export const PULL_VERTICAL_RATIO = 2;
+// Early drift that already marks the gesture as a swipe or a scroll up.
+const DISARM_DRIFT_PX = 8;
+// Touches starting on these keep their own gesture (text selection, sliders).
+const OWN_GESTURE_SELECTOR =
+  'input, textarea, select, [contenteditable="true"], [role="slider"]';
+// Swipe cards set an inline translateX; any value other than 0 means open or moving.
+const OPEN_CARD_SELECTOR =
+  '[style*="translateX("]:not([style*="translateX(0px)"])';
 // Dragged distance (after resistance) needed to trigger a refresh.
 export const PULL_REFRESH_THRESHOLD_PX = 70;
 export const PULL_MAX_DISTANCE_PX = 120;
@@ -9,8 +20,9 @@ export const PULL_MAX_DISTANCE_PX = 120;
 export const PULL_RESISTANCE = 0.5;
 
 /**
- * Pull-to-refresh for a scroll container, touch/pen only (uses touch events so
- * the gesture can be claimed with preventDefault when the list is at the top).
+ * Pull-to-refresh for a scroll container, touch only. Listeners are passive and
+ * never call preventDefault, so native scroll and card/bubble swipes are untouched;
+ * the indicator only follows the finger visually.
  *
  * @param {Object} options
  * @param {Ref<HTMLElement>} options.scrollEl - Scrollable container.
@@ -37,6 +49,8 @@ export function usePullToRefresh({ scrollEl, onRefresh }) {
     const el = toValue(scrollEl);
     if (isRefreshing.value || event.touches.length !== 1 || !el) return;
     if (el.scrollTop > 0) return;
+    if (event.target.closest?.(OWN_GESTURE_SELECTOR)) return;
+    if (el.querySelector(OPEN_CARD_SELECTOR)) return;
     isArmed = true;
     isLocked = false;
     startX = event.touches[0].clientX;
@@ -49,10 +63,20 @@ export function usePullToRefresh({ scrollEl, onRefresh }) {
     const deltaY = event.touches[0].clientY - startY;
 
     if (!isLocked) {
-      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < AXIS_LOCK_THRESHOLD_PX)
+      const absX = Math.abs(deltaX);
+      // Upward, or already leaning horizontal: hand over to scroll / swipe.
+      if (
+        deltaY < -DISARM_DRIFT_PX ||
+        (absX >= DISARM_DRIFT_PX && absX > deltaY)
+      ) {
+        reset();
         return;
-      if (deltaY <= 0 || Math.abs(deltaX) > Math.abs(deltaY)) {
-        // Upward or horizontal: leave it to native scroll / card swipe.
+      }
+      if (deltaY < PULL_AXIS_LOCK_THRESHOLD_PX) {
+        if (absX >= PULL_AXIS_LOCK_THRESHOLD_PX) reset();
+        return;
+      }
+      if (deltaY < absX * PULL_VERTICAL_RATIO) {
         reset();
         return;
       }
@@ -60,7 +84,6 @@ export function usePullToRefresh({ scrollEl, onRefresh }) {
       isPulling.value = true;
     }
 
-    if (event.cancelable) event.preventDefault();
     pullDistance.value = Math.min(
       PULL_MAX_DISTANCE_PX,
       deltaY * PULL_RESISTANCE
@@ -94,8 +117,7 @@ export function usePullToRefresh({ scrollEl, onRefresh }) {
     const el = toValue(scrollEl);
     if (!el) return;
     el.addEventListener('touchstart', onTouchstart, { passive: true });
-    // Non-passive so a downward pull from the top can cancel native overscroll.
-    el.addEventListener('touchmove', onTouchmove, { passive: false });
+    el.addEventListener('touchmove', onTouchmove, { passive: true });
     el.addEventListener('touchend', onTouchend);
     el.addEventListener('touchcancel', reset);
   });

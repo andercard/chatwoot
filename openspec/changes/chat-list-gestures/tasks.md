@@ -214,7 +214,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: el campo de búsqueda de `DropdownMenu.vue` deja de superponer el ícono de la lupa con el texto (padding inicial del input e ícono con utilidades lógicas, sin `!important`), y desaparece el parche `[&_input]:!ps-10` de las tres `Bulk*Actions`; los demás usos del `DropdownMenu` con buscador no cambian de aspecto salvo por quedar sin la lupa pisada
   - commit: `fix(dropdown-menu): keep the search icon from overlapping the input text`
 
-- [ ] **35 · Los gestos de deslizar vuelven a ser estables en el iPhone**
+- [x] **35 · Los gestos de deslizar vuelven a ser estables en el iPhone**
   - archivos: `app/javascript/dashboard/composables/usePullToRefresh.js`, `app/javascript/dashboard/components/ConversationList.vue`, `app/javascript/dashboard/App.vue`
   - depende de: 28
   - listo cuando: el pull-to-refresh no interfiere con el deslizar horizontal de las tarjetas ni con el scroll vertical nativo: su `touchmove` es pasivo y no llama a `preventDefault`; solo se activa si el toque empezó con la lista en el tope, el movimiento es claramente vertical hacia abajo (umbral mayor que el del deslizar y proporción vertical/horizontal de al menos 2:1) y no hay una tarjeta abierta o en movimiento; el indicador no aparece hasta superar ese umbral; un deslizar horizontal de tarjeta o de burbuja no dispara nunca el indicador ni se cancela por él; si algún ajuste de la tarea 21 en `App.vue` (`overflow-hidden`/`overscroll-none` en `#app`, `html`, `body`) altera el scroll de la lista o los gestos, se corrige lo mínimo; el comportamiento con eventos de ratón en escritorio no cambia
