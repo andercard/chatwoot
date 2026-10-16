@@ -202,7 +202,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: si tras la carga acotada de páginas anteriores el mensaje citado no aparece, `onScrollToMessage` igualmente llama a `makeMessagesRead()` (sin saltar al final ni cambiar la posición), como hacía el original; el resto del comportamiento (con `messageId` encontrado: centrar y resaltar; sin `messageId`: bajar al final) no cambia
   - commit: `fix(messages): mark the conversation as read even if the quoted message is not found`
 
-- [ ] **33 · Revisión: el filtro `unread` vive en el servicio de conversaciones**
+- [x] **33 · Revisión: el filtro `unread` vive en el servicio de conversaciones**
   - archivos: `app/helpers/filters/filter_helper.rb`, `app/services/conversations/filter_service.rb`
   - depende de: 28
   - listo cuando: el método que arma el `EXISTS`/`NOT EXISTS` de `unread` está en `Conversations::FilterService` (no en el helper compartido) y el helper solo lo invoca desde su rama `when 'unread'`; se elimina el `# rubocop:disable Metrics/ModuleLength` de `filter_helper.rb` y RuboCop sale limpio en ambos archivos; el SQL generado y el comportamiento de `unread` (true/false, valores inválidos con `InvalidValue`, combinación con AND/OR) son idénticos a los de antes y `spec/services/conversations/filter_service_spec.rb` sigue en verde; los filtros de contactos y automatizaciones no cambian
