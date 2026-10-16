@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, computed, ref, toRefs } from 'vue';
-import { useTimeoutFn } from '@vueuse/core';
+import { useTimeoutFn, useMediaQuery } from '@vueuse/core';
 import { provideMessageContext } from './provider.js';
 import { useTrack } from 'dashboard/composables';
 import { useMapGetter, useStore } from 'dashboard/composables/store';
@@ -408,6 +408,9 @@ const payloadForContextMenu = computed(() => {
   };
 });
 
+// Tailwind `sm` breakpoint (640px): delete is not offered below it
+const isMobile = useMediaQuery('(max-width: 639px)');
+
 const contextMenuEnabledOptions = computed(() => {
   const hasText = !!props.content;
   const hasAttachments = !!(props.attachments && props.attachments.length > 0);
@@ -420,6 +423,7 @@ const contextMenuEnabledOptions = computed(() => {
   return {
     copy: hasText,
     delete:
+      !isMobile.value &&
       (hasText || hasAttachments) &&
       !isFailedOrProcessing &&
       !isMessageDeleted.value,
@@ -685,7 +689,7 @@ provideMessageContext({
               @click="handleReplyTo"
             />
             <NextButton
-              class="!text-n-slate-10 hover:!text-n-slate-11"
+              class="!text-n-slate-10 hover:!text-n-slate-11 max-sm:!size-7 max-sm:!p-0 max-sm:!rounded-full max-sm:!bg-n-alpha-2 max-sm:border max-sm:border-solid max-sm:!border-n-weak"
               ghost
               slate
               xs

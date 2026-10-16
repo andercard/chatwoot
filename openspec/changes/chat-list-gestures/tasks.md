@@ -238,7 +238,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en móvil la barra de acciones masivas se ve como un panel flotante (separado de los bordes y de la barra del navegador, con esquinas muy redondeadas y sombra), no pegada al borde inferior; los íconos de acciones quedan repartidos y centrados en el panel (sin espacio vacío a un solo lado); el encabezado «N conversaciones seleccionadas / Limpiar / Todas / cerrar» se conserva; las hojas de etiquetas/agente/equipo/estado siguen abriendo; en escritorio no cambia
   - commit: `feat(chat-list): floating bulk action bar with centered icons on mobile`
 
-- [ ] **39 · Botón ⋯ circular de los mensajes y sin «Eliminar» en móvil**
+- [x] **39 · Botón ⋯ circular de los mensajes y sin «Eliminar» en móvil**
   - archivos: `app/javascript/dashboard/components-next/message/Message.vue`, `app/javascript/dashboard/components/widgets/conversation/MessageContextMenu.vue`
   - depende de: 36
   - listo cuando: en móvil el botón ⋯ de cada burbuja siempre se ve dentro de un contenedor completamente circular (fondo y borde sutiles); el menú ⋯ no ofrece «Eliminar» en móvil (en escritorio se conserva); el resto de opciones del menú no cambia; si estos archivos no son los que pintan el ⋯ y el menú, se ajusta el archivo equivalente dentro de `components-next/message/` o `components/widgets/conversation/` y se dice
