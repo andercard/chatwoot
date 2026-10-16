@@ -177,3 +177,39 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 20
   - listo cuando: cuando la pestaña o la app vuelve a ser visible (`visibilitychange`/`pageshow`) tras más de 20 segundos oculta, o vuelve la red (`online`), se vuelve a pedir la lista de conversaciones vigente (con los filtros activos), la conversación abierta con sus mensajes y los conteos, igual que hoy al reconectar el websocket, sin recargar la página y sin lanzar la petición dos veces cuando el websocket ya se reconectó; en móvil, al tirar hacia abajo desde el tope de la lista (solo con puntero táctil) aparece un indicador de carga, se vuelve a pedir la lista y el indicador desaparece al terminar; el scroll normal de la lista y el deslizar de las tarjetas no se afectan; en escritorio la lista no cambia
   - commit: `feat(chat-list): refresh on resume and pull to refresh on mobile`
+
+- [ ] **29 · Revisión: el refresco por reconexión del websocket no puede descartarse**
+  - archivos: `app/javascript/dashboard/helper/ReconnectService.js`
+  - depende de: 28
+  - listo cuando: `onReconnect` (reconexión real del websocket) SIEMPRE ejecuta el refresco completo (lista, conversación abierta con `syncActiveConversationMessages`, cachés) sin que la deduplicación lo descarte; el refresco por visibilidad/`pageshow`/`online` no se ejecuta mientras el websocket esté caído (`BaseActionCableConnector.isDisconnected`) y deja el trabajo a `onReconnect`; no se lanzan dos refrescos simultáneos de la misma fuente; sin recargar la página; los 21 tests de `ReconnectService.spec.js` siguen pasando (si alguno asumía el comportamiento anterior se actualiza)
+  - commit: `fix(chat-list): never skip the refresh that follows a websocket reconnect`
+
+- [ ] **30 · Revisión: Leído/No leído en lote con tope y aviso**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkReadActions.vue`, `app/javascript/dashboard/i18n/locale/en/bulkActions.json`, `app/javascript/dashboard/i18n/locale/es/bulkActions.json`
+  - depende de: 28
+  - listo cuando: marcar Leído/No leído respeta el mismo tope de 100 conversaciones que las demás acciones masivas (con más de 100 seleccionadas avisa con `useAlert` y no lanza peticiones), envía las peticiones por tandas pequeñas (p. ej. 10 en paralelo) en vez de todas a la vez, y avisa al terminar si alguna falló (cuántas); con éxito limpia la selección como hoy; textos nuevos en `en` y `es`
+  - commit: `fix(chat-list): cap and batch the bulk read and unread requests`
+
+- [ ] **31 · Revisión: "Editar etiquetas" solo para administradores**
+  - archivos: `app/javascript/dashboard/components-next/Conversation/ConversationCard/ConversationLabelsSheet.vue`
+  - depende de: 28
+  - listo cuando: el enlace "Editar" de la hoja de etiquetas solo se muestra a administradores (usa el composable `useAdmin()` ya existente); para los demás roles no aparece y el resto de la hoja no cambia
+  - commit: `fix(chat-list): show the edit labels link only to administrators`
+
+- [ ] **32 · Revisión: tocar una cita no deja la conversación sin marcar como leída**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/MessagesView.vue`
+  - depende de: 28
+  - listo cuando: si tras la carga acotada de páginas anteriores el mensaje citado no aparece, `onScrollToMessage` igualmente llama a `makeMessagesRead()` (sin saltar al final ni cambiar la posición), como hacía el original; el resto del comportamiento (con `messageId` encontrado: centrar y resaltar; sin `messageId`: bajar al final) no cambia
+  - commit: `fix(messages): mark the conversation as read even if the quoted message is not found`
+
+- [ ] **33 · Revisión: el filtro `unread` vive en el servicio de conversaciones**
+  - archivos: `app/helpers/filters/filter_helper.rb`, `app/services/conversations/filter_service.rb`
+  - depende de: 28
+  - listo cuando: el método que arma el `EXISTS`/`NOT EXISTS` de `unread` está en `Conversations::FilterService` (no en el helper compartido) y el helper solo lo invoca desde su rama `when 'unread'`; se elimina el `# rubocop:disable Metrics/ModuleLength` de `filter_helper.rb` y RuboCop sale limpio en ambos archivos; el SQL generado y el comportamiento de `unread` (true/false, valores inválidos con `InvalidValue`, combinación con AND/OR) son idénticos a los de antes y `spec/services/conversations/filter_service_spec.rb` sigue en verde; los filtros de contactos y automatizaciones no cambian
+  - commit: `refactor(filters): move the unread filter into the conversation filter service`
+
+- [ ] **34 · Revisión: la lupa de los buscadores se corrige en el componente de origen**
+  - archivos: `app/javascript/dashboard/components-next/dropdown-menu/DropdownMenu.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkLabelActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkAgentActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkTeamActions.vue`
+  - depende de: 28
+  - listo cuando: el campo de búsqueda de `DropdownMenu.vue` deja de superponer el ícono de la lupa con el texto (padding inicial del input e ícono con utilidades lógicas, sin `!important`), y desaparece el parche `[&_input]:!ps-10` de las tres `Bulk*Actions`; los demás usos del `DropdownMenu` con buscador no cambian de aspecto salvo por quedar sin la lupa pisada
+  - commit: `fix(dropdown-menu): keep the search icon from overlapping the input text`
