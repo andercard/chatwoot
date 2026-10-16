@@ -255,3 +255,9 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 40
   - listo cuando: al tocar Leído o No leído en la selección múltiple, ese botón muestra un spinner y ambos quedan deshabilitados hasta que terminan todas las peticiones; no se puede disparar dos veces; al acabar vuelven a su estado
   - commit: `feat(chat-list): show a loading state while bulk marking read or unread`
+
+- [x] **42 · La selección se mantiene tras Leído/No leído en lote**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkReadActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/Index.vue`
+  - depende de: 41
+  - listo cuando: tras marcar Leído o No leído en la selección múltiple las conversaciones siguen seleccionadas (también si alguna petición falla); las demás acciones masivas siguen limpiando la selección como hoy
+  - commit: `feat(chat-list): keep the selection after bulk read and unread`

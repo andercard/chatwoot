@@ -13,8 +13,6 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['done']);
-
 const BULK_READ_LIMIT = 100;
 const BULK_READ_BATCH_SIZE = 10;
 
@@ -45,9 +43,7 @@ const applyToSelection = async action => {
 
   if (failedCount) {
     useAlert(t('BULK_ACTION.READ_PARTIAL_FAILURE', { count: failedCount }));
-    return;
   }
-  emit('done');
 };
 </script>
 

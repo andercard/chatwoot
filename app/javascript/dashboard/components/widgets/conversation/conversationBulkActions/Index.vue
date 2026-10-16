@@ -239,10 +239,7 @@ onUnmounted(() => {
             :conversation-count="conversations.length"
             @select="onAssignTeam"
           />
-          <BulkReadActions
-            :conversation-ids="selectedConversations"
-            @done="allSelected = false"
-          />
+          <BulkReadActions :conversation-ids="selectedConversations" />
         </div>
       </div>
     </div>
