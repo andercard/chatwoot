@@ -148,7 +148,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en móvil (menos de 640 px) cada hoja muestra el telón desenfocado detrás, se cierra al tocarlo y bloquea el scroll de la página mientras está abierta (solo hace scroll la hoja); los desplegables de los filtros siguen funcionando y no cierran la hoja al elegir una opción; en escritorio no cambia nada
   - commit: `fix(mobile): backdrop and scroll lock on the filter and sort sheets`
 
-- [ ] **24 · Telón y bloqueo en el selector de fechas y en el menú principal móvil**
+- [x] **24 · Telón y bloqueo en el selector de fechas y en el menú principal móvil**
   - archivos: `app/javascript/dashboard/components/ui/DatePicker/DatePicker.vue`, `app/javascript/dashboard/components-next/sidebar/Sidebar.vue`
   - depende de: 21
   - listo cuando: en móvil el selector de fechas y el menú principal (hamburguesa) muestran el telón desenfocado detrás, se cierran al tocarlo y bloquean el scroll de la página mientras están abiertos; el menú principal sigue cerrándose al navegar; en escritorio no cambia nada

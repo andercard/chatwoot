@@ -7,6 +7,8 @@ import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
+import { useBodyScrollLock } from 'dashboard/composables/useBodyScrollLock';
+import SheetBackdrop from 'dashboard/components-next/sheet-backdrop/SheetBackdrop.vue';
 import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
 import { vOnClickOutside } from '@vueuse/components';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
@@ -67,6 +69,10 @@ const isRTL = useMapGetter('accounts/isRTL');
 
 const { width: windowWidth } = useWindowSize();
 const isMobile = computed(() => windowWidth.value < 768);
+const isMobileMenuOpen = computed(
+  () => isMobile.value && props.isMobileSidebarOpen
+);
+useBodyScrollLock(isMobileMenuOpen);
 
 const accountId = useMapGetter('getCurrentAccountId');
 const currentUserId = useMapGetter('getCurrentUserID');
@@ -956,12 +962,20 @@ const menuItems = computed(() => {
 </script>
 
 <template>
+  <SheetBackdrop
+    v-if="isMobileMenuOpen"
+    data-mobile-sidebar-backdrop
+    class="md:hidden"
+    z-index-class="z-[39]"
+    @close="closeMobileSidebar"
+  />
   <aside
     v-on-click-outside="[
       closeMobileSidebar,
       {
         ignore: [
           '#mobile-sidebar-launcher',
+          '[data-mobile-sidebar-backdrop]',
           '[data-popover-content]',
           '[data-popover-backdrop]',
         ],

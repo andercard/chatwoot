@@ -25,7 +25,10 @@ import {
   setYear,
   getWeek,
 } from 'date-fns';
+import { useMediaQuery } from '@vueuse/core';
 import { useAlert } from 'dashboard/composables';
+import { useBodyScrollLock } from 'dashboard/composables/useBodyScrollLock';
+import SheetBackdrop from 'dashboard/components-next/sheet-backdrop/SheetBackdrop.vue';
 import SheetHandle from 'dashboard/components-next/sheet-handle/SheetHandle.vue';
 import DatePickerButton from './components/DatePickerButton.vue';
 import CalendarDateInput from './components/CalendarDateInput.vue';
@@ -59,6 +62,9 @@ const { START_CALENDAR, END_CALENDAR } = CALENDAR_TYPES;
 const { WEEK, MONTH, YEAR } = CALENDAR_PERIODS;
 
 const showDatePicker = ref(!props.hasAppliedRange);
+const isDesktop = useMediaQuery('(min-width: 1024px)');
+const isSheet = computed(() => showDatePicker.value && !isDesktop.value);
+useBodyScrollLock(isSheet);
 const calendarViews = ref({ start: WEEK, end: WEEK });
 const currentDate = ref(new Date());
 
@@ -359,6 +365,8 @@ const toggleDatePicker = () => {
 };
 
 const closeDatePicker = () => {
+  // The backdrop and click-away can both fire for the same tap
+  if (!showDatePicker.value) return;
   const canApply =
     props.hasAppliedRange &&
     isValid(selectedStartDate.value) &&
@@ -383,6 +391,11 @@ const closeDatePicker = () => {
       :navigation-label="navigationLabel"
       @open="toggleDatePicker"
       @navigate-month="navigateMonth"
+    />
+    <SheetBackdrop
+      v-if="isSheet"
+      z-index-class="z-[29]"
+      @close="closeDatePicker"
     />
     <div
       v-if="showDatePicker"
