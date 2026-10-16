@@ -120,6 +120,7 @@ const handleToggleDropdown = () => {
       slate
       xs
       ghost
+      class="max-sm:!size-10 max-sm:[&>span]:!size-6"
       :class="{ 'bg-n-alpha-2': showDropdown }"
       @click="handleToggleDropdown"
     />
@@ -139,7 +140,7 @@ const handleToggleDropdown = () => {
         :search-placeholder="t('BULK_ACTION.SEARCH_INPUT_PLACEHOLDER')"
         :class="
           isMobile
-            ? '!static !w-full max-h-[70dvh]'
+            ? '!static !w-full max-h-[70dvh] [&_input]:!ps-10'
             : 'ltr:-right-10 rtl:-left-10 ltr:2xl:right-0 rtl:2xl:left-0 bottom-8 w-60 max-h-80'
         "
         @action="handleSelectAgent"

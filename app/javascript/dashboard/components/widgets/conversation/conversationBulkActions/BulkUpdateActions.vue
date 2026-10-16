@@ -21,6 +21,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  showPending: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const emit = defineEmits(['update']);
@@ -49,6 +53,15 @@ const updateMenuItems = computed(() => {
       value: 'open',
       label: t('CONVERSATION.HEADER.REOPEN_ACTION'),
       icon: 'i-lucide-redo',
+    });
+  }
+
+  if (props.showPending) {
+    items.push({
+      action: 'update',
+      value: 'pending',
+      label: t('BULK_ACTION.UPDATE.PENDING'),
+      icon: 'i-lucide-clock',
     });
   }
 
@@ -85,6 +98,7 @@ const handleUpdate = item => {
       slate
       xs
       ghost
+      class="max-sm:!size-10 max-sm:[&>span]:!size-6"
       :class="{ 'bg-n-alpha-2': showDropdown }"
       @click="toggleDropdown()"
     />

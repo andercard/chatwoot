@@ -132,6 +132,7 @@ const handleDismiss = () => {
       ghost
       :class="{
         'bg-n-alpha-2': showDropdown,
+        'max-sm:!size-10 max-sm:[&>span]:!size-6': !isTypeContact,
         '[&>span:nth-child(2)]:hidden md:[&>span:nth-child(2)]:inline w-fit !text-n-blue-11 [&>span]:!text-n-blue-11 !px-2':
           isTypeContact,
       }"
@@ -155,7 +156,7 @@ const handleDismiss = () => {
         :search-placeholder="t('BULK_ACTION.SEARCH_INPUT_PLACEHOLDER')"
         :class="
           useSheet
-            ? '!static !w-full max-h-[70dvh]'
+            ? '!static !w-full max-h-[70dvh] [&_input]:!ps-10'
             : [
                 'w-60 max-h-80',
                 isTypeContact

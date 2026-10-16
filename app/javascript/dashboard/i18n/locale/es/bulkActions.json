@@ -22,6 +22,7 @@
     "UPDATE": {
       "CHANGE_STATUS": "Cambiar estado",
       "SNOOZE_UNTIL": "Posponer",
+      "PENDING": "Pendiente",
       "UPDATE_SUCCESFUL": "El estado de la conversación se actualizó con éxito.",
       "UPDATE_FAILED": "No se han podido actualizar las conversaciones. Inténtalo de nuevo."
     },

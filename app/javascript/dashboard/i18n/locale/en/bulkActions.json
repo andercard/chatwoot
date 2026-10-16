@@ -22,6 +22,7 @@
     "UPDATE": {
       "CHANGE_STATUS": "Change status",
       "SNOOZE_UNTIL": "Snooze",
+      "PENDING": "Pending",
       "UPDATE_SUCCESFUL": "Conversation status updated successfully.",
       "UPDATE_FAILED": "Failed to update conversations. Please try again."
     },

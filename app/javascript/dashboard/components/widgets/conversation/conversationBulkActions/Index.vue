@@ -82,6 +82,15 @@ const appliedLabelsForSelection = computed(() => {
   return Array.from(applied);
 });
 
+const showPendingAction = computed(
+  () =>
+    !selectedConversations.value.every(
+      id =>
+        getConversationById.value(id)?.status ===
+        wootConstants.STATUS_TYPE.PENDING
+    )
+);
+
 const selectedLabel = computed(() =>
   t('BULK_ACTION.CONVERSATIONS_SELECTED', {
     conversationCount: props.conversations.length,
@@ -218,6 +227,7 @@ onUnmounted(() => {
             :show-resolve="!showResolvedAction"
             :show-reopen="!showOpenAction"
             :show-snooze="!showSnoozedAction"
+            :show-pending="showPendingAction"
             @update="onUpdateConversations"
           />
           <BulkAgentActions

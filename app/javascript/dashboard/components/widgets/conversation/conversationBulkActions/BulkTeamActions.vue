@@ -87,6 +87,7 @@ const handleDismiss = () => {
       slate
       xs
       ghost
+      class="max-sm:!size-10 max-sm:[&>span]:!size-6"
       :class="{ 'bg-n-alpha-2': showDropdown }"
       @click="toggleDropdown()"
     />
@@ -105,7 +106,7 @@ const handleDismiss = () => {
         :search-placeholder="t('BULK_ACTION.SEARCH_INPUT_PLACEHOLDER')"
         :class="
           isMobile
-            ? '!static !w-full max-h-[70dvh]'
+            ? '!static !w-full max-h-[70dvh] [&_input]:!ps-10'
             : 'ltr:-right-2 rtl:-left-2 bottom-8 w-60 max-h-80'
         "
         @action="handleSelectTeam"

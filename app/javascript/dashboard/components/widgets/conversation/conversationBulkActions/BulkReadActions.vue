@@ -31,6 +31,7 @@ const applyToSelection = async action => {
       slate
       ghost
       xs
+      class="max-sm:!size-10 max-sm:[&>span]:!size-6"
       @click="applyToSelection('markMessagesRead')"
     />
     <NextButton
@@ -41,6 +42,7 @@ const applyToSelection = async action => {
       slate
       ghost
       xs
+      class="max-sm:!size-10 max-sm:[&>span]:!size-6"
       @click="applyToSelection('markMessagesUnread')"
     />
   </div>
