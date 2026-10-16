@@ -111,6 +111,18 @@ export function useConversationFilterContext() {
    */
   const filterTypes = computed(() => [
     {
+      attributeKey: CONVERSATION_ATTRIBUTES.UNREAD,
+      value: CONVERSATION_ATTRIBUTES.UNREAD,
+      attributeName: t('FILTER.ATTRIBUTES.UNREAD'),
+      label: t('FILTER.ATTRIBUTES.UNREAD'),
+      inputType: 'booleanSelect',
+      dataType: 'text',
+      filterOperators: equalityOperators.value.filter(
+        operator => operator.value === 'equal_to'
+      ),
+      attributeModel: 'standard',
+    },
+    {
       attributeKey: CONVERSATION_ATTRIBUTES.STATUS,
       value: CONVERSATION_ATTRIBUTES.STATUS,
       attributeName: t('FILTER.ATTRIBUTES.STATUS'),

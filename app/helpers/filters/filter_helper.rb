@@ -1,4 +1,4 @@
-module Filters::FilterHelper
+module Filters::FilterHelper # rubocop:disable Metrics/ModuleLength
   def build_condition_query(model_filters, query_hash, current_index)
     current_filter = model_filters[query_hash['attribute_key']]
 
@@ -67,11 +67,22 @@ module Filters::FilterHelper
       tag_filter_query(query_hash, current_index)
     when 'text_case_insensitive'
       text_case_insensitive_filter(query_hash, filter_operator_value)
+    when 'unread'
+      unread_filter(query_hash)
     else
       return text_cast_filter(query_hash, filter_operator_value) if text_search_on_display_id?(query_hash)
 
       default_filter(query_hash, filter_operator_value)
     end
+  end
+
+  def unread_filter(query_hash)
+    value = Array.wrap(query_hash['values']).map(&:to_s).first
+    raise CustomExceptions::CustomFilter::InvalidValue.new(attribute_name: query_hash['attribute_key']) unless %w[true false].include?(value)
+
+    unread_condition = Conversation.unread_messages_condition(Message.arel_table, Conversation.arel_table)
+    unread_subquery = Message.unscoped.select(Arel.sql('1')).where(unread_condition).to_sql
+    "#{'NOT ' if value == 'false'}EXISTS (#{unread_subquery}) #{query_hash[:query_operator]}"
   end
 
   def date_filter(current_filter, query_hash, filter_operator_value)

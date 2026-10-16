@@ -16,6 +16,7 @@ const ATTRIBUTE_ICONS = {
   company_name: 'i-lucide-building-2',
   blocked: 'i-lucide-ban',
   // Conversation attributes
+  unread: 'i-lucide-mail-warning',
   status: 'i-lucide-circle-dot',
   priority: 'i-lucide-signal-high',
   assignee_id: 'i-lucide-user-round',
