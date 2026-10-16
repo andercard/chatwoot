@@ -129,3 +129,51 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 14
   - listo cuando: crear o evaluar una regla de automatización con la condición `unread` se rechaza como atributo inválido igual que cualquier clave desconocida, y las demás condiciones de conversaciones (status, assignee_id, inbox_id, …) siguen validándose igual; la exclusión es mínima y no cambia el filtro avanzado de conversaciones
   - commit: `fix(automation): keep the unread filter attribute out of automation conditions`
+
+- [ ] **21 · Telón y bloqueo de scroll compartidos para las hojas móviles**
+  - archivos: `app/javascript/dashboard/components-next/sheet-backdrop/SheetBackdrop.vue` (nuevo), `app/javascript/dashboard/composables/useBodyScrollLock.js` (nuevo), `app/javascript/dashboard/App.vue`
+  - depende de: 20
+  - listo cuando: existe `SheetBackdrop.vue` (telón `fixed inset-0` con desenfoque que emite `close` al tocarlo, sin dejar pasar el toque a lo de abajo, con prop para el z-index) y `useBodyScrollLock` (bloquea el scroll del documento mientras haya al menos una hoja abierta, cuenta referencias para que varias hojas no se pisen y lo libera al cerrar o desmontar, también en iOS); la raíz de la app no hace "rebote" que arrastre toda la página (`overscroll-behavior` contenido) y las listas internas con scroll no lo encadenan al documento; sin CSS propio, solo Tailwind
+  - commit: `feat(mobile): shared sheet backdrop and body scroll lock`
+
+- [ ] **22 · Telón y bloqueo en las hojas de Estados y de acciones masivas**
+  - archivos: `app/javascript/dashboard/components-next/Conversation/ConversationCard/ConversationStatusSheet.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkActionSheet.vue`
+  - depende de: 21
+  - listo cuando: ambas hojas usan `SheetBackdrop` y `useBodyScrollLock`: al tocar el telón se cierran, la página de atrás no se mueve al arrastrar la hoja (solo hace scroll el contenido de la hoja, con `overscroll-contain`), y el comportamiento actual de las hojas no cambia
+  - commit: `fix(mobile): backdrop and scroll lock on the status and bulk sheets`
+
+- [ ] **23 · Telón y bloqueo en las hojas de filtros y de orden**
+  - archivos: `app/javascript/dashboard/components-next/filter/ConversationFilter.vue`, `app/javascript/dashboard/components-next/filter/ContactsFilter.vue`, `app/javascript/dashboard/components/widgets/conversation/ConversationBasicFilter.vue`, `app/javascript/dashboard/components-next/Contacts/ContactsHeader/components/ContactSortMenu.vue`, `app/javascript/dashboard/components-next/Companies/CompaniesHeader/components/CompanySortMenu.vue`
+  - depende de: 21
+  - listo cuando: en móvil (menos de 640 px) cada hoja muestra el telón desenfocado detrás, se cierra al tocarlo y bloquea el scroll de la página mientras está abierta (solo hace scroll la hoja); los desplegables de los filtros siguen funcionando y no cierran la hoja al elegir una opción; en escritorio no cambia nada
+  - commit: `fix(mobile): backdrop and scroll lock on the filter and sort sheets`
+
+- [ ] **24 · Telón y bloqueo en el selector de fechas y en el menú principal móvil**
+  - archivos: `app/javascript/dashboard/components/ui/DatePicker/DatePicker.vue`, `app/javascript/dashboard/components-next/sidebar/Sidebar.vue`
+  - depende de: 21
+  - listo cuando: en móvil el selector de fechas y el menú principal (hamburguesa) muestran el telón desenfocado detrás, se cierran al tocarlo y bloquean el scroll de la página mientras están abiertos; el menú principal sigue cerrándose al navegar; en escritorio no cambia nada
+  - commit: `fix(mobile): backdrop and scroll lock on the date picker and the main menu`
+
+- [ ] **25 · Hoja de etiquetas: buscar, scroll y enlace para editar etiquetas**
+  - archivos: `app/javascript/dashboard/components-next/Conversation/ConversationCard/ConversationLabelsSheet.vue`, `app/javascript/dashboard/i18n/locale/en/chatlist.json`, `app/javascript/dashboard/i18n/locale/es/chatlist.json`
+  - depende de: 21
+  - listo cuando: la hoja usa `SheetBackdrop` y `useBodyScrollLock`; tiene un campo de búsqueda "Buscar etiquetas" que filtra la lista (sin diferenciar mayúsculas ni tildes); con muchas etiquetas la lista tiene su propio scroll con altura máxima y el botón Guardar queda siempre visible; junto al título "Etiquetas" hay un enlace "Editar" que lleva a la configuración de etiquetas de la cuenta (`/app/accounts/:id/settings/labels`) para editar o agregar más; el campo de búsqueda no tapa su ícono con el texto; guardar sigue aplicando solo las diferencias
+  - commit: `feat(chat-list): search, scroll and an edit link in the labels sheet`
+
+- [ ] **26 · Acciones masivas: buscador, estado Pendiente e íconos más grandes**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkLabelActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkAgentActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkTeamActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkUpdateActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkReadActions.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/Index.vue`, `app/javascript/dashboard/i18n/locale/en/bulkActions.json`, `app/javascript/dashboard/i18n/locale/es/bulkActions.json`
+  - depende de: 20
+  - listo cuando: el campo "Buscar" de etiquetas, agentes y equipos ya no superpone el ícono de la lupa con el texto (ícono y texto no se tapan); el menú de Estado ofrece Reabrir/Abrir, Pendiente, Resolver y Posponer (todos menos el estado que ya tienen todas las seleccionadas) y aplicar Pendiente cambia el estado de las conversaciones; los íconos de la barra y los botones Leído/No leído son más grandes (objetivo táctil de al menos 40 px y ícono de unos 24 px) sin romper el ancho de 375 px; Posponer sigue pidiendo la fecha como hoy
+  - commit: `fix(chat-list): bulk bar search field, pending status and larger icons`
+
+- [ ] **27 · Eliminar mensaje: dejar claro que solo se borra en Chatwoot**
+  - archivos: `app/javascript/dashboard/i18n/locale/en/conversation.json`, `app/javascript/dashboard/i18n/locale/es/conversation.json`
+  - depende de: 20
+  - listo cuando: el diálogo de confirmación de eliminar un mensaje (`CONVERSATION.CONTEXT_MENU.DELETE_CONFIRMATION`) dice con claridad que el mensaje se elimina solo en Chatwoot y que el cliente lo seguirá viendo en su canal (WhatsApp, Telegram…), en `en` y `es`; el aviso de éxito (`SUCCESS_DELETE_MESSAGE`) mantiene esa precisión; el comportamiento de borrar no cambia
+  - commit: `fix(messages): say that deleting a message only removes it in Chatwoot`
+
+- [ ] **28 · Actualizar al volver a primer plano y al tirar de la lista**
+  - archivos: `app/javascript/dashboard/helper/ReconnectService.js`, `app/javascript/dashboard/components/ConversationList.vue`, `app/javascript/dashboard/composables/usePullToRefresh.js` (nuevo)
+  - depende de: 20
+  - listo cuando: cuando la pestaña o la app vuelve a ser visible (`visibilitychange`/`pageshow`) tras más de 20 segundos oculta, o vuelve la red (`online`), se vuelve a pedir la lista de conversaciones vigente (con los filtros activos), la conversación abierta con sus mensajes y los conteos, igual que hoy al reconectar el websocket, sin recargar la página y sin lanzar la petición dos veces cuando el websocket ya se reconectó; en móvil, al tirar hacia abajo desde el tope de la lista (solo con puntero táctil) aparece un indicador de carga, se vuelve a pedir la lista y el indicador desaparece al terminar; el scroll normal de la lista y el deslizar de las tarjetas no se afectan; en escritorio la lista no cambia
+  - commit: `feat(chat-list): refresh on resume and pull to refresh on mobile`
