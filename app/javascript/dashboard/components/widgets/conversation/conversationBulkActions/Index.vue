@@ -162,7 +162,7 @@ onUnmounted(() => {
       v-if="selectionMode || conversations.length > 0"
       v-bind="attrs"
       data-mobile-sheet
-      class="px-2 pb-[env(safe-area-inset-bottom)] sm:pb-0 fixed sm:absolute bottom-0 sm:bottom-4 start-0 sm:start-1/2 sm:-translate-x-1/2 z-40 sm:z-30 w-full origin-bottom"
+      class="px-4 sm:px-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:pb-0 fixed sm:absolute bottom-0 sm:bottom-4 start-0 sm:start-1/2 sm:-translate-x-1/2 z-40 sm:z-30 w-full origin-bottom"
     >
       <div
         v-if="allConversationsSelected"
@@ -171,7 +171,7 @@ onUnmounted(() => {
         {{ $t('BULK_ACTION.ALL_CONVERSATIONS_SELECTED_ALERT') }}
       </div>
       <div
-        class="flex flex-col gap-2 p-2 min-w-0 bg-n-button-color outline outline-1 -outline-offset-1 rounded-[10px] outline-n-weak shadow-[0_0_12px_0_rgba(27,40,59,0.08)]"
+        class="flex flex-col gap-2 p-3 sm:p-2 min-w-0 bg-n-button-color outline outline-1 -outline-offset-1 rounded-3xl sm:rounded-[10px] outline-n-weak shadow-lg sm:shadow-[0_0_12px_0_rgba(27,40,59,0.08)]"
       >
         <div class="ms-0.5 flex items-center gap-1 min-w-0 w-full">
           <label
@@ -215,7 +215,7 @@ onUnmounted(() => {
         </div>
         <div
           v-if="conversations.length > 0"
-          class="flex flex-wrap items-center gap-2 min-w-0 w-full"
+          class="flex flex-wrap items-center justify-around sm:justify-start gap-2 min-w-0 w-full"
         >
           <BulkLabelActions @assign="onAssignLabels" />
           <BulkLabelActions

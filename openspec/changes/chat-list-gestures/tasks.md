@@ -232,7 +232,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: al llegar al tope y seguir jalando hacia abajo, la lista no se estira ni deja un hueco vacío entre las pestañas y la primera tarjeta (el contenedor con scroll de la lista no tiene rebote ni encadena scroll); el scroll normal de la lista, el deslizar de las tarjetas y el botón de refrescar no cambian
   - commit: `fix(chat-list): stop the list from rubber banding when pulled down on mobile`
 
-- [ ] **38 · Barra de selección múltiple flotante y con íconos centrados**
+- [x] **38 · Barra de selección múltiple flotante y con íconos centrados**
   - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/Index.vue`
   - depende de: 36
   - listo cuando: en móvil la barra de acciones masivas se ve como un panel flotante (separado de los bordes y de la barra del navegador, con esquinas muy redondeadas y sombra), no pegada al borde inferior; los íconos de acciones quedan repartidos y centrados en el panel (sin espacio vacío a un solo lado); el encabezado «N conversaciones seleccionadas / Limpiar / Todas / cerrar» se conserva; las hojas de etiquetas/agente/equipo/estado siguen abriendo; en escritorio no cambia
