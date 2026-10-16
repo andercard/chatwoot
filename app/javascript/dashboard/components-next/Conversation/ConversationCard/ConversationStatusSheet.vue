@@ -6,6 +6,8 @@ import wootConstants from 'dashboard/constants/globals';
 import { findSnoozeTime } from 'dashboard/helper/snoozeHelpers';
 import SheetHandle from 'dashboard/components-next/sheet-handle/SheetHandle.vue';
 import CustomSnoozeModal from 'dashboard/components/CustomSnoozeModal.vue';
+import SheetBackdrop from 'dashboard/components-next/sheet-backdrop/SheetBackdrop.vue';
+import { useBodyScrollLock } from 'dashboard/composables/useBodyScrollLock';
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -20,6 +22,10 @@ const { STATUS_TYPE, SNOOZE_OPTIONS } = wootConstants;
 
 const showSnoozeOptions = ref(false);
 const showCustomSnooze = ref(false);
+
+const isSheetOpen = computed(() => props.show && !showCustomSnooze.value);
+
+useBodyScrollLock(isSheetOpen);
 
 watch(
   () => props.show,
@@ -134,15 +140,11 @@ const ITEM_CLASSES =
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="show && !showCustomSnooze"
-      class="fixed inset-0 z-[10000] flex items-end justify-center bg-n-alpha-black1 backdrop-blur-sm"
-      @click.self.stop.prevent="emit('close')"
-    >
+    <SheetBackdrop v-if="isSheetOpen" @close="emit('close')">
       <div
         role="dialog"
         aria-modal="true"
-        class="relative flex flex-col w-full max-h-[90dvh] pt-6 pb-4 overflow-y-auto border bg-n-solid-2 border-n-weak shadow-lg rounded-t-2xl"
+        class="relative flex flex-col w-full max-h-[90dvh] pt-6 pb-4 overflow-y-auto overscroll-contain border bg-n-solid-2 border-n-weak shadow-lg rounded-t-2xl"
       >
         <SheetHandle @close="emit('close')" />
         <h3 class="px-4 pb-2 text-sm font-medium text-n-slate-11">
@@ -176,7 +178,7 @@ const ITEM_CLASSES =
           </button>
         </template>
       </div>
-    </div>
+    </SheetBackdrop>
     <woot-modal
       v-model:show="showCustomSnooze"
       :on-close="() => (showCustomSnooze = false)"

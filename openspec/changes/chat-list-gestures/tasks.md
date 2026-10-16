@@ -136,7 +136,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: existe `SheetBackdrop.vue` (telón `fixed inset-0` con desenfoque que emite `close` al tocarlo, sin dejar pasar el toque a lo de abajo, con prop para el z-index) y `useBodyScrollLock` (bloquea el scroll del documento mientras haya al menos una hoja abierta, cuenta referencias para que varias hojas no se pisen y lo libera al cerrar o desmontar, también en iOS); la raíz de la app no hace "rebote" que arrastre toda la página (`overscroll-behavior` contenido) y las listas internas con scroll no lo encadenan al documento; sin CSS propio, solo Tailwind
   - commit: `feat(mobile): shared sheet backdrop and body scroll lock`
 
-- [ ] **22 · Telón y bloqueo en las hojas de Estados y de acciones masivas**
+- [x] **22 · Telón y bloqueo en las hojas de Estados y de acciones masivas**
   - archivos: `app/javascript/dashboard/components-next/Conversation/ConversationCard/ConversationStatusSheet.vue`, `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkActionSheet.vue`
   - depende de: 21
   - listo cuando: ambas hojas usan `SheetBackdrop` y `useBodyScrollLock`: al tocar el telón se cierran, la página de atrás no se mueve al arrastrar la hoja (solo hace scroll el contenido de la hoja, con `overscroll-contain`), y el comportamiento actual de las hojas no cambia
