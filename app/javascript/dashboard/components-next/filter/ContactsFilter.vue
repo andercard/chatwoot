@@ -12,7 +12,6 @@ import Button from 'next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import ConditionRow from './ConditionRow.vue';
 import SheetHandle from 'next/sheet-handle/SheetHandle.vue';
-import { provideDropdownTeleport } from 'next/dropdown-menu/base/provider';
 
 const props = defineProps({
   isSegmentView: { type: Boolean, default: false },
@@ -99,16 +98,15 @@ const filterModalHeaderTitle = computed(() => {
 onBeforeUnmount(() => emit('close'));
 const outsideClickHandler = [
   () => emit('close'),
-  { ignore: ['#toggleContactsFilterButton', '[data-dropdown-menu]'] },
+  { ignore: ['#toggleContactsFilterButton'] },
 ];
-provideDropdownTeleport();
 </script>
 
 <template>
   <div
     v-on-click-outside="outsideClickHandler"
     data-mobile-sheet
-    class="fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-b-none sm:static sm:max-h-none sm:overflow-visible sm:rounded-b-xl z-40 max-w-3xl lg:w-[750px] w-full border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg rounded-xl p-6 grid gap-6"
+    class="fixed inset-x-0 bottom-0 z-40 max-h-[85dvh] overflow-y-auto rounded-t-xl rounded-b-none sm:static sm:max-h-none sm:overflow-visible sm:rounded-xl sm:w-full sm:max-w-3xl lg:w-[750px] border border-n-weak bg-n-alpha-3 backdrop-blur-[100px] shadow-lg p-6 grid gap-6"
   >
     <SheetHandle @close="emit('close')" />
     <h3 class="text-base font-medium leading-6 text-n-slate-12">
