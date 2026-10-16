@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
@@ -20,13 +21,17 @@ const BULK_READ_BATCH_SIZE = 10;
 const store = useStore();
 const { t } = useI18n();
 
+const loadingAction = ref(null);
+
 const applyToSelection = async action => {
+  if (loadingAction.value) return;
   const ids = props.conversationIds;
   if (ids.length > BULK_READ_LIMIT) {
     useAlert(t('BULK_ACTION.READ_LIMIT_EXCEEDED', { limit: BULK_READ_LIMIT }));
     return;
   }
 
+  loadingAction.value = action;
   let failedCount = 0;
   for (let i = 0; i < ids.length; i += BULK_READ_BATCH_SIZE) {
     const batch = ids.slice(i, i + BULK_READ_BATCH_SIZE);
@@ -36,6 +41,7 @@ const applyToSelection = async action => {
     );
     failedCount += results.filter(r => r.status === 'rejected').length;
   }
+  loadingAction.value = null;
 
   if (failedCount) {
     useAlert(t('BULK_ACTION.READ_PARTIAL_FAILURE', { count: failedCount }));
@@ -55,6 +61,8 @@ const applyToSelection = async action => {
       slate
       ghost
       xs
+      :is-loading="loadingAction === 'markMessagesRead'"
+      :disabled="!!loadingAction"
       class="max-sm:!size-10 max-sm:[&>span]:!size-6"
       @click="applyToSelection('markMessagesRead')"
     />
@@ -66,6 +74,8 @@ const applyToSelection = async action => {
       slate
       ghost
       xs
+      :is-loading="loadingAction === 'markMessagesUnread'"
+      :disabled="!!loadingAction"
       class="max-sm:!size-10 max-sm:[&>span]:!size-6"
       @click="applyToSelection('markMessagesUnread')"
     />

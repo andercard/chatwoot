@@ -249,3 +249,9 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - depende de: 39
   - listo cuando: en modo selección cada tarjeta marcada se ve con el mismo fondo oscurecido que al pasar el cursor (`bg-n-alpha-3`), no solo con el check; la opción del menú del mensaje para guardarlo como respuesta guardada se llama «Agregar como respuesta rápida» (es) y «Add as quick reply» (en)
   - commit: `feat(chat-list): darker selected cards and clearer quick reply label`
+
+- [x] **41 · Indicador de carga en Leído/No leído en lote**
+  - archivos: `app/javascript/dashboard/components/widgets/conversation/conversationBulkActions/BulkReadActions.vue`
+  - depende de: 40
+  - listo cuando: al tocar Leído o No leído en la selección múltiple, ese botón muestra un spinner y ambos quedan deshabilitados hasta que terminan todas las peticiones; no se puede disparar dos veces; al acabar vuelven a su estado
+  - commit: `feat(chat-list): show a loading state while bulk marking read or unread`
