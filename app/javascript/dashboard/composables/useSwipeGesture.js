@@ -48,6 +48,7 @@ export function useSwipeGesture({
   const onPointerdown = event => {
     if (!TOUCH_POINTER_TYPES.includes(event.pointerType)) return;
     if (pointerId !== null) return;
+    if (event.target?.closest?.('[data-no-swipe]')) return;
     suppressClick = false;
     pointerId = event.pointerId;
     startX = event.clientX;

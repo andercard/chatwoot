@@ -16,8 +16,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 const props = defineProps({
   conversationId: { type: Number, required: true },
   conversationLabels: { type: Array, default: () => [] },
-  assignLabels: { type: Function, required: true },
-  removeLabels: { type: Function, required: true },
+  updateLabels: { type: Function, required: true },
 });
 
 const emit = defineEmits(['close']);
@@ -59,8 +58,9 @@ const onSave = () => {
   const initial = new Set(props.conversationLabels);
   const toAdd = [...selected.value].filter(title => !initial.has(title));
   const toRemove = [...initial].filter(title => !selected.value.has(title));
-  if (toAdd.length) props.assignLabels(toAdd, [props.conversationId]);
-  if (toRemove.length) props.removeLabels(toRemove, [props.conversationId]);
+  if (toAdd.length || toRemove.length) {
+    props.updateLabels(toAdd, toRemove, [props.conversationId]);
+  }
   emit('close');
 };
 </script>

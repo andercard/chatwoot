@@ -119,6 +119,7 @@ const {
   onAssignAgent,
   onAssignLabels,
   onRemoveLabels,
+  onUpdateLabels,
 } = useBulkActions();
 
 const {
@@ -844,6 +845,7 @@ provide('assignAgent', onAssignAgent);
 provide('assignTeam', onAssignTeam);
 provide('assignLabels', onAssignLabels);
 provide('removeLabels', onRemoveLabels);
+provide('updateLabels', onUpdateLabels);
 provide('updateConversationStatus', handleResolveConversation);
 provide('markAsUnread', markAsUnread);
 provide('markAsRead', markAsRead);
