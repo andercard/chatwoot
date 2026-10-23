@@ -30,6 +30,7 @@ const assignAgent = inject('assignAgent');
 const assignTeam = inject('assignTeam');
 const assignLabels = inject('assignLabels');
 const removeLabels = inject('removeLabels');
+const updateLabels = inject('updateLabels');
 const updateConversationStatus = inject('updateConversationStatus');
 const toggleContextMenu = inject('toggleContextMenu');
 const markAsUnread = inject('markAsUnread');
@@ -330,8 +331,7 @@ const onDeleteConversation = () => {
     v-if="showLabelsSheet"
     :conversation-id="source.id"
     :conversation-labels="source.labels"
-    :assign-labels="assignLabels"
-    :remove-labels="removeLabels"
+    :update-labels="updateLabels"
     @close="showLabelsSheet = false"
   />
 

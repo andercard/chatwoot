@@ -140,6 +140,41 @@ export function useBulkActions() {
     }
   }
 
+  // Single request so the add and remove run in one job and cannot race.
+  async function onUpdateLabels(
+    labelsToAdd,
+    labelsToRemove,
+    conversationId = null
+  ) {
+    try {
+      await store.dispatch('bulkActions/process', {
+        type: 'Conversation',
+        ids: conversationId || selectedConversations.value,
+        labels: {
+          add: labelsToAdd,
+          remove: labelsToRemove,
+        },
+      });
+      if (conversationId) {
+        useAlert(
+          t('CONVERSATION.CARD_CONTEXT_MENU.API.LABEL_ASSIGNMENT.SUCCESFUL', {
+            labelName: labelsToAdd[0] ?? labelsToRemove[0],
+            conversationId,
+          })
+        );
+      } else {
+        store.dispatch('bulkActions/clearSelectedConversationIds');
+        useAlert(t('BULK_ACTION.LABELS.ASSIGN_SUCCESFUL'));
+      }
+    } catch (err) {
+      useAlert(
+        conversationId
+          ? t('CONVERSATION.CARD_CONTEXT_MENU.API.LABEL_ASSIGNMENT.FAILED')
+          : t('BULK_ACTION.LABELS.ASSIGN_FAILED')
+      );
+    }
+  }
+
   async function onAssignTeamsForBulk(team) {
     try {
       await store.dispatch('bulkActions/process', {
@@ -230,6 +265,7 @@ export function useBulkActions() {
     onAssignAgent,
     onAssignLabels,
     onRemoveLabels,
+    onUpdateLabels,
     onAssignTeamsForBulk,
     onUpdateConversations,
   };
