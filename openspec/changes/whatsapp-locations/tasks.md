@@ -60,7 +60,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
 
 El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, no trabajo de más. Este cambio **sí altera comportamiento** (filtro y envío de ubicaciones), así que lleva `specs/` con un requisito por capacidad (filtro de mensajes leídos/no leídos; ubicaciones de WhatsApp).
 
-- [ ] **10 · Altura fija en listas con búsqueda**
+- [x] **10 · Altura fija en listas con búsqueda**
   - archivos: `app/javascript/dashboard/components-next/Conversation/ConversationCard/ConversationLabelsSheet.vue`, `app/javascript/dashboard/components-next/filter/inputs/MultiSelect.vue`, `app/javascript/dashboard/components-next/filter/inputs/SingleSelect.vue`, `app/javascript/dashboard/components-next/filter/inputs/FilterSelect.vue`, `app/javascript/dashboard/components-next/combobox/ComboBoxDropdown.vue`, `app/javascript/dashboard/components-next/dropdown-menu/DropdownMenu.vue`
   - depende de: ninguna
   - listo cuando: con el buscador visible, escribir y borrar texto no cambia el alto de la lista ni mueve la hoja o el desplegable (los resultados vacíos muestran el mensaje dentro del mismo alto); sin buscador la lista se ajusta al contenido como antes; la hoja móvil de etiquetas conserva su alto con "Pq" y con el campo vacío; sin CSS nuevo (clases Tailwind) y alturas en `dvh`/`rem`
