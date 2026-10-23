@@ -28,7 +28,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: `channel_whatsapp.locations` es jsonb `default: []`; el modelo valida la lista (máx. 50; cada ítem con `id`, `name`, `address`, `latitude`, `longitude` dentro de rango) y el inbox serializa `locations` para todos los agentes cuando es WhatsApp; la migración corre y revierte limpia
   - commit: `feat(whatsapp): store saved locations on the channel`
 
-- [ ] **5 · Endpoint para guardar la lista de ubicaciones**
+- [x] **5 · Endpoint para guardar la lista de ubicaciones**
   - archivos: `app/controllers/api/v1/accounts/inboxes/whatsapp_locations_controller.rb`, `config/routes.rb`, `config/locales/en.yml`
   - depende de: 4
   - listo cuando: `PUT /api/v1/accounts/:account_id/inboxes/:inbox_id/whatsapp_locations` (solo administradores, solo inbox WhatsApp Cloud) reemplaza la lista, asigna `id` (uuid) a las nuevas y responde 422 con mensaje de `en.yml` si algún dato es inválido

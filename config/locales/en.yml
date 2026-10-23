@@ -165,6 +165,9 @@ en:
         invalid_limit: 'limit must be between 1 and %{max}'
         invalid_collection: 'collection_id does not belong to the catalog'
         invalid_filters: 'q, after and collection_id must be strings'
+      locations:
+        cloud_inbox_required: 'Locations are only available for WhatsApp Cloud inboxes'
+        invalid_locations: 'locations must be a list of objects'
       catalog:
         unknown_kind: 'Unsupported catalog message kind: %{kind}'
         catalog_id_required: 'Catalog ID is required'
