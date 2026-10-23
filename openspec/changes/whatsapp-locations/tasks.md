@@ -40,7 +40,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: `POST …/conversations/:id/location_message` acepta **o** `location_id` (ubicación guardada: nombre, dirección y coordenadas se toman del canal) **o** `latitude` y `longitude` (ubicación actual del agente, sin nombre ni dirección; contenido `Ubicación actual` y las coordenadas en texto) y crea el mensaje saliente con `content_attributes.whatsapp_location`; `SendOnWhatsappService` lo manda a la Cloud API como `type: 'location'` (`name` y `address` solo cuando existen); un `location_id` inexistente, coordenadas fuera de rango, mandar ambos modos a la vez, o una conversación que no es WhatsApp Cloud devuelve 422; el spec del servicio cubre el payload guardado, el payload de ubicación actual y el id inexistente
   - commit: `feat(whatsapp): send saved locations from a conversation`
 
-- [ ] **7 · API del front e i18n de ubicaciones**
+- [x] **7 · API del front e i18n de ubicaciones**
   - archivos: `app/javascript/dashboard/api/whatsappLocations.js`, `app/javascript/dashboard/api/whatsappLocationMessages.js`, `app/javascript/dashboard/i18n/locale/en/whatsappLocations.json`, `app/javascript/dashboard/i18n/locale/es/whatsappLocations.json`, `app/javascript/dashboard/i18n/locale/en/index.js`, `app/javascript/dashboard/i18n/locale/es/index.js`
   - depende de: 6
   - listo cuando: los dos clientes siguen el patrón de `api/whatsappCatalogMessages.js` y las claves `WHATSAPP_LOCATIONS.*` (pestaña, formulario, selector, errores) existen en `en` y `es` y quedan registradas en el índice de cada idioma
