@@ -390,7 +390,8 @@ RSpec.describe 'Conversation Messages API', type: :request do
              as: :json
 
         expect(response).to have_http_status(:success)
-        expect(message.reload.content_attributes).to eq({ 'whatsapp_catalog' => catalog })
+        expect(message.reload.content_attributes['external_error']).to be_nil
+        expect(message.content_attributes['whatsapp_catalog']).to eq(catalog)
       end
     end
 

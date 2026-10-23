@@ -46,6 +46,13 @@ describe('ResizableEditorWrapper', () => {
   let wrapper;
 
   beforeEach(async () => {
+    // jsdom has no ResizeObserver; the wrapper watches its own size for the phone bar
+    vi.stubGlobal(
+      'ResizeObserver',
+      vi.fn(function ResizeObserverStub() {
+        return { observe: vi.fn(), disconnect: vi.fn() };
+      })
+    );
     wrapper = mountWrapper();
     await wrapper
       .find('.cursor-row-resize')
@@ -54,6 +61,7 @@ describe('ResizableEditorWrapper', () => {
 
   afterEach(() => {
     wrapper.unmount();
+    vi.unstubAllGlobals();
   });
 
   it('stops shrinking at the minimum height', async () => {
