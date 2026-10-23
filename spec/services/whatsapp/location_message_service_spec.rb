@@ -14,6 +14,7 @@ RSpec.describe Whatsapp::LocationMessageService do
   end
 
   before do
+    allow(conversation).to receive(:can_reply?).and_return(true)
     create(:inbox_member, inbox: inbox, user: agent)
     whatsapp_channel.update_column(:locations, [saved_location]) # rubocop:disable Rails/SkipsModelValidations
   end
@@ -58,6 +59,17 @@ RSpec.describe Whatsapp::LocationMessageService do
 
     it 'raises an error' do
       expect { message }.to raise_error(described_class::Error)
+    end
+  end
+
+  context 'when the conversation is outside the reply window' do
+    let(:params) { { location_id: 'loc-1' }.with_indifferent_access }
+
+    before { allow(conversation).to receive(:can_reply?).and_return(false) }
+
+    it 'raises an error without creating a message' do
+      expect { message }.to raise_error(described_class::Error, /24-hour/)
+      expect(conversation.messages.count).to eq(0)
     end
   end
 end

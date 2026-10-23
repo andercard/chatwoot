@@ -182,6 +182,7 @@ en:
         invalid_coordinates: 'latitude must be between -90 and 90 and longitude between -180 and 180'
         single_mode_required: 'Send either location_id or latitude and longitude, not both'
         current_location: 'Current location'
+        outside_reply_window: 'The 24-hour reply window has closed; send a template message instead'
       catalog:
         unknown_kind: 'Unsupported catalog message kind: %{kind}'
         catalog_id_required: 'Catalog ID is required'
