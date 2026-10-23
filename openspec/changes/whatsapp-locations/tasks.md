@@ -34,7 +34,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: `PUT /api/v1/accounts/:account_id/inboxes/:inbox_id/whatsapp_locations` (solo administradores, solo inbox WhatsApp Cloud) reemplaza la lista, asigna `id` (uuid) a las nuevas y responde 422 con mensaje de `en.yml` si algún dato es inválido
   - commit: `feat(whatsapp): endpoint to manage saved locations`
 
-- [ ] **6 · Envío del mensaje de ubicación**
+- [x] **6 · Envío del mensaje de ubicación**
   - archivos: `app/controllers/api/v1/accounts/conversations/location_messages_controller.rb`, `app/services/whatsapp/location_message_service.rb`, `app/services/whatsapp/providers/whatsapp_cloud_service.rb`, `app/services/whatsapp/send_on_whatsapp_service.rb`, `config/routes.rb`, `config/locales/en.yml`, `spec/services/whatsapp/location_message_service_spec.rb`
   - depende de: 5
   - listo cuando: `POST …/conversations/:id/location_message` acepta **o** `location_id` (ubicación guardada: nombre, dirección y coordenadas se toman del canal) **o** `latitude` y `longitude` (ubicación actual del agente, sin nombre ni dirección; contenido `Ubicación actual` y las coordenadas en texto) y crea el mensaje saliente con `content_attributes.whatsapp_location`; `SendOnWhatsappService` lo manda a la Cloud API como `type: 'location'` (`name` y `address` solo cuando existen); un `location_id` inexistente, coordenadas fuera de rango, mandar ambos modos a la vez, o una conversación que no es WhatsApp Cloud devuelve 422; el spec del servicio cubre el payload guardado, el payload de ubicación actual y el id inexistente

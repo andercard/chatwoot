@@ -174,6 +174,7 @@ Rails.application.routes.draw do
               end
               resource :contact_info_request, only: [:create]
               resource :catalog_message, only: [:create]
+              resource :location_message, only: [:create]
               resources :assignments, only: [:create]
               resources :labels, only: [:create, :index]
               resource :participants, only: [:show, :create, :update, :destroy]
