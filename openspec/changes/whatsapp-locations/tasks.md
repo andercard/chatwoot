@@ -68,7 +68,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
 
 Paralelismo: 1, 2, 3, 4 y 10 son independientes entre sí; 5→6→7 en serie (comparten `routes.rb`, `en.yml` y el modelo); 8 y 9 en paralelo tras la 7.
 
-- [ ] **11 · Burbuja de ubicación para los mensajes que enviamos**
+- [x] **11 · Burbuja de ubicación para los mensajes que enviamos**
   - archivos: `app/javascript/dashboard/components-next/message/bubbles/Location.vue`, `app/javascript/dashboard/components-next/message/Message.vue`
   - depende de: ninguna
   - listo cuando: un mensaje saliente con `content_attributes.whatsapp_location` se muestra en la conversación con la misma burbuja que las ubicaciones recibidas (ícono de navegación, "{sender} ha compartido una ubicación", título "nombre, dirección" o "Ubicación actual" y botón "Ver en el mapa" a `https://maps.google.com/?q=lat,long`) y no como texto plano; los mensajes recibidos con adjunto de ubicación se ven igual que antes; al cliente sigue llegando el mismo pin de WhatsApp (el backend no cambia)

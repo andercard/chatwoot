@@ -323,6 +323,10 @@ const componentToRender = computed(() => {
     return WhatsappCatalogBubble;
   }
 
+  if (props.contentAttributes?.whatsappLocation) {
+    return LocationBubble;
+  }
+
   if (props.contentType === CONTENT_TYPES.INPUT_CSAT) {
     return CSATBubble;
   }
@@ -453,6 +457,7 @@ const shouldRenderMessage = computed(() => {
   const hasWhatsappFlowResponse =
     !!props.contentAttributes?.whatsappFlowResponse;
   const hasWhatsappCatalog = !!props.contentAttributes?.whatsappCatalog;
+  const hasWhatsappLocation = !!props.contentAttributes?.whatsappLocation;
   const isFailedMessage = props.status === MESSAGE_STATUS.FAILED;
   const hasExternalError = !!props.contentAttributes?.externalError;
 
@@ -464,6 +469,7 @@ const shouldRenderMessage = computed(() => {
     isAnIntegrationMessage ||
     hasWhatsappFlowResponse ||
     hasWhatsappCatalog ||
+    hasWhatsappLocation ||
     shouldShowWhatsappReferral.value ||
     isFailedMessage ||
     hasExternalError
