@@ -3,17 +3,18 @@
 El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, no trabajo de más.
 
 
-- [ ] **1 · Selector de color sin recorte en móvil**
+- [x] **1 · Selector de color sin recorte en móvil**
   - archivos: `app/javascript/dashboard/components/widgets/ColorPicker.vue`
   - depende de: ninguna
   - listo cuando: en ancho móvil (375 px) el panel `Chrome` queda dentro del flujo del modal (empuja el contenido, no se superpone ni se recorta) y desde `sm` hacia arriba conserva el comportamiento actual flotante; no se añade CSS nuevo
   - commit: `fix(labels): keep the color picker inside the modal on phones`
 
-- [ ] **2 · Ajuste del banner de actualización**
+- [x] **2 · Ajuste del banner de actualización**
   - archivos: `app/javascript/dashboard/components/ui/Banner.vue`
   - depende de: ninguna
   - listo cuando: queda aplicado el cambio de `b61bda8657` (el banner crece y el texto no se corta en teléfonos); se trae con `git cherry-pick` y se reescribe el mensaje sin trailers
-  - commit: `fix(ui): let update banners grow so their text is not cut off on phones`
+  - nota: al ejecutar, `Banner.vue` ya traía `min-h-12` (el cambio entró en `picnic.12` por squash); el cherry-pick quedó vacío y se omitió. Sin commit.
+  - commit: ninguno (ya estaba en la base)
 
 - [ ] **3 · Filtro "Mensajes" con Leídos / No leídos**
   - archivos: `app/javascript/dashboard/components-next/filter/provider.js`, `app/javascript/dashboard/components-next/filter/ConditionRow.vue`, `app/javascript/dashboard/i18n/locale/en/advancedFilters.json`, `app/javascript/dashboard/i18n/locale/es/advancedFilters.json`, `app/javascript/dashboard/components-next/filter/specs/` (solo los specs que dejen de pasar)
