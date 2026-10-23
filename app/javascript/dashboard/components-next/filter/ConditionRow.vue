@@ -245,7 +245,11 @@ defineExpose({ validate, resetValidation });
             v-else-if="inputType === 'booleanSelect'"
             v-model="values"
             disable-search
-            :options="currentFilter.options ?? booleanOptions"
+            :options="
+              currentFilter.options?.length
+                ? currentFilter.options
+                : booleanOptions
+            "
           />
           <MultiTextInput
             v-else-if="inputType === 'multiText'"
