@@ -16,7 +16,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - nota: al ejecutar, `Banner.vue` ya traía `min-h-12` (el cambio entró en `picnic.12` por squash); el cherry-pick quedó vacío y se omitió. Sin commit.
   - commit: ninguno (ya estaba en la base)
 
-- [ ] **3 · Filtro "Mensajes" con Leídos / No leídos**
+- [x] **3 · Filtro "Mensajes" con Leídos / No leídos**
   - archivos: `app/javascript/dashboard/components-next/filter/provider.js`, `app/javascript/dashboard/components-next/filter/ConditionRow.vue`, `app/javascript/dashboard/i18n/locale/en/advancedFilters.json`, `app/javascript/dashboard/i18n/locale/es/advancedFilters.json`, `app/javascript/dashboard/components-next/filter/specs/` (solo los specs que dejen de pasar)
   - depende de: ninguna
   - listo cuando: el atributo se llama "Mensajes" / "Messages"; el selector de valor ofrece "No leídos" y "Leídos" (o *Unread/Read*) en lugar de Verdadero/Falso; el payload sigue enviando `unread` con `true` (no leídos) / `false` (leídos); las opciones personalizadas del tipo se toman de la definición del filtro (`options`) y los demás `booleanSelect` (atributos personalizados tipo checkbox) siguen mostrando Verdadero/Falso
@@ -28,7 +28,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: `channel_whatsapp.locations` es jsonb `default: []`; el modelo valida la lista (máx. 50; cada ítem con `id`, `name`, `address`, `latitude`, `longitude` dentro de rango) y el inbox serializa `locations` para todos los agentes cuando es WhatsApp; la migración corre y revierte limpia
   - commit: `feat(whatsapp): store saved locations on the channel`
 
-- [ ] **5 · Endpoint para guardar la lista de ubicaciones**
+- [x] **5 · Endpoint para guardar la lista de ubicaciones**
   - archivos: `app/controllers/api/v1/accounts/inboxes/whatsapp_locations_controller.rb`, `config/routes.rb`, `config/locales/en.yml`
   - depende de: 4
   - listo cuando: `PUT /api/v1/accounts/:account_id/inboxes/:inbox_id/whatsapp_locations` (solo administradores, solo inbox WhatsApp Cloud) reemplaza la lista, asigna `id` (uuid) a las nuevas y responde 422 con mensaje de `en.yml` si algún dato es inválido
@@ -46,7 +46,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: los dos clientes siguen el patrón de `api/whatsappCatalogMessages.js` y las claves `WHATSAPP_LOCATIONS.*` (pestaña, formulario, selector, errores) existen en `en` y `es` y quedan registradas en el índice de cada idioma
   - commit: `feat(whatsapp): api clients and translations for saved locations`
 
-- [ ] **8 · Pestaña "Ubicaciones" en ajustes del inbox**
+- [x] **8 · Pestaña "Ubicaciones" en ajustes del inbox**
   - archivos: `app/javascript/dashboard/routes/dashboard/settings/inbox/settingsPage/WhatsappLocationsPage.vue`, `app/javascript/dashboard/routes/dashboard/settings/inbox/Settings.vue`, `app/javascript/dashboard/i18n/locale/en/inboxMgmt.json`, `app/javascript/dashboard/i18n/locale/es/inboxMgmt.json`
   - depende de: 7
   - listo cuando: en un inbox WhatsApp Cloud, el administrador ve la pestaña, agrega, edita y borra ubicaciones (nombre, dirección, latitud, longitud, con validación de rango) y al guardar la lista persiste tras recargar; el formulario es usable a 375 px
