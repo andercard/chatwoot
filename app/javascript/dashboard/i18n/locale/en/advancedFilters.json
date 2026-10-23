@@ -46,10 +46,12 @@
     },
     "ATTRIBUTE_LABELS": {
       "TRUE": "True",
-      "FALSE": "False"
+      "FALSE": "False",
+      "UNREAD": "Unread",
+      "READ": "Read"
     },
     "ATTRIBUTES": {
-      "UNREAD": "Unread messages",
+      "UNREAD": "Messages",
       "STATUS": "Status",
       "ASSIGNEE_NAME": "Assignee name",
       "INBOX_NAME": "Inbox name",

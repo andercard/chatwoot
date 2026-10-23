@@ -29,6 +29,7 @@ import {
 } from '@chatwoot/utils';
 import WhatsappTemplates from './WhatsappTemplates/Modal.vue';
 import WhatsappCatalogModal from './WhatsappCatalog/Modal.vue';
+import LocationPicker from 'dashboard/components-next/whatsapp-location/LocationPicker.vue';
 import ContentTemplates from './ContentTemplates/ContentTemplatesModal.vue';
 import { MESSAGE_MAX_LENGTH } from 'shared/helpers/MessageTypeHelper';
 import inboxMixin, { INBOX_FEATURES } from 'shared/mixins/inboxMixin';
@@ -98,6 +99,7 @@ export default {
     ContentTemplates,
     WhatsappTemplates,
     WhatsappCatalogModal,
+    LocationPicker,
     WootMessageEditor,
     QuotedEmailPreview,
     CopilotEditorSection,
@@ -188,6 +190,7 @@ export default {
       doAutoSaveDraft: () => {},
       showWhatsAppTemplatesModal: false,
       showWhatsappCatalogModal: false,
+      showLocationPicker: false,
       requestContactInfoTemplatesOnly: false,
       showContentTemplatesModal: false,
       updateEditorSelectionWith: '',
@@ -243,6 +246,9 @@ export default {
       return !!(templates && templates.length) && !this.isPrivate;
     },
     showWhatsappCatalog() {
+      return this.isAWhatsAppCloudChannel && !this.isPrivate;
+    },
+    showWhatsappLocation() {
       return this.isAWhatsAppCloudChannel && !this.isPrivate;
     },
     whatsappCatalogLink() {
@@ -632,6 +638,9 @@ export default {
     showWhatsappCatalog(isAvailable) {
       if (!isAvailable) this.showWhatsappCatalogModal = false;
     },
+    showWhatsappLocation(isAvailable) {
+      if (!isAvailable) this.showLocationPicker = false;
+    },
     catalogPrefetchInboxId: {
       immediate: true,
       handler(inboxId) {
@@ -943,6 +952,9 @@ export default {
     },
     openWhatsappCatalog() {
       this.showWhatsappCatalogModal = true;
+    },
+    openLocationPicker() {
+      this.showLocationPicker = true;
     },
     insertWhatsappCatalogLink(link) {
       this.message = this.message ? `${this.message}\n${link}` : link;
@@ -1736,6 +1748,7 @@ export default {
         :enable-content-templates="showContentTemplates"
         :enable-macros="isMacrosEnabled"
         :enable-whatsapp-catalog="showWhatsappCatalog"
+        :enable-whatsapp-location="showWhatsappLocation"
         :inbox="inbox"
         :is-on-private-note="isOnPrivateNote"
         :is-recording-audio="isRecordingAudio"
@@ -1760,6 +1773,7 @@ export default {
         @select-whatsapp-template="openWhatsappTemplateModal"
         @select-content-template="openContentTemplateModal"
         @select-catalog="openWhatsappCatalog"
+        @select-location="openLocationPicker"
         @toggle-insert-article="toggleInsertArticle"
         @toggle-quoted-reply="toggleQuotedReply"
         @request-contact-info-template="openContactInfoTemplateModal"
@@ -1785,6 +1799,12 @@ export default {
       :catalog-link="whatsappCatalogLink"
       @insert-link="insertWhatsappCatalogLink"
       @sent="onWhatsappCatalogSent"
+    />
+
+    <LocationPicker
+      v-model:show="showLocationPicker"
+      :conversation-id="conversationId"
+      :locations="inbox.locations || []"
     />
 
     <ContentTemplates

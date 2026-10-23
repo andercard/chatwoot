@@ -25,6 +25,7 @@ import GreetingsEditor from 'shared/components/GreetingsEditor.vue';
 import ConfigurationPage from './settingsPage/ConfigurationPage.vue';
 import VoiceConfigurationPage from './settingsPage/VoiceConfigurationPage.vue';
 import WhatsappCallingPage from './settingsPage/WhatsappCallingPage.vue';
+import WhatsappLocationsPage from './settingsPage/WhatsappLocationsPage.vue';
 import CustomerSatisfactionPage from './settingsPage/CustomerSatisfactionPage.vue';
 import CollaboratorsPage from './settingsPage/CollaboratorsPage.vue';
 import BotConfiguration from './components/BotConfiguration.vue';
@@ -60,6 +61,7 @@ export default {
     ConfigurationPage,
     VoiceConfigurationPage,
     WhatsappCallingPage,
+    WhatsappLocationsPage,
     CustomerSatisfactionPage,
     FacebookReauthorize,
     GreetingsEditor,
@@ -297,6 +299,16 @@ export default {
           {
             key: 'calls-configuration',
             name: this.$t('INBOX_MGMT.TABS.CALLS'),
+          },
+        ];
+      }
+
+      if (this.isAWhatsAppCloudChannel) {
+        visibleToAllChannelTabs = [
+          ...visibleToAllChannelTabs,
+          {
+            key: 'whatsapp-locations',
+            name: this.$t('WHATSAPP_LOCATIONS.TAB'),
           },
         ];
       }
@@ -798,7 +810,7 @@ export default {
   </div>
   <div
     v-else
-    class="grid grid-rows-[auto_1fr] h-full flex-grow flex-shrink pr-0 pl-0 w-full min-w-0 settings"
+    class="grid grid-cols-1 grid-rows-[auto_1fr] h-full flex-grow flex-shrink pr-0 pl-0 w-full min-w-0 settings"
   >
     <SettingIntroBanner
       :header-image="inbox.avatarUrl"
@@ -1462,6 +1474,9 @@ export default {
           class="mx-6 max-w-4xl"
         >
           <WhatsappCallingPage :inbox="inbox" />
+        </div>
+        <div v-if="selectedTabKey === 'whatsapp-locations'">
+          <WhatsappLocationsPage :inbox="inbox" />
         </div>
         <div v-if="selectedTabKey === 'csat'">
           <CustomerSatisfactionPage :inbox="inbox" />

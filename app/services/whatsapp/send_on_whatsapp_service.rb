@@ -52,7 +52,13 @@ class Whatsapp::SendOnWhatsappService < Base::SendOnChannelService
 
   def send_session_message
     source_id = message.conversation.contact_inbox.source_id
-    message_id = catalog_message? ? channel.send_catalog_message(source_id, message) : channel.send_message(source_id, message)
+    message_id = if catalog_message?
+                   channel.send_catalog_message(source_id, message)
+                 elsif location_message?
+                   channel.send_location_message(source_id, message)
+                 else
+                   channel.send_message(source_id, message)
+                 end
     message.update!(source_id: message_id) if message_id.present?
   end
 
@@ -62,6 +68,10 @@ class Whatsapp::SendOnWhatsappService < Base::SendOnChannelService
 
   def catalog_message?
     message.content_attributes['whatsapp_catalog'].present?
+  end
+
+  def location_message?
+    message.content_attributes['whatsapp_location'].present?
   end
 
   def contact_info_request?

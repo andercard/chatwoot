@@ -155,6 +155,8 @@ es:
         sdp_offer_required: 'sdp_offer es requerido'
         contact_phone_required: 'Se requiere un número de teléfono de contacto'
         permission_request_failed: 'Error al enviar la solicitud de permiso de llamada'
+      location:
+        current_location: 'Ubicación actual'
     openai:
       invalid_api_key: 'La clave API OpenAI no es válida o revocada. Por favor, compruebe su clave en su panel de control OpenAI.'
     inboxes:

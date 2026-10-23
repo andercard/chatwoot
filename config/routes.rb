@@ -174,6 +174,7 @@ Rails.application.routes.draw do
               end
               resource :contact_info_request, only: [:create]
               resource :catalog_message, only: [:create]
+              resource :location_message, only: [:create]
               resources :assignments, only: [:create]
               resources :labels, only: [:create, :index]
               resource :participants, only: [:show, :create, :update, :destroy]
@@ -360,6 +361,7 @@ Rails.application.routes.draw do
             resource :assignment_policy, only: [:show, :create, :destroy], module: :inboxes
             get :whatsapp_catalog, to: 'inboxes/whatsapp_catalogs#show'
             get :whatsapp_catalog_products, to: 'inboxes/whatsapp_catalogs#products'
+            put :whatsapp_locations, to: 'inboxes/whatsapp_locations#update'
           end
 
           namespace :twitter do

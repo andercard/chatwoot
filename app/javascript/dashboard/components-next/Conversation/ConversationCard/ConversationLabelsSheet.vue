@@ -102,9 +102,7 @@ const onSave = () => {
             </template>
           </Input>
         </div>
-        <div
-          class="flex-1 min-h-0 max-h-[50dvh] overflow-y-auto overscroll-contain"
-        >
+        <div class="min-h-0 h-[50dvh] overflow-y-auto overscroll-contain">
           <label
             v-for="item in filteredLabels"
             :key="item.id"

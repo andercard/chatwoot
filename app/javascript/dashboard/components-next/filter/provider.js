@@ -116,6 +116,10 @@ export function useConversationFilterContext() {
       attributeName: t('FILTER.ATTRIBUTES.UNREAD'),
       label: t('FILTER.ATTRIBUTES.UNREAD'),
       inputType: 'booleanSelect',
+      options: [
+        { id: true, name: t('FILTER.ATTRIBUTE_LABELS.UNREAD') },
+        { id: false, name: t('FILTER.ATTRIBUTE_LABELS.READ') },
+      ],
       dataType: 'text',
       filterOperators: equalityOperators.value.filter(
         operator => operator.value === 'equal_to'

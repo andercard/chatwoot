@@ -1,0 +1,50 @@
+{
+  "WHATSAPP_LOCATIONS": {
+    "TAB": "Ubicaciones",
+    "DESCRIPTION": "Guarda los lugares que tus agentes pueden enviar a los clientes en conversaciones de WhatsApp.",
+    "FORM": {
+      "NAME": {
+        "LABEL": "Nombre",
+        "PLACEHOLDER": "Tienda principal"
+      },
+      "ADDRESS": {
+        "LABEL": "Dirección",
+        "PLACEHOLDER": "Calle 123, Ciudad"
+      },
+      "LATITUDE": {
+        "LABEL": "Latitud",
+        "PLACEHOLDER": "4.710989"
+      },
+      "LONGITUDE": {
+        "LABEL": "Longitud",
+        "PLACEHOLDER": "-74.072092"
+      },
+      "ADD": "Agregar ubicación",
+      "SAVE": "Guardar ubicaciones",
+      "DELETE": "Eliminar ubicación",
+      "EMPTY_STATE": "Aún no hay ubicaciones guardadas.",
+      "ERRORS": {
+        "REQUIRED": "Este campo es obligatorio",
+        "LATITUDE_RANGE": "La latitud debe estar entre -90 y 90",
+        "LONGITUDE_RANGE": "La longitud debe estar entre -180 y 180"
+      }
+    },
+    "API": {
+      "SAVE_SUCCESS": "Ubicaciones guardadas correctamente",
+      "SAVE_ERROR": "No se pudieron guardar las ubicaciones. Inténtalo de nuevo."
+    },
+    "SELECTOR": {
+      "BUTTON": "Ubicación",
+      "ACTION": "Ubicación",
+      "TOOLTIP": "Enviar una ubicación",
+      "TITLE": "Enviar una ubicación",
+      "CURRENT_LOCATION": "Ubicación actual",
+      "CURRENT_LOCATION_HINT": "Comparte tu posición actual usando el navegador",
+      "SEND_SUCCESS": "Ubicación enviada",
+      "SEND_ERROR": "No se pudo enviar la ubicación. Inténtalo de nuevo.",
+      "PERMISSION_DENIED": "No se pudo obtener tu ubicación. Permite el acceso a la ubicación en tu navegador e inténtalo de nuevo.",
+      "UNSUPPORTED": "Tu navegador no admite geolocalización.",
+      "EMPTY_SAVED": "No hay ubicaciones guardadas. Agrégalas en la configuración de la bandeja."
+    }
+  }
+}
