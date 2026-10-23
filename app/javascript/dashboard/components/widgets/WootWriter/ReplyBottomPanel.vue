@@ -96,6 +96,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    enableWhatsappLocation: {
+      type: Boolean,
+      default: false,
+    },
     conversationId: {
       type: Number,
       required: true,
@@ -140,6 +144,7 @@ export default {
     'selectContentTemplate',
     'toggleQuotedReply',
     'selectCatalog',
+    'selectLocation',
     'requestContactInfoTemplate',
     'openMacros',
   ],
@@ -271,6 +276,14 @@ export default {
           label: this.$t('CATALOG.BUTTON'),
           disabled: this.isEditorDisabled,
           action: () => this.$emit('selectCatalog'),
+        },
+        {
+          key: 'location',
+          show: this.enableWhatsappLocation,
+          icon: 'i-lucide-map-pin',
+          label: this.$t('WHATSAPP_LOCATIONS.SELECTOR.ACTION'),
+          disabled: this.isEditorDisabled,
+          action: () => this.$emit('selectLocation'),
         },
       ].filter(item => item.show);
     },
@@ -535,6 +548,17 @@ export default {
         sm
         :disabled="isEditorDisabled"
         @click="$emit('selectCatalog')"
+      />
+      <NextButton
+        v-if="enableWhatsappLocation"
+        v-tooltip.top-end="$t('WHATSAPP_LOCATIONS.SELECTOR.TOOLTIP')"
+        class="max-sm:hidden"
+        icon="i-lucide-map-pin"
+        slate
+        faded
+        sm
+        :disabled="isEditorDisabled"
+        @click="$emit('selectLocation')"
       />
       <NextButton
         v-if="enableContentTemplates"

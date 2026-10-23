@@ -52,7 +52,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: en un inbox WhatsApp Cloud, el administrador ve la pestaña, agrega, edita y borra ubicaciones (nombre, dirección, latitud, longitud, con validación de rango) y al guardar la lista persiste tras recargar; el formulario es usable a 375 px
   - commit: `feat(whatsapp): manage saved locations from the inbox settings`
 
-- [ ] **9 · Selector de ubicaciones en el compositor**
+- [x] **9 · Selector de ubicaciones en el compositor**
   - archivos: `app/javascript/dashboard/components-next/whatsapp-location/LocationPicker.vue`, `app/javascript/dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue`, `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue`
   - depende de: 7
   - listo cuando: en un inbox WhatsApp Cloud aparece la acción "Ubicación" en el menú "+" móvil y en la barra desktop (también sin ubicaciones guardadas, porque "Ubicación actual" siempre está); abre una hoja inferior (móvil) o modal (desktop) cuya primera fila es "Ubicación actual" y debajo cada ubicación guardada (nombre y dirección debajo); tocar "Ubicación actual" pide permiso al navegador, y si lo concede envía de inmediato las coordenadas capturadas, y si lo niega o falla muestra una alerta sin enviar; tocar una guardada envía, cierra el selector y el mensaje aparece en la conversación; mientras se captura o envía la fila queda deshabilitada (sin doble envío); cerrar tocando el fondo no deja pasar el clic a lo de abajo (convención de overlays del fork)
