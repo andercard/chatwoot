@@ -25,14 +25,17 @@ const metaCustomTools = {
 
 const metaV2 = {
   permissions: ['administrator', 'agent'],
-  featureFlag: FEATURE_FLAGS.CAPTAIN_V2,
+  featureFlag: FEATURE_FLAGS.CAPTAIN,
   installationTypes: [INSTALLATION_TYPES.CLOUD, INSTALLATION_TYPES.ENTERPRISE],
 };
 
 const assistantRoutes = [
   {
     path: frontendURL('accounts/:accountId/captain/:assistantId/overview'),
-    component: () => import('./assistants/overview/Index.vue'),
+    component: () =>
+      import(
+        'dashboard/components-next/captain/pageComponents/overview/v2/OverviewV2.vue'
+      ),
     name: 'captain_assistants_overview_index',
     meta,
   },
@@ -55,6 +58,18 @@ const assistantRoutes = [
     meta: metaCustomTools,
   },
   {
+    path: frontendURL('accounts/:accountId/captain/:assistantId/tools/explore'),
+    component: () => import('./tools/Explore.vue'),
+    name: 'captain_tools_explore',
+    meta: metaCustomTools,
+  },
+  {
+    path: frontendURL('accounts/:accountId/captain/toolsets/install'),
+    component: () => import('./tools/Install.vue'),
+    name: 'captain_toolset_install',
+    meta: { ...metaCustomTools, permissions: ['administrator'] },
+  },
+  {
     path: frontendURL('accounts/:accountId/captain/:assistantId/scenarios'),
     component: () => import('./assistants/scenarios/Index.vue'),
     name: 'captain_assistants_scenarios_index',
@@ -64,7 +79,7 @@ const assistantRoutes = [
     path: frontendURL('accounts/:accountId/captain/:assistantId/playground'),
     component: () => import('./assistants/playground/Index.vue'),
     name: 'captain_assistants_playground_index',
-    meta,
+    meta: metaV2,
   },
   {
     path: frontendURL('accounts/:accountId/captain/:assistantId/inboxes'),

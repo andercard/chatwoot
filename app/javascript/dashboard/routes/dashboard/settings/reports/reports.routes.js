@@ -1,9 +1,16 @@
-import { frontendURL } from '../../../../helper/URLHelper';
+import { INSTALLATION_TYPES } from 'dashboard/constants/installationTypes';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { frontendURL } from '../../../../helper/URLHelper';
 
 const meta = {
   featureFlag: FEATURE_FLAGS.REPORTS,
   permissions: ['administrator', 'report_manage'],
+};
+
+const monitorsMeta = {
+  ...meta,
+  featureFlag: FEATURE_FLAGS.CONVERSATION_MONITORS,
+  installationTypes: [INSTALLATION_TYPES.ENTERPRISE, INSTALLATION_TYPES.CLOUD],
 };
 
 const oldReportRoutes = [
@@ -88,9 +95,21 @@ const revisedReportRoutes = [
 export default {
   routes: [
     {
+      path: frontendURL('accounts/:accountId/reports/monitors'),
+      name: 'monitor_reports_index',
+      meta: monitorsMeta,
+      component: () => import('./monitors/MonitorsIndex.vue'),
+    },
+    {
       path: frontendURL('accounts/:accountId/reports'),
       component: () => import('./components/ReportsWrapper.vue'),
       children: [
+        {
+          path: 'monitors/:monitorId',
+          name: 'monitor_reports_show',
+          meta: monitorsMeta,
+          component: () => import('./monitors/MonitorShow.vue'),
+        },
         {
           path: '',
           redirect: to => {

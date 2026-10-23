@@ -4,10 +4,12 @@ import LoadingState from './components/widgets/LoadingState.vue';
 import NetworkNotification from './components/NetworkNotification.vue';
 import UpdateBanner from './components/app/UpdateBanner.vue';
 import PicnicUpdateBanner from './components-next/update-banner/PicnicUpdateBanner.vue';
+import ImpersonationBanner from './components/app/ImpersonationBanner.vue';
 import StatusBanner from './components/app/StatusBanner.vue';
 import PaymentPendingBanner from './components/app/PaymentPendingBanner.vue';
 import PendingEmailVerificationBanner from './components/app/PendingEmailVerificationBanner.vue';
 import LowBackupCodesBanner from './components/app/LowBackupCodesBanner.vue';
+import FeatureAnnouncement from './components-next/feature-announcement/FeatureAnnouncement.vue';
 import vueActionCable from './helper/actionCable';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -31,6 +33,7 @@ export default {
   components: {
     LoadingState,
     NetworkNotification,
+    ImpersonationBanner,
     UpdateBanner,
     PicnicUpdateBanner,
     StatusBanner,
@@ -38,6 +41,7 @@ export default {
     WootSnackbarBox,
     PendingEmailVerificationBanner,
     LowBackupCodesBanner,
+    FeatureAnnouncement,
   },
   setup() {
     const router = useRouter();
@@ -160,6 +164,7 @@ export default {
     class="flex flex-col w-full h-screen min-h-0 overflow-hidden overscroll-none bg-n-background"
     :dir="isRTL ? 'rtl' : 'ltr'"
   >
+    <ImpersonationBanner />
     <UpdateBanner :latest-chatwoot-version="latestChatwootVersion" />
     <PicnicUpdateBanner
       :installed-release="picnicRelease"
@@ -170,6 +175,7 @@ export default {
       <PendingEmailVerificationBanner v-if="hideOnOnboardingView" />
       <PaymentPendingBanner v-if="hideOnOnboardingView" />
       <LowBackupCodesBanner v-if="hideOnOnboardingView" />
+      <FeatureAnnouncement v-if="hideOnOnboardingView" />
     </template>
     <router-view v-slot="{ Component }">
       <transition name="fade" mode="out-in">

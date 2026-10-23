@@ -50,20 +50,26 @@ const campaignsRoutes = {
         {
           path: 'whatsapp',
           name: 'campaigns_whatsapp_index',
-          meta: {
-            ...meta,
-            featureFlag: FEATURE_FLAGS.WHATSAPP_CAMPAIGNS,
-          },
+          meta,
           component: () => import('./pages/WhatsAppCampaignsPage.vue'),
+        },
+        {
+          path: 'whatsapp/new',
+          name: 'campaigns_whatsapp_new',
+          meta,
+          component: () => import('./pages/WhatsAppCampaignFormPage.vue'),
         },
         {
           path: 'whatsapp/:campaignId/analytics',
           name: 'campaigns_whatsapp_analytics',
-          meta: {
-            ...meta,
-            featureFlag: FEATURE_FLAGS.WHATSAPP_CAMPAIGNS,
-          },
+          meta,
           component: () => import('./pages/WhatsAppCampaignAnalyticsPage.vue'),
+        },
+        {
+          path: 'whatsapp/:campaignId',
+          name: 'campaigns_whatsapp_edit',
+          meta,
+          component: () => import('./pages/WhatsAppCampaignFormPage.vue'),
         },
       ],
     },
