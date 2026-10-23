@@ -46,7 +46,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: los dos clientes siguen el patrón de `api/whatsappCatalogMessages.js` y las claves `WHATSAPP_LOCATIONS.*` (pestaña, formulario, selector, errores) existen en `en` y `es` y quedan registradas en el índice de cada idioma
   - commit: `feat(whatsapp): api clients and translations for saved locations`
 
-- [ ] **8 · Pestaña "Ubicaciones" en ajustes del inbox**
+- [x] **8 · Pestaña "Ubicaciones" en ajustes del inbox**
   - archivos: `app/javascript/dashboard/routes/dashboard/settings/inbox/settingsPage/WhatsappLocationsPage.vue`, `app/javascript/dashboard/routes/dashboard/settings/inbox/Settings.vue`, `app/javascript/dashboard/i18n/locale/en/inboxMgmt.json`, `app/javascript/dashboard/i18n/locale/es/inboxMgmt.json`
   - depende de: 7
   - listo cuando: en un inbox WhatsApp Cloud, el administrador ve la pestaña, agrega, edita y borra ubicaciones (nombre, dirección, latitud, longitud, con validación de rango) y al guardar la lista persiste tras recargar; el formulario es usable a 375 px
