@@ -16,7 +16,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - nota: al ejecutar, `Banner.vue` ya traía `min-h-12` (el cambio entró en `picnic.12` por squash); el cherry-pick quedó vacío y se omitió. Sin commit.
   - commit: ninguno (ya estaba en la base)
 
-- [ ] **3 · Filtro "Mensajes" con Leídos / No leídos**
+- [x] **3 · Filtro "Mensajes" con Leídos / No leídos**
   - archivos: `app/javascript/dashboard/components-next/filter/provider.js`, `app/javascript/dashboard/components-next/filter/ConditionRow.vue`, `app/javascript/dashboard/i18n/locale/en/advancedFilters.json`, `app/javascript/dashboard/i18n/locale/es/advancedFilters.json`, `app/javascript/dashboard/components-next/filter/specs/` (solo los specs que dejen de pasar)
   - depende de: ninguna
   - listo cuando: el atributo se llama "Mensajes" / "Messages"; el selector de valor ofrece "No leídos" y "Leídos" (o *Unread/Read*) en lugar de Verdadero/Falso; el payload sigue enviando `unread` con `true` (no leídos) / `false` (leídos); las opciones personalizadas del tipo se toman de la definición del filtro (`options`) y los demás `booleanSelect` (atributos personalizados tipo checkbox) siguen mostrando Verdadero/Falso
