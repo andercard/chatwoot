@@ -53,6 +53,11 @@ import ContextMenu from 'dashboard/modules/conversations/components/MessageConte
 import { useBranding } from 'shared/composables/useBranding';
 import { useTranslations } from 'dashboard/composables/useTranslations';
 import {
+  TRANSLATION_PROVIDERS,
+  translationProvider,
+} from 'dashboard/helper/translationProvider';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import {
   useSwipeGesture,
   OPEN_RATIO,
 } from 'dashboard/composables/useSwipeGesture';
@@ -167,11 +172,27 @@ const inbox = computed(() => inboxGetter.value(props.inboxId) || {});
 const store = useStore();
 const appIntegrations = useMapGetter('integrations/getAppIntegrations');
 const integrationUIFlags = useMapGetter('integrations/getUIFlags');
-const isTranslateEnabled = computed(
-  () =>
-    !!store.getters['integrations/getIntegration']('google_translate').hooks
-      ?.length
+const currentAccountId = useMapGetter('getCurrentAccountId');
+const accountGetter = useMapGetter('accounts/getAccount');
+const isFeatureEnabledonAccount = useMapGetter(
+  'accounts/isFeatureEnabledonAccount'
 );
+// Hide Translate when the account's provider has nothing behind it:
+// Google needs its integration connected, Captain needs the captain_tasks feature
+const isTranslateEnabled = computed(() => {
+  const accountId = currentAccountId.value;
+  const provider = translationProvider(
+    accountGetter.value(accountId)?.settings
+  );
+  if (provider === TRANSLATION_PROVIDERS.GOOGLE) {
+    return !!store.getters['integrations/getIntegration']('google_translate')
+      .hooks?.length;
+  }
+  return isFeatureEnabledonAccount.value(
+    accountId,
+    FEATURE_FLAGS.CAPTAIN_TASKS
+  );
+});
 const isOnChatwootCloud = useMapGetter('globalConfig/isOnChatwootCloud');
 const { replaceInstallationName } = useBranding();
 const autoTranslate = useMapGetter('getAutoTranslate');
