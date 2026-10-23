@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
@@ -37,22 +37,25 @@ watch(
   }
 );
 
-const inRange = (value, limit) => {
-  const number = Number(value);
-  return value.trim() !== '' && Math.abs(number) <= limit;
-};
+const text = value =>
+  value == null || Number.isNaN(value) ? '' : String(value).trim();
+
+const isCoordinate = (value, limit) =>
+  value !== '' && Math.abs(Number(value)) <= limit;
 
 const validateRow = row => {
   const required = t('WHATSAPP_LOCATIONS.FORM.ERRORS.REQUIRED');
   const result = {};
-  if (!row.name.trim()) result.name = required;
-  if (!row.address.trim()) result.address = required;
-  if (!row.latitude.trim()) result.latitude = required;
-  else if (!inRange(row.latitude, 90)) {
+  const latitude = text(row.latitude);
+  const longitude = text(row.longitude);
+  if (!text(row.name)) result.name = required;
+  if (!text(row.address)) result.address = required;
+  if (!latitude) result.latitude = required;
+  else if (!isCoordinate(latitude, 90)) {
     result.latitude = t('WHATSAPP_LOCATIONS.FORM.ERRORS.LATITUDE_RANGE');
   }
-  if (!row.longitude.trim()) result.longitude = required;
-  else if (!inRange(row.longitude, 180)) {
+  if (!longitude) result.longitude = required;
+  else if (!isCoordinate(longitude, 180)) {
     result.longitude = t('WHATSAPP_LOCATIONS.FORM.ERRORS.LONGITUDE_RANGE');
   }
   return result;
@@ -79,24 +82,47 @@ const save = async () => {
       props.inbox.id,
       rows.value.map(row => ({
         ...(row.id && { id: row.id }),
-        name: row.name.trim(),
-        address: row.address.trim(),
-        latitude: Number(row.latitude),
-        longitude: Number(row.longitude),
+        name: text(row.name),
+        address: text(row.address),
+        latitude: Number(text(row.latitude)),
+        longitude: Number(text(row.longitude)),
       }))
     );
     await store.dispatch('inboxes/get', props.inbox.id);
     useAlert(t('WHATSAPP_LOCATIONS.API.SAVE_SUCCESS'));
   } catch (error) {
     useAlert(
-      error?.response?.data?.message || t('WHATSAPP_LOCATIONS.API.SAVE_ERROR')
+      error?.response?.data?.error || t('WHATSAPP_LOCATIONS.API.SAVE_ERROR')
     );
   } finally {
     isSaving.value = false;
   }
 };
 
-const fields = ['name', 'address', 'latitude', 'longitude'];
+const fields = computed(() => [
+  {
+    key: 'name',
+    label: t('WHATSAPP_LOCATIONS.FORM.NAME.LABEL'),
+    placeholder: t('WHATSAPP_LOCATIONS.FORM.NAME.PLACEHOLDER'),
+  },
+  {
+    key: 'address',
+    label: t('WHATSAPP_LOCATIONS.FORM.ADDRESS.LABEL'),
+    placeholder: t('WHATSAPP_LOCATIONS.FORM.ADDRESS.PLACEHOLDER'),
+  },
+  {
+    key: 'latitude',
+    label: t('WHATSAPP_LOCATIONS.FORM.LATITUDE.LABEL'),
+    placeholder: t('WHATSAPP_LOCATIONS.FORM.LATITUDE.PLACEHOLDER'),
+    inputmode: 'decimal',
+  },
+  {
+    key: 'longitude',
+    label: t('WHATSAPP_LOCATIONS.FORM.LONGITUDE.LABEL'),
+    placeholder: t('WHATSAPP_LOCATIONS.FORM.LONGITUDE.PLACEHOLDER'),
+    inputmode: 'decimal',
+  },
+]);
 </script>
 
 <template>
@@ -120,15 +146,14 @@ const fields = ['name', 'address', 'latitude', 'longitude'];
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Input
           v-for="field in fields"
-          :key="field"
-          v-model="row[field]"
-          :label="t(`WHATSAPP_LOCATIONS.FORM.${field.toUpperCase()}.LABEL`)"
-          :placeholder="
-            t(`WHATSAPP_LOCATIONS.FORM.${field.toUpperCase()}.PLACEHOLDER`)
-          "
-          :type="field === 'name' || field === 'address' ? 'text' : 'number'"
-          :message="errors[index]?.[field] || ''"
-          :message-type="errors[index]?.[field] ? 'error' : 'info'"
+          :key="field.key"
+          v-model="row[field.key]"
+          :label="field.label"
+          :placeholder="field.placeholder"
+          type="text"
+          :inputmode="field.inputmode"
+          :message="errors[index]?.[field.key] || ''"
+          :message-type="errors[index]?.[field.key] ? 'error' : 'info'"
         />
       </div>
       <div class="flex justify-end">
