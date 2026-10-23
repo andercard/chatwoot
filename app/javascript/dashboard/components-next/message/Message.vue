@@ -518,7 +518,15 @@ const { offsetX, isSwiping, handlers } = useSwipeGesture({
   },
 });
 
-const swipeHandlers = computed(() => (canReplyTo.value ? handlers : {}));
+// Horizontal scrollers need native pan-x, which swipe-to-reply would block.
+const hasHorizontalScroller = computed(
+  () => props.contentAttributes?.whatsappCatalog?.kind === 'carousel'
+);
+const canSwipeToReply = computed(
+  () => canReplyTo.value && !hasHorizontalScroller.value
+);
+
+const swipeHandlers = computed(() => (canSwipeToReply.value ? handlers : {}));
 
 const swipeStyle = computed(() =>
   offsetX.value ? { transform: `translateX(${offsetX.value}px)` } : {}
@@ -656,7 +664,7 @@ provideMessageContext({
       <div
         class="[grid-area:bubble] flex min-w-0 group/bubble"
         :class="{
-          'touch-pan-y': canReplyTo,
+          'touch-pan-y': canSwipeToReply,
           'transition-transform duration-200': !isSwiping,
           'ltr:ml-8 rtl:mr-8 justify-end': orientation === ORIENTATION.RIGHT,
           'ltr:mr-8 rtl:ml-8': orientation === ORIENTATION.LEFT,

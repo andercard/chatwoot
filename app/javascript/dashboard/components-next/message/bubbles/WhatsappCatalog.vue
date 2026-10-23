@@ -99,6 +99,7 @@ const onSheetClose = () => {
         v-if="!isList"
         class="flex gap-2 max-w-full pb-1 overflow-x-auto snap-x snap-mandatory"
         data-test-id="catalog-cards"
+        data-no-swipe
       >
         <div
           v-for="item in items"
