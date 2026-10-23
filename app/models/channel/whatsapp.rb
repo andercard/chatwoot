@@ -45,7 +45,7 @@ class Channel::Whatsapp < ApplicationRecord
 
   validates :provider, inclusion: { in: PROVIDERS }
   validates :phone_number, presence: true, uniqueness: true
-  validate :validate_provider_config, unless: -> { persisted? && changed == ['locations'] }
+  validate :validate_provider_config, unless: -> { persisted? && (changed - ['locations']).empty? }
   validate :validate_locations
 
   after_create :sync_templates
@@ -161,7 +161,7 @@ class Channel::Whatsapp < ApplicationRecord
   def send_location_message(identifier, message)
     raise NotImplementedError, 'Location messages require a WhatsApp Cloud provider' unless provider == 'whatsapp_cloud'
 
-    provider_service.send_location_message(identifier, message)
+    Whatsapp::Providers::WhatsappCloudLocationService.perform(self, identifier, message)
   end
 
   def setup_webhooks(is_coexistence: nil)
