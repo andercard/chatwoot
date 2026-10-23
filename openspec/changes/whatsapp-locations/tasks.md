@@ -22,7 +22,7 @@ El diff desde `Base` incluye este `proposal.md` y su `tasks.md`: son el cambio, 
   - listo cuando: el atributo se llama "Mensajes" / "Messages"; el selector de valor ofrece "No leídos" y "Leídos" (o *Unread/Read*) en lugar de Verdadero/Falso; el payload sigue enviando `unread` con `true` (no leídos) / `false` (leídos); las opciones personalizadas del tipo se toman de la definición del filtro (`options`) y los demás `booleanSelect` (atributos personalizados tipo checkbox) siguen mostrando Verdadero/Falso
   - commit: `feat(filters): filter messages by read or unread instead of true or false`
 
-- [ ] **4 · Columna y modelo de ubicaciones**
+- [x] **4 · Columna y modelo de ubicaciones**
   - archivos: `db/migrate/<timestamp>_add_locations_to_channel_whatsapp.rb`, `db/schema.rb`, `app/models/channel/whatsapp.rb`, `app/views/api/v1/models/_inbox.json.jbuilder`
   - depende de: ninguna
   - listo cuando: `channel_whatsapp.locations` es jsonb `default: []`; el modelo valida la lista (máx. 50; cada ítem con `id`, `name`, `address`, `latitude`, `longitude` dentro de rango) y el inbox serializa `locations` para todos los agentes cuando es WhatsApp; la migración corre y revierte limpia

@@ -4,6 +4,7 @@
 #
 #  id                             :bigint           not null, primary key
 #  business_management_token      :text
+#  locations                      :jsonb            default([])
 #  message_templates              :jsonb
 #  message_templates_last_updated :datetime
 #  phone_number                   :string           not null
@@ -32,11 +33,20 @@ class Channel::Whatsapp < ApplicationRecord
 
   # default at the moment is 360dialog lets change later.
   PROVIDERS = %w[default whatsapp_cloud].freeze
+  MAX_LOCATIONS = 50
+  LOCATION_RULES = {
+    'id' => ['an id', ->(value) { value.is_a?(String) && value.present? }],
+    'name' => ['a name of up to 100 characters', ->(value) { value.is_a?(String) && value.present? && value.size <= 100 }],
+    'address' => ['an address of up to 300 characters', ->(value) { value.is_a?(String) && value.present? && value.size <= 300 }],
+    'latitude' => ['a latitude between -90 and 90', ->(value) { value.is_a?(Numeric) && value.between?(-90, 90) }],
+    'longitude' => ['a longitude between -180 and 180', ->(value) { value.is_a?(Numeric) && value.between?(-180, 180) }]
+  }.freeze
   before_validation :ensure_webhook_verify_token
 
   validates :provider, inclusion: { in: PROVIDERS }
   validates :phone_number, presence: true, uniqueness: true
   validate :validate_provider_config
+  validate :validate_locations
 
   after_create :sync_templates
   after_update_commit :log_credentials_transfer, if: :saved_change_to_provider_config?
@@ -163,6 +173,25 @@ class Channel::Whatsapp < ApplicationRecord
 
   def validate_provider_config
     errors.add(:provider_config, 'Invalid Credentials') unless provider_service.validate_provider_config?
+  end
+
+  def validate_locations
+    return errors.add(:locations, 'must be a list') unless locations.is_a?(Array)
+    return errors.add(:locations, "can't have more than #{MAX_LOCATIONS} items") if locations.size > MAX_LOCATIONS
+
+    locations.each_with_index do |location, index|
+      error = location_error(location)
+      errors.add(:locations, "item #{index + 1} #{error}") if error
+    end
+  end
+
+  def location_error(location)
+    return 'must be an object' unless location.is_a?(Hash)
+
+    LOCATION_RULES.each do |key, (description, valid)|
+      return "must have #{description}" unless valid.call(location[key])
+    end
+    nil
   end
 
   # Logs only the embedded signup → manual migration (the save drops the
