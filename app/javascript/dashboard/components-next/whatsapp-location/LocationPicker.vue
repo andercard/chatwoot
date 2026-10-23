@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useStore } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import whatsappLocationMessages from 'dashboard/api/whatsappLocationMessages';
 import CatalogSheet from 'dashboard/components-next/whatsapp-catalog/CatalogSheet.vue';
@@ -15,22 +16,29 @@ const props = defineProps({
 const emit = defineEmits(['update:show', 'sent']);
 
 const { t } = useI18n();
+const store = useStore();
 
 const isBusy = ref(false);
+let captureToken = 0;
 
 const close = () => emit('update:show', false);
 
 watch(
-  () => props.show,
-  show => {
+  () => [props.show, props.conversationId],
+  ([show]) => {
+    captureToken += 1;
     if (!show) isBusy.value = false;
   }
 );
 
-const send = async payload => {
+const send = async (payload, conversationId = props.conversationId) => {
   isBusy.value = true;
   try {
-    await whatsappLocationMessages.create(props.conversationId, payload);
+    const { data } = await whatsappLocationMessages.create(
+      conversationId,
+      payload
+    );
+    store.dispatch('addMessage', data);
     useAlert(t('WHATSAPP_LOCATIONS.SELECTOR.SEND_SUCCESS'));
     emit('sent');
     close();
@@ -57,10 +65,18 @@ const sendCurrent = () => {
     return;
   }
   isBusy.value = true;
+  const { conversationId } = props;
+  const token = captureToken;
   navigator.geolocation.getCurrentPosition(
-    ({ coords }) =>
-      send({ latitude: coords.latitude, longitude: coords.longitude }),
+    ({ coords }) => {
+      if (token !== captureToken) return;
+      send(
+        { latitude: coords.latitude, longitude: coords.longitude },
+        conversationId
+      );
+    },
     () => {
+      if (token !== captureToken) return;
       isBusy.value = false;
       useAlert(t('WHATSAPP_LOCATIONS.SELECTOR.PERMISSION_DENIED'));
     }

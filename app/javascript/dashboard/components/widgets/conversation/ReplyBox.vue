@@ -249,7 +249,11 @@ export default {
       return this.isAWhatsAppCloudChannel && !this.isPrivate;
     },
     showWhatsappLocation() {
-      return this.isAWhatsAppCloudChannel && !this.isPrivate;
+      return (
+        this.isAWhatsAppCloudChannel &&
+        !this.isPrivate &&
+        !!this.currentChat?.can_reply
+      );
     },
     whatsappCatalogLink() {
       const digits = (this.inbox.phone_number || '').replace(/\D/g, '');

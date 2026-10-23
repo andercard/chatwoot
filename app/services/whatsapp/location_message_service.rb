@@ -4,6 +4,8 @@ class Whatsapp::LocationMessageService
   pattr_initialize [:conversation!, :sender!, :params!]
 
   def perform
+    raise Error, I18n.t('errors.whatsapp.location.outside_reply_window') unless conversation.can_reply?
+
     location = params[:location_id].present? ? saved_location : current_location
     content = location_content(location)
 
