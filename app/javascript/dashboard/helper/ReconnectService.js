@@ -204,6 +204,9 @@ class ReconnectService {
   // Real websocket reconnect: always runs the full refresh, bypassing the
   // dedupe window. Only a second reconnect while one is in flight reuses it.
   onReconnect = async () => {
+    // A billing change while the cable was down loses its account.billing_updated
+    // broadcast, and the focus listener never fires if the tab stayed focused.
+    await this.store.dispatch('accounts/get', { silent: true });
     this.reconnectRefresh ??= this.runRefresh().finally(() => {
       this.reconnectRefresh = null;
     });

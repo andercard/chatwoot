@@ -15,6 +15,8 @@ const props = defineProps({
   containerHeight: { type: Number, default: 0 },
 });
 
+const emit = defineEmits(['collapse']);
+
 const DEFAULT_HEIGHT = 120;
 const MIN_HEIGHT = 80;
 const MIN_MESSAGES_HEIGHT = 200;
@@ -22,6 +24,7 @@ const EXPAND_RATIO = 0.5;
 const RESET_DELAY_MS = 120;
 // On phones the bar grows once there is text, or content taller than this (px)
 const SINGLE_LINE_MAX_PX = 30;
+const COLLAPSE_DISTANCE = 48;
 
 const wrapperRef = useTemplateRef('wrapperRef');
 const surroundingHeight = ref(0);
@@ -31,6 +34,7 @@ const startY = ref(0);
 const startHeight = ref(0);
 const requestedHeight = ref(0);
 const hasMultipleLines = ref(false);
+const collapseProgress = ref(0);
 let resetTimeoutId = null;
 let contentObserver = null;
 let sizeObserver = null;
@@ -103,18 +107,30 @@ const onResizeStart = event => {
   });
 };
 
-const onResizeMove = event => {
-  if (!isResizing.value) return;
-  if (event.touches) event.preventDefault();
-  editorHeight.value = clampToBounds(
-    startHeight.value + startY.value - getClientY(event)
-  );
-};
-
 const onResizeEnd = () => {
   if (!isResizing.value) return;
   isResizing.value = false;
+  collapseProgress.value = 0;
   clearDragStyles();
+};
+
+const collapseEditor = () => {
+  onResizeEnd();
+  editorHeight.value = sizeBounds.value.default;
+  emit('collapse');
+};
+
+const onResizeMove = event => {
+  if (!isResizing.value) return;
+  if (event.touches) event.preventDefault();
+  const draggedHeight = startHeight.value + startY.value - getClientY(event);
+  editorHeight.value = clampToBounds(draggedHeight);
+  collapseProgress.value = clamp(
+    (sizeBounds.value.min - draggedHeight) / COLLAPSE_DISTANCE,
+    0,
+    1
+  );
+  if (collapseProgress.value === 1) collapseEditor();
 };
 
 const resetEditorHeight = () => {
@@ -190,7 +206,7 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
 <template>
   <div
     ref="wrapperRef"
-    class="relative resizable-editor-wrapper group/wrapper max-sm:[&_.resizable-editor-body]:[interpolate-size:allow-keywords] max-sm:[&:not([data-expanded])_.resizable-editor-body]:!h-auto max-sm:[&:not([data-expanded])_.resizable-editor-body]:!min-h-[1.3125rem] max-sm:[&:not([data-expanded])_.resizable-editor-body]:!max-h-28 max-sm:[&:not([data-expanded])_.resizable-editor-body_p]:!my-0 max-sm:[&:not([data-expanded])_.resizable-editor-body_p:last-child]:!mb-0"
+    class="relative resizable-editor-wrapper group/wrapper max-sm:[&_.resizable-editor-body]:[interpolate-size:allow-keywords] max-sm:[&:not([data-expanded])_.resizable-editor-split]:!h-auto max-sm:[&:not([data-expanded])_.resizable-editor-split_.editor-mount]:!min-h-0 max-sm:[&:not([data-expanded])_.resizable-editor-body]:!h-auto max-sm:[&:not([data-expanded])_.resizable-editor-body]:!min-h-[1.3125rem] max-sm:[&:not([data-expanded])_.resizable-editor-body]:!max-h-28 max-sm:[&:not([data-expanded])_.resizable-editor-body_p]:!my-0 max-sm:[&:not([data-expanded])_.resizable-editor-body_p:last-child]:!mb-0"
     :data-expanded="isExpanded || undefined"
     :data-grown="(hasMultipleLines && !isExpanded) || undefined"
     :style="{
@@ -200,6 +216,7 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
       '--editor-height-transition': isResizing
         ? '0s'
         : '200ms cubic-bezier(0.4, 0, 0.2, 1)',
+      '--editor-collapse-progress': collapseProgress,
     }"
   >
     <div
@@ -210,10 +227,22 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
     >
       <div
         class="w-8 h-0.5 mt-1 rounded-full bg-n-slate-6 group-hover:bg-n-slate-8 transition-all duration-200 motion-safe:group-hover:animate-bounce"
-        :class="{ 'bg-n-slate-8 animate-bounce': isResizing }"
+        :class="{
+          'bg-n-slate-8 animate-bounce': isResizing,
+          '!bg-n-brand w-12': collapseProgress > 0,
+        }"
       />
     </div>
-    <slot />
+    <div
+      class="transition-[opacity,transform] ease-out"
+      :class="[
+        isResizing ? 'duration-0' : 'duration-200',
+        collapseProgress > 0 &&
+          'opacity-[calc(1_-_var(--editor-collapse-progress)_*_0.6)] translate-y-[calc(var(--editor-collapse-progress)_*_0.75rem)]',
+      ]"
+    >
+      <slot />
+    </div>
   </div>
 </template>
 
@@ -230,6 +259,34 @@ defineExpose({ toggleEditorExpand, resetEditorHeight });
     transition:
       height var(--editor-height-transition),
       opacity var(--editor-height-transition);
+  }
+
+  // Shares the resizable height between the editor and its footer-slot
+  // content (e.g. the quoted email preview); the 3rem floor keeps the
+  // editor usable at the minimum allowed height.
+  .resizable-editor-split {
+    @apply flex min-h-0 flex-col;
+
+    height: clamp(
+      var(--editor-min-allowed, 5rem),
+      var(--editor-height, 5rem),
+      var(--editor-max-allowed, 7.5rem)
+    );
+    transition: height var(--editor-height-transition);
+
+    .editor-mount {
+      @apply flex min-h-[3rem] flex-1 flex-col;
+    }
+
+    .ProseMirror-menubar-wrapper {
+      @apply flex min-h-0 flex-1 flex-col;
+    }
+
+    .resizable-editor-body {
+      @apply min-h-0 flex-1;
+
+      height: auto;
+    }
   }
 }
 </style>

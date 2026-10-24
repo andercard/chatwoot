@@ -107,7 +107,7 @@ const handleDismiss = () => {
         :class="
           isMobile
             ? '!static !w-full max-h-[70dvh]'
-            : 'ltr:-right-2 rtl:-left-2 bottom-8 w-60 max-h-80'
+            : 'end-2 bottom-8 w-60 max-h-80'
         "
         @action="handleSelectTeam"
       >
