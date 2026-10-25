@@ -29,7 +29,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['replace', 'close', 'removeTrigger']);
+const emit = defineEmits(['replace', 'selected', 'close', 'removeTrigger']);
 
 // Characters kept before the match when a snippet has to skip ahead
 const SNIPPET_LEAD = 24;
@@ -79,11 +79,12 @@ const resolveContent = message =>
   );
 
 const records = computed(() =>
-  cannedResponses.value.map(({ id, short_code: shortCode, content }) => {
+  cannedResponses.value.map(({ id, short_code: shortCode, content, files }) => {
     const resolved = resolveContent(content);
     return {
       id,
       content,
+      files: files || [],
       resolved,
       shortCode,
       plainText: getPlainText(resolved).replace(/\s+/g, ' ').trim(),
@@ -104,6 +105,7 @@ const items = computed(() =>
   filteredRecords.value.map(record => ({
     id: record.id,
     content: record.content,
+    files: record.files,
     resolved: record.resolved,
     label: `/${record.shortCode}`,
     title: highlightMatches(record.shortCode),
@@ -111,7 +113,10 @@ const items = computed(() =>
   }))
 );
 
-const onSelect = item => emit('replace', item.content);
+const onSelect = item => {
+  emit('replace', item.content);
+  emit('selected', item);
+};
 
 onMounted(() => store.dispatch('getCannedResponse'));
 </script>
@@ -136,6 +141,25 @@ onMounted(() => store.dispatch('getCannedResponse'));
     @close="emit('close')"
     @remove-trigger="emit('removeTrigger')"
   >
+    <template #trailing="{ item }">
+      <span
+        v-if="item.files.length"
+        class="flex items-center gap-0.5 ms-auto text-label-small text-n-slate-11 shrink-0"
+        :title="
+          t('CONVERSATION.REPLYBOX.QUICK_REPLIES.FILES_COUNT', {
+            count: item.files.length,
+          })
+        "
+        :aria-label="
+          t('CONVERSATION.REPLYBOX.QUICK_REPLIES.FILES_COUNT', {
+            count: item.files.length,
+          })
+        "
+      >
+        <span class="i-lucide-paperclip size-3.5" />
+        {{ item.files.length }}
+      </span>
+    </template>
     <template #preview="{ item }">
       <div
         v-dompurify-html="formatMessage(item?.resolved || '')"

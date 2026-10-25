@@ -97,6 +97,12 @@ const fileName = file => {
         />
         {{ $t('COMPONENTS.MEDIA.HD_BADGE') }}
       </button>
+      <span
+        v-else-if="showHdToggle && attachment.isHd"
+        class="absolute flex items-center px-1.5 text-xs font-medium text-white rounded-md bottom-1 start-1 h-5 bg-n-brand"
+      >
+        {{ $t('COMPONENTS.MEDIA.HD_BADGE') }}
+      </span>
     </div>
   </div>
   <div
@@ -141,6 +147,12 @@ const fileName = file => {
           :disabled="!!attachment.isOptimizing"
           @click="emit('toggleHd', attachment)"
         />
+        <span
+          v-else-if="showHdToggle && attachment.isHd"
+          class="px-1.5 text-xs font-medium text-white rounded-md bg-n-brand h-5 flex items-center"
+        >
+          {{ $t('COMPONENTS.MEDIA.HD_BADGE') }}
+        </span>
         <Button
           ghost
           slate

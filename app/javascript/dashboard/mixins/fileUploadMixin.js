@@ -155,14 +155,18 @@ export default {
       );
     },
 
-    async onFileUpload(file) {
+    // `@input-file` also passes the previous file as a second argument, so only a literal true skips
+    async onFileUpload(file, options) {
       if (!file) return;
+      const skipPreparation = options?.skipPreparation === true;
 
       const context = this.getComposerContext();
       // Keeps Send disabled until the file is attached, including the direct upload
       this.uploadingFiles.push(context);
       try {
-        const prepared = await this.prepareMediaForUpload(file);
+        const prepared = skipPreparation
+          ? file
+          : await this.prepareMediaForUpload(file);
         // The agent may have switched conversation or reply mode while it was prepared
         if (!prepared || !this.isSameComposerContext(context)) return;
 

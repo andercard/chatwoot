@@ -8,6 +8,7 @@
       "FAILED_USING_ORIGINAL": "No pudimos optimizar esta imagen. Se enviará el original.",
       "TOO_LARGE": "No pudimos reducir la imagen lo suficiente para enviarla. Prueba con una imagen más pequeña."
     },
+    "CANNED_FILE_DOWNLOAD_FAILED": "No pudimos cargar {name} de la respuesta rápida.",
     "VIDEO_OPTIMIZATION": {
       "OPTIMIZING": "Optimizando video... {PERCENT}%. Mantén la app abierta.",
       "UNSUPPORTED": "Tu navegador no puede optimizar videos. Prueba con un video más pequeño u otro navegador.",
@@ -346,7 +347,8 @@
       },
       "QUICK_REPLIES": {
         "TITLE": "Respuestas rápidas",
-        "EDIT": "Editar"
+        "EDIT": "Editar",
+        "FILES_COUNT": "Archivos adjuntos: {count}"
       },
       "MOBILE_MENU": {
         "OPEN": "Más opciones",

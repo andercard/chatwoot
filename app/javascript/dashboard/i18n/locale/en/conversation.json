@@ -8,6 +8,7 @@
       "FAILED_USING_ORIGINAL": "We couldn't optimize this image. The original will be sent.",
       "TOO_LARGE": "We couldn't reduce this image enough to send it. Try a smaller image."
     },
+    "CANNED_FILE_DOWNLOAD_FAILED": "We couldn't load {name} from the canned response.",
     "VIDEO_OPTIMIZATION": {
       "OPTIMIZING": "Optimizing video... {PERCENT}%. Keep the app open.",
       "UNSUPPORTED": "Your browser can't optimize videos. Try a smaller video or a different browser.",
@@ -346,7 +347,8 @@
       },
       "QUICK_REPLIES": {
         "TITLE": "Quick replies",
-        "EDIT": "Edit"
+        "EDIT": "Edit",
+        "FILES_COUNT": "Attached files: {count}"
       },
       "MOBILE_MENU": {
         "OPEN": "More options",

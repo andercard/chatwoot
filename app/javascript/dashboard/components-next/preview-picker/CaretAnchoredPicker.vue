@@ -278,6 +278,9 @@ watch(items, () => {
       <template v-if="$slots.leading" #leading="slotProps">
         <slot name="leading" v-bind="slotProps" />
       </template>
+      <template v-if="$slots.trailing" #trailing="slotProps">
+        <slot name="trailing" v-bind="slotProps" />
+      </template>
       <template v-if="$slots.filters" #filters>
         <slot name="filters" />
       </template>

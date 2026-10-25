@@ -398,6 +398,10 @@ const actions = {
     dispatch('sendMessageWithData', pendingMessage);
   },
 
+  // Unlike createPendingMessageAndSend it resolves with the saved message once the request finished
+  createPendingMessageAndWait: ({ dispatch }, data) =>
+    dispatch('sendMessageWithData', createPendingMessage(data)),
+
   sendMessageWithData: async ({ commit }, pendingMessage) => {
     const { conversation_id: conversationId, id } = pendingMessage;
     try {
@@ -416,6 +420,7 @@ const actions = {
         ...response.data,
         status: MESSAGE_STATUS.SENT,
       });
+      return response.data;
     } catch (error) {
       const errorMessage = error.response
         ? error.response.data.error
