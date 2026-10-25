@@ -211,10 +211,16 @@ const onAssignAgent = agent => {
 const showStatusSheet = ref(false);
 const showLabelsSheet = ref(false);
 
-const showAssignMe = computed(() => assignee.value.id !== currentUser.value.id);
+const isAssignedToMe = computed(
+  () => assignee.value.id === currentUser.value.id
+);
 
 const onSwipeAssignMe = () => {
   assignAgent(currentUser.value, [props.source.id]);
+};
+
+const onSwipeUnassign = () => {
+  assignAgent(null, [props.source.id]);
 };
 
 const onStatusSheetUpdate = (status, snoozedUntil) => {
@@ -250,10 +256,11 @@ const swipeProps = computed(() =>
     ? {}
     : {
         hasUnread: props.source.unread_count > 0,
-        showAssignMe: showAssignMe.value,
+        isAssignedToMe: isAssignedToMe.value,
         onMarkUnread: onMarkAsUnread,
         onMarkRead: onMarkAsRead,
         onAssignMe: onSwipeAssignMe,
+        onUnassign: onSwipeUnassign,
         onOpenStatus: () => {
           showStatusSheet.value = true;
         },

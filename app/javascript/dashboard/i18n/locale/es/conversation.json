@@ -300,6 +300,7 @@
       "API": {
         "AGENT_ASSIGNMENT": {
           "SUCCESFUL": "ID de conversación {conversationId} asignado a \"{agentName}\"",
+          "UNASSIGNED": "ID de conversación {conversationId} sin asignar",
           "FAILED": "No se pudo asignar el agente. Por favor, inténtelo de nuevo."
         },
         "LABEL_ASSIGNMENT": {

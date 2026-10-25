@@ -8,13 +8,14 @@ import {
 
 const props = defineProps({
   hasUnread: { type: Boolean, default: false },
-  showAssignMe: { type: Boolean, default: true },
+  isAssignedToMe: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
   'markUnread',
   'markRead',
   'assignMe',
+  'unassign',
   'openStatus',
   'openLabels',
 ]);
@@ -49,8 +50,9 @@ const onToggleRead = () => {
   close();
 };
 
-const onAssignMe = () => {
-  emit('assignMe');
+const onToggleAssignment = () => {
+  if (props.isAssignedToMe) emit('unassign');
+  else emit('assignMe');
   close();
 };
 
@@ -91,15 +93,26 @@ const ACTION_CLASSES =
           }}
         </button>
         <button
-          v-if="showAssignMe"
           type="button"
-          class="bg-n-teal-9"
-          :class="ACTION_CLASSES"
+          :class="[
+            ACTION_CLASSES,
+            isAssignedToMe ? 'bg-n-ruby-9' : 'bg-n-teal-9',
+          ]"
           tabindex="-1"
-          @click="onAssignMe"
+          @click="onToggleAssignment"
         >
-          <span class="i-lucide-user-plus size-5" />
-          {{ t('CHAT_LIST.SWIPE.ASSIGN_ME') }}
+          <span
+            :class="
+              isAssignedToMe
+                ? 'i-lucide-user-minus size-5'
+                : 'i-lucide-user-plus size-5'
+            "
+          />
+          {{
+            isAssignedToMe
+              ? t('CHAT_LIST.SWIPE.UNASSIGN_ME')
+              : t('CHAT_LIST.SWIPE.ASSIGN_ME')
+          }}
         </button>
       </div>
     </div>
