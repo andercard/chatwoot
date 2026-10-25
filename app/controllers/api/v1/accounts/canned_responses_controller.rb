@@ -10,13 +10,11 @@ class Api::V1::Accounts::CannedResponsesController < Api::V1::Accounts::BaseCont
 
   def create
     @canned_response = Current.account.canned_responses.new(canned_response_params)
-    @canned_response.save!
-    sync_files
+    save_with_files { @canned_response.save! }
   end
 
   def update
-    @canned_response.update!(canned_response_params)
-    sync_files
+    save_with_files { @canned_response.update!(canned_response_params) }
   end
 
   def destroy
@@ -43,10 +41,14 @@ class Api::V1::Accounts::CannedResponsesController < Api::V1::Accounts::BaseCont
     I18n.t('errors.canned_responses.file_too_large') if @blobs.any? { |blob| blob.byte_size > max_file_size }
   end
 
-  def sync_files
-    @canned_response.files_attachments.where(id: file_params[:remove_attachment_ids]).find_each(&:purge_later)
-    @canned_response.files.attach(@blobs)
-    # Attaching or purging files alone does not fire the record's after_commit that refreshes the cached list
+  # One transaction so the cache invalidation (after_commit) never reaches the dashboard before the files exist
+  def save_with_files
+    ActiveRecord::Base.transaction do
+      yield
+      @canned_response.files_attachments.where(id: file_params[:remove_attachment_ids]).find_each(&:destroy)
+      @canned_response.files.attach(@blobs)
+    end
+    # Changing files alone does not fire the record's own after_commit
     @canned_response.update_account_cache
   end
 
