@@ -65,17 +65,26 @@ export function useBulkActions() {
         type: 'Conversation',
         ids: conversationId || selectedConversations.value,
         fields: {
-          assignee_id: agent.id,
+          assignee_id: agent?.id ?? null,
         },
       });
       store.dispatch('bulkActions/clearSelectedConversationIds');
       if (conversationId) {
-        useAlert(
-          t('CONVERSATION.CARD_CONTEXT_MENU.API.AGENT_ASSIGNMENT.SUCCESFUL', {
-            agentName: agent.name,
-            conversationId,
-          })
-        );
+        if (agent) {
+          useAlert(
+            t('CONVERSATION.CARD_CONTEXT_MENU.API.AGENT_ASSIGNMENT.SUCCESFUL', {
+              agentName: agent.name,
+              conversationId,
+            })
+          );
+        } else {
+          useAlert(
+            t(
+              'CONVERSATION.CARD_CONTEXT_MENU.API.AGENT_ASSIGNMENT.UNASSIGNED',
+              { conversationId }
+            )
+          );
+        }
       } else {
         useAlert(t('BULK_ACTION.ASSIGN_SUCCESFUL'));
       }
