@@ -85,6 +85,7 @@
     "libphonenumber-js": "^1.11.9",
     "markdown-it": "^14.3.2",
     "markdown-it-link-attributes": "^4.0.1",
+    "mediabunny": "1.62.1",
     "mitt": "^3.0.1",
     "ogg-opus-decoder": "1.7.5",
     "opus-recorder": "^8.0.5",
