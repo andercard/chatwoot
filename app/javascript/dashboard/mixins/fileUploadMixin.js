@@ -14,22 +14,54 @@ import {
   imageNeedsOptimization,
   getImageLadder,
   getProfileMaxSide,
+  isOptimizableImageMime,
 } from 'dashboard/helper/imageOptimizationPolicy';
+import {
+  getVideoOptimizationPolicy,
+  getVideoLadder,
+  isOptimizableVideoMime,
+  videoNeedsCodecFix,
+  videoNeedsOptimization,
+} from 'dashboard/helper/videoOptimizationPolicy';
 import {
   optimizeImage,
   getLongestSide,
   ImageOptimizationError,
   IMAGE_OPTIMIZATION_ERRORS,
 } from 'shared/helpers/imageOptimizer';
+import {
+  canEncodeVideoAudio,
+  optimizeVideo,
+  probeVideo,
+  VideoOptimizationError,
+  VIDEO_OPTIMIZATION_ERRORS,
+} from 'shared/helpers/videoOptimizer';
+
+const PERCENT = 100;
 
 export default {
   data() {
-    // Composer contexts with an image being optimized or a file being uploaded
-    return { optimizingImages: [], uploadingFiles: [] };
+    // Composer contexts with an image or video being optimized or a file being uploaded
+    return {
+      optimizingImages: [],
+      optimizingVideos: [],
+      uploadingFiles: [],
+      videoOptimizationProgress: 0,
+      videoOptimizationController: null,
+    };
+  },
+  beforeUnmount() {
+    this.videoOptimizationController?.abort();
   },
   computed: {
     isOptimizingImage() {
       return this.optimizingImages.some(this.isSameComposerContext);
+    },
+    isOptimizingVideo() {
+      return this.optimizingVideos.some(this.isSameComposerContext);
+    },
+    videoOptimizationPercent() {
+      return Math.round(this.videoOptimizationProgress * PERCENT);
     },
     isUploadingFile() {
       return this.uploadingFiles.some(this.isSameComposerContext);
@@ -148,6 +180,105 @@ export default {
       }
     },
 
+    async prepareVideoForUpload(file, profile = 'standard') {
+      const mime = file.file?.type || file.type;
+      if (this.isOnPrivateNote) return file;
+
+      const policy = getVideoOptimizationPolicy({
+        inbox: this.inbox,
+        mime,
+        installationLimit: this.installationLimit,
+      });
+      if (!policy) return file;
+
+      const native = file.file || file;
+      const { size } = native;
+      const fits = size <= policy.limitBytes;
+      const optimizing = this.getComposerContext();
+      const controller = new AbortController();
+      this.optimizingVideos.push(optimizing);
+      this.videoOptimizationProgress = 0;
+      this.videoOptimizationController = controller;
+      let probe;
+      try {
+        try {
+          probe = await probeVideo(native);
+        } catch (error) {
+          useAlert(
+            fits
+              ? this.$t('CONVERSATION.VIDEO_OPTIMIZATION.FAILED_USING_ORIGINAL')
+              : this.$t('CONVERSATION.VIDEO_OPTIMIZATION.FAILED')
+          );
+          return fits ? file : null;
+        }
+
+        if (!videoNeedsOptimization(policy, profile, probe, { size, mime })) {
+          return file;
+        }
+
+        // An original over the channel limit or in a format WhatsApp can't play must never be attached
+        const usableAsIs = fits && !videoNeedsCodecFix(probe, { mime });
+        if (!(await canEncodeVideoAudio())) {
+          useAlert(
+            usableAsIs
+              ? this.$t(
+                  'CONVERSATION.VIDEO_OPTIMIZATION.UNSUPPORTED_USING_ORIGINAL'
+                )
+              : this.$t('CONVERSATION.VIDEO_OPTIMIZATION.UNSUPPORTED')
+          );
+          return usableAsIs ? file : null;
+        }
+
+        try {
+          const optimized = await optimizeVideo(native, {
+            maxBytes: policy.maxBytes,
+            ladder: getVideoLadder(policy, profile),
+            signal: controller.signal,
+            onProgress: progress => {
+              this.videoOptimizationProgress = progress;
+            },
+          });
+          return {
+            ...file,
+            file: optimized.file,
+            name: optimized.file.name,
+            type: optimized.file.type,
+            size: optimized.file.size,
+            originalFile: file.originalFile || file,
+          };
+        } catch (error) {
+          const code =
+            error instanceof VideoOptimizationError
+              ? error.code
+              : VIDEO_OPTIMIZATION_ERRORS.DECODE_FAILED;
+          if (code === VIDEO_OPTIMIZATION_ERRORS.CANCELED) return null;
+          if (code === VIDEO_OPTIMIZATION_ERRORS.TOO_LARGE) {
+            useAlert(this.$t('CONVERSATION.VIDEO_OPTIMIZATION.TOO_LARGE'));
+            return null;
+          }
+          useAlert(
+            usableAsIs
+              ? this.$t('CONVERSATION.VIDEO_OPTIMIZATION.FAILED_USING_ORIGINAL')
+              : this.$t('CONVERSATION.VIDEO_OPTIMIZATION.FAILED')
+          );
+          return usableAsIs ? file : null;
+        }
+      } finally {
+        this.untrack('optimizingVideos', optimizing);
+      }
+    },
+
+    prepareMediaForUpload(file, profile = 'standard') {
+      const mime = file.file?.type || file.type;
+      if (isOptimizableImageMime(mime)) {
+        return this.prepareImageForUpload(file, profile);
+      }
+      if (isOptimizableVideoMime(mime)) {
+        return this.prepareVideoForUpload(file, profile);
+      }
+      return file;
+    },
+
     untrack(list, context) {
       const index = this[list].indexOf(context);
       if (index !== -1) this[list].splice(index, 1);
@@ -175,7 +306,7 @@ export default {
       // Keeps Send disabled until the file is attached, including the direct upload
       this.uploadingFiles.push(context);
       try {
-        const prepared = await this.prepareImageForUpload(file);
+        const prepared = await this.prepareMediaForUpload(file);
         // The agent may have switched conversation or reply mode while it was prepared
         if (!prepared || !this.isSameComposerContext(context)) return;
 

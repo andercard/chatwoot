@@ -8,6 +8,14 @@
       "FAILED_USING_ORIGINAL": "We couldn't optimize this image. The original will be sent.",
       "TOO_LARGE": "We couldn't reduce this image enough to send it. Try a smaller image."
     },
+    "VIDEO_OPTIMIZATION": {
+      "OPTIMIZING": "Optimizing video... {PERCENT}%. Keep the app open.",
+      "UNSUPPORTED": "Your browser can't optimize videos. Try a smaller video or a different browser.",
+      "UNSUPPORTED_USING_ORIGINAL": "Your browser can't optimize videos. The original will be sent.",
+      "FAILED": "We couldn't optimize this video.",
+      "FAILED_USING_ORIGINAL": "We couldn't optimize this video. The original will be sent.",
+      "TOO_LARGE": "We couldn't reduce this video enough to send it. Try a shorter video."
+    },
     "REFERRAL": {
       "AD_LABEL": "Ad",
       "POST_LABEL": "Post",

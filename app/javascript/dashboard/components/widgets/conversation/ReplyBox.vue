@@ -47,6 +47,7 @@ import {
   getImageOptimizationPolicy,
   isOptimizableImageMime,
 } from 'dashboard/helper/imageOptimizationPolicy';
+import { getVideoOptimizationPolicy } from 'dashboard/helper/videoOptimizationPolicy';
 import { getLongestSide } from 'shared/helpers/imageOptimizer';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import {
@@ -382,6 +383,7 @@ export default {
     isProcessingAttachment() {
       return (
         this.isOptimizingImage ||
+        this.isOptimizingVideo ||
         this.isUploadingFile ||
         this.attachedFiles.some(attachment => attachment.isOptimizing)
       );
@@ -1288,10 +1290,13 @@ export default {
       }
 
       const context = this.getComposerContext();
+      // Only images are previewed, so other files are never read into a data URL
+      const hasThumb = file.file.type?.startsWith('image/');
+      const originalMime =
+        (file.originalFile || file).file?.type ||
+        (file.originalFile || file).type;
       return new Promise(resolve => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file.file);
-        reader.onloadend = () => {
+        const addAttachment = thumb => {
           // The agent may have switched conversation or reply mode while the thumbnail was read
           if (!this.isSameComposerContext(context)) {
             resolve();
@@ -1301,37 +1306,49 @@ export default {
             currentChatId: this.currentChat.id,
             resource: blob || file,
             isPrivate: this.isPrivate,
-            thumb: reader.result,
+            thumb,
             blobSignedId: blob ? blob.signed_id : undefined,
             isVoiceMessage: file?.isVoiceMessage || false,
             originalFile: file.originalFile || file,
-            canToggleHd: isOptimizableImageMime(
-              (file.originalFile || file).file?.type ||
-                (file.originalFile || file).type
-            ),
+            canToggleHd:
+              isOptimizableImageMime(originalMime) ||
+              !!getVideoOptimizationPolicy({
+                inbox: this.inbox,
+                mime: originalMime,
+                installationLimit: this.installationLimit,
+              }),
             isHd: false,
             sendAsHd: false,
             isOptimizing: false,
           });
           resolve();
         };
+        if (!hasThumb) {
+          addAttachment(undefined);
+          return;
+        }
+        const reader = new FileReader();
+        reader.readAsDataURL(file.file);
+        reader.onloadend = () => addAttachment(reader.result);
       });
     },
-    // Re-optimizes the original image with the HD (or standard) profile and uploads it again
+    // Re-optimizes the original image or video with the HD (or standard) profile and uploads it again
     async toggleHd(attachment) {
       if (attachment.isOptimizing || !attachment.originalFile) return;
 
       const isHd = !attachment.isHd;
+      const originalMime =
+        attachment.originalFile.file?.type || attachment.originalFile.type;
+      const isVideo = originalMime?.startsWith('video/');
       const policy = getImageOptimizationPolicy({
         inbox: this.inbox,
-        mime:
-          attachment.originalFile.file?.type || attachment.originalFile.type,
+        mime: originalMime,
         installationLimit: this.installationLimit,
       });
       const context = this.getComposerContext();
       attachment.isOptimizing = true;
       try {
-        const prepared = await this.prepareImageForUpload(
+        const prepared = await this.prepareMediaForUpload(
           attachment.originalFile,
           isHd ? 'hd' : 'standard'
         );
@@ -1340,16 +1357,19 @@ export default {
         const blob = this.globalConfig.directUploadsEnabled
           ? await this.uploadDirectly(prepared)
           : undefined;
-        const thumb = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(prepared.file);
-        });
+        const thumb = isVideo
+          ? undefined
+          : await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(prepared.file);
+            });
         // The HD mark only reaches the customer when the image is larger than the standard size
-        const longestSide = isHd
-          ? await getLongestSide(prepared.file).catch(() => null)
-          : null;
+        const longestSide =
+          isHd && !isVideo
+            ? await getLongestSide(prepared.file).catch(() => null)
+            : null;
         if (!this.isSameComposerContext(context)) return;
 
         Object.assign(attachment, {
@@ -1358,6 +1378,7 @@ export default {
           blobSignedId: blob ? blob.signed_id : undefined,
           isHd,
           sendAsHd:
+            !isVideo &&
             isHd &&
             (longestSide === null || longestSide > policy?.standardMaxSide),
         });
@@ -1712,11 +1733,20 @@ export default {
         </WootMessageEditor>
 
         <div
-          v-if="isOptimizingImage && isDefaultEditorMode"
+          v-if="(isOptimizingImage || isOptimizingVideo) && isDefaultEditorMode"
           class="flex items-center gap-2 mb-2 text-sm text-n-slate-11"
         >
           <Spinner class="!w-4 !h-4" />
-          {{ $t('CONVERSATION.IMAGE_OPTIMIZATION.OPTIMIZING') }}
+          <template v-if="isOptimizingVideo">
+            {{
+              $t('CONVERSATION.VIDEO_OPTIMIZATION.OPTIMIZING', {
+                PERCENT: videoOptimizationPercent,
+              })
+            }}
+          </template>
+          <template v-else>
+            {{ $t('CONVERSATION.IMAGE_OPTIMIZATION.OPTIMIZING') }}
+          </template>
         </div>
         <div
           v-if="
