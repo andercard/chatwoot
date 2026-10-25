@@ -9,33 +9,9 @@ import {
   resolveMaximumFileUploadSize,
 } from 'shared/helpers/FileHelper';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
-import {
-  getImageOptimizationPolicy,
-  imageNeedsOptimization,
-  getImageLadder,
-  getProfileMaxSide,
-  isOptimizableImageMime,
-} from 'dashboard/helper/imageOptimizationPolicy';
-import {
-  getVideoOptimizationPolicy,
-  getVideoLadder,
-  isOptimizableVideoMime,
-  videoNeedsCodecFix,
-  videoNeedsOptimization,
-} from 'dashboard/helper/videoOptimizationPolicy';
-import {
-  optimizeImage,
-  getLongestSide,
-  ImageOptimizationError,
-  IMAGE_OPTIMIZATION_ERRORS,
-} from 'shared/helpers/imageOptimizer';
-import {
-  canEncodeVideoAudio,
-  optimizeVideo,
-  probeVideo,
-  VideoOptimizationError,
-  VIDEO_OPTIMIZATION_ERRORS,
-} from 'shared/helpers/videoOptimizer';
+import { isOptimizableImageMime } from 'dashboard/helper/imageOptimizationPolicy';
+import { isOptimizableVideoMime } from 'dashboard/helper/videoOptimizationPolicy';
+import { prepareImage, prepareVideo } from 'dashboard/helper/mediaPreparation';
 
 const PERCENT = 100;
 
@@ -108,164 +84,37 @@ export default {
         })
       );
     },
-    async prepareImageForUpload(file, profile = 'standard') {
-      const mime = file.file?.type || file.type;
+    prepareImageForUpload(file, profile = 'standard') {
       if (this.isOnPrivateNote) return file;
 
-      const policy = getImageOptimizationPolicy({
+      return prepareImage(file, {
+        profile,
         inbox: this.inbox,
-        mime,
         installationLimit: this.installationLimit,
+        t: (...args) => this.$t(...args),
+        track: () => this.trackOptimization('optimizingImages'),
       });
-      if (!policy) return file;
-
-      const native = file.file || file;
-      const { size } = native;
-      let longestSide;
-      if (getProfileMaxSide(policy, profile) && size <= policy.limitBytes) {
-        try {
-          longestSide = await getLongestSide(native);
-        } catch (e) {
-          longestSide = undefined;
-        }
-      }
-
-      if (!imageNeedsOptimization(policy, profile, { size, longestSide })) {
-        return file;
-      }
-
-      const optimizing = this.getComposerContext();
-      this.optimizingImages.push(optimizing);
-      try {
-        const optimized = await optimizeImage(native, {
-          maxBytes: policy.maxBytes,
-          ladder: getImageLadder(policy, profile),
-        });
-        return {
-          ...file,
-          file: optimized.file,
-          name: optimized.file.name,
-          type: optimized.file.type,
-          size: optimized.file.size,
-          originalFile: file.originalFile || file,
-        };
-      } catch (error) {
-        const code =
-          error instanceof ImageOptimizationError
-            ? error.code
-            : IMAGE_OPTIMIZATION_ERRORS.DECODE_FAILED;
-        if (code === IMAGE_OPTIMIZATION_ERRORS.TOO_LARGE) {
-          useAlert(this.$t('CONVERSATION.IMAGE_OPTIMIZATION.TOO_LARGE'));
-          return null;
-        }
-        const fits = size <= policy.limitBytes;
-        const unsupported = code === IMAGE_OPTIMIZATION_ERRORS.UNSUPPORTED;
-        let message;
-        if (unsupported) {
-          message = fits
-            ? this.$t(
-                'CONVERSATION.IMAGE_OPTIMIZATION.UNSUPPORTED_USING_ORIGINAL'
-              )
-            : this.$t('CONVERSATION.IMAGE_OPTIMIZATION.UNSUPPORTED');
-        } else {
-          message = fits
-            ? this.$t('CONVERSATION.IMAGE_OPTIMIZATION.FAILED_USING_ORIGINAL')
-            : this.$t('CONVERSATION.IMAGE_OPTIMIZATION.FAILED');
-        }
-        useAlert(message);
-        // An original that is over the channel limit must never be attached
-        return fits ? file : null;
-      } finally {
-        this.untrack('optimizingImages', optimizing);
-      }
     },
 
-    async prepareVideoForUpload(file, profile = 'standard') {
-      const mime = file.file?.type || file.type;
+    prepareVideoForUpload(file, profile = 'standard') {
       if (this.isOnPrivateNote) return file;
 
-      const policy = getVideoOptimizationPolicy({
-        inbox: this.inbox,
-        mime,
-        installationLimit: this.installationLimit,
-      });
-      if (!policy) return file;
-
-      const native = file.file || file;
-      const { size } = native;
-      const fits = size <= policy.limitBytes;
-      const optimizing = this.getComposerContext();
       const controller = new AbortController();
-      this.optimizingVideos.push(optimizing);
-      this.videoOptimizationProgress = 0;
-      this.videoOptimizationController = controller;
-      let probe;
-      try {
-        try {
-          probe = await probeVideo(native);
-        } catch (error) {
-          useAlert(
-            fits
-              ? this.$t('CONVERSATION.VIDEO_OPTIMIZATION.FAILED_USING_ORIGINAL')
-              : this.$t('CONVERSATION.VIDEO_OPTIMIZATION.FAILED')
-          );
-          return fits ? file : null;
-        }
-
-        if (!videoNeedsOptimization(policy, profile, probe, { size, mime })) {
-          return file;
-        }
-
-        // An original over the channel limit or in a format WhatsApp can't play must never be attached
-        const usableAsIs = fits && !videoNeedsCodecFix(probe, { mime });
-        if (!(await canEncodeVideoAudio())) {
-          useAlert(
-            usableAsIs
-              ? this.$t(
-                  'CONVERSATION.VIDEO_OPTIMIZATION.UNSUPPORTED_USING_ORIGINAL'
-                )
-              : this.$t('CONVERSATION.VIDEO_OPTIMIZATION.UNSUPPORTED')
-          );
-          return usableAsIs ? file : null;
-        }
-
-        try {
-          const optimized = await optimizeVideo(native, {
-            maxBytes: policy.maxBytes,
-            ladder: getVideoLadder(policy, profile),
-            signal: controller.signal,
-            onProgress: progress => {
-              this.videoOptimizationProgress = progress;
-            },
-          });
-          return {
-            ...file,
-            file: optimized.file,
-            name: optimized.file.name,
-            type: optimized.file.type,
-            size: optimized.file.size,
-            originalFile: file.originalFile || file,
-          };
-        } catch (error) {
-          const code =
-            error instanceof VideoOptimizationError
-              ? error.code
-              : VIDEO_OPTIMIZATION_ERRORS.DECODE_FAILED;
-          if (code === VIDEO_OPTIMIZATION_ERRORS.CANCELED) return null;
-          if (code === VIDEO_OPTIMIZATION_ERRORS.TOO_LARGE) {
-            useAlert(this.$t('CONVERSATION.VIDEO_OPTIMIZATION.TOO_LARGE'));
-            return null;
-          }
-          useAlert(
-            usableAsIs
-              ? this.$t('CONVERSATION.VIDEO_OPTIMIZATION.FAILED_USING_ORIGINAL')
-              : this.$t('CONVERSATION.VIDEO_OPTIMIZATION.FAILED')
-          );
-          return usableAsIs ? file : null;
-        }
-      } finally {
-        this.untrack('optimizingVideos', optimizing);
-      }
+      return prepareVideo(file, {
+        profile,
+        inbox: this.inbox,
+        installationLimit: this.installationLimit,
+        t: (...args) => this.$t(...args),
+        signal: controller.signal,
+        onProgress: progress => {
+          this.videoOptimizationProgress = progress;
+        },
+        track: () => {
+          this.videoOptimizationProgress = 0;
+          this.videoOptimizationController = controller;
+          return this.trackOptimization('optimizingVideos');
+        },
+      });
     },
 
     prepareMediaForUpload(file, profile = 'standard') {
@@ -277,6 +126,13 @@ export default {
         return this.prepareVideoForUpload(file, profile);
       }
       return file;
+    },
+
+    // Marks the current composer context as optimizing and returns the function that clears it
+    trackOptimization(list) {
+      const context = this.getComposerContext();
+      this[list].push(context);
+      return () => this.untrack(list, context);
     },
 
     untrack(list, context) {

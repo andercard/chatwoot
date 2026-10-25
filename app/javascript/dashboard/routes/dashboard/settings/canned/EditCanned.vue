@@ -5,11 +5,13 @@ import { required, minLength } from '@vuelidate/validators';
 import { useAlert } from 'dashboard/composables';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import CannedResponseFiles from 'dashboard/components-next/canned-response/CannedResponseFiles.vue';
 import Modal from '../../../../components/Modal.vue';
 
 export default {
   components: {
     NextButton,
+    CannedResponseFiles,
     Modal,
     WootMessageEditor,
   },
@@ -17,6 +19,7 @@ export default {
     id: { type: Number, default: null },
     edcontent: { type: String, default: '' },
     edshortCode: { type: String, default: '' },
+    edfiles: { type: Array, default: () => [] },
     onClose: { type: Function, default: () => {} },
   },
   setup() {
@@ -30,6 +33,7 @@ export default {
       },
       shortCode: this.edshortCode,
       content: this.edcontent,
+      files: { attachments: [], removeAttachmentIds: [], isBusy: false },
       show: true,
     };
   },
@@ -59,6 +63,7 @@ export default {
       this.v$.content.$reset();
     },
     editCannedResponse() {
+      if (this.files.isBusy) return;
       // Show loading on button
       this.editCanned.showLoading = true;
       // Make API Calls
@@ -67,6 +72,8 @@ export default {
           id: this.id,
           short_code: this.shortCode,
           content: this.content,
+          attachments: this.files.attachments,
+          remove_attachment_ids: this.files.removeAttachmentIds,
         })
         .then(() => {
           // Reset Form, Show success message
@@ -122,6 +129,7 @@ export default {
             />
           </div>
         </div>
+        <CannedResponseFiles :saved-files="edfiles" @change="files = $event" />
         <div class="flex flex-row justify-end w-full gap-2 px-0 py-2">
           <NextButton
             faded
@@ -136,6 +144,7 @@ export default {
             :disabled="
               v$.content.$invalid ||
               v$.shortCode.$invalid ||
+              files.isBusy ||
               editCanned.showLoading
             "
             :is-loading="editCanned.showLoading"

@@ -4,6 +4,7 @@ import { required, minLength } from '@vuelidate/validators';
 import { useAlert } from 'dashboard/composables';
 
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import CannedResponseFiles from 'dashboard/components-next/canned-response/CannedResponseFiles.vue';
 import Modal from '../../../../components/Modal.vue';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
 
@@ -11,6 +12,7 @@ export default {
   name: 'AddCanned',
   components: {
     NextButton,
+    CannedResponseFiles,
     Modal,
     WootMessageEditor,
   },
@@ -31,6 +33,7 @@ export default {
     return {
       shortCode: '',
       content: this.responseContent || '',
+      files: { attachments: [], isBusy: false },
       addCanned: {
         showLoading: false,
         message: '',
@@ -55,6 +58,7 @@ export default {
       this.v$.content.$reset();
     },
     addCannedResponse() {
+      if (this.files.isBusy) return;
       // Show loading on button
       this.addCanned.showLoading = true;
       // Make API Calls
@@ -62,6 +66,7 @@ export default {
         .dispatch('createCannedResponse', {
           short_code: this.shortCode,
           content: this.content,
+          attachments: this.files.attachments,
         })
         .then(() => {
           // Reset Form, Show success message
@@ -118,6 +123,7 @@ export default {
             />
           </div>
         </div>
+        <CannedResponseFiles @change="files = $event" />
         <div class="flex flex-row justify-end w-full gap-2 px-0 py-2">
           <NextButton
             faded
@@ -132,6 +138,7 @@ export default {
             :disabled="
               v$.content.$invalid ||
               v$.shortCode.$invalid ||
+              files.isBusy ||
               addCanned.showLoading
             "
             :is-loading="addCanned.showLoading"
