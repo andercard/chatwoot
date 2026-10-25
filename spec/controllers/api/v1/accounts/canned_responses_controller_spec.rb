@@ -25,7 +25,7 @@ RSpec.describe 'Canned Responses API', type: :request do
             as: :json
 
         expect(response).to have_http_status(:success)
-        expect(response.parsed_body).to eq(account.canned_responses.as_json)
+        expect(response.parsed_body).to eq(account.canned_responses.map { |canned_response| canned_response.as_json.merge('files' => []) })
       end
 
       it 'returns all the canned responses the user searched for' do
@@ -43,7 +43,7 @@ RSpec.describe 'Canned Responses API', type: :request do
 
         expect(response).to have_http_status(:success)
         expect(response.parsed_body).to eq(
-          [cr3, cr2, cr1].as_json
+          [cr3, cr2, cr1].map { |canned_response| canned_response.as_json.merge('files' => []) }
         )
       end
 
@@ -56,7 +56,7 @@ RSpec.describe 'Canned Responses API', type: :request do
             as: :json
 
         expect(response).to have_http_status(:success)
-        expect(response.parsed_body).to eq([matching_response].as_json)
+        expect(response.parsed_body).to eq([matching_response.as_json.merge('files' => [])])
       end
     end
   end
