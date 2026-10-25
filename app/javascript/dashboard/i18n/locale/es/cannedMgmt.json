@@ -63,6 +63,16 @@
         "ERROR_MESSAGE": "No se pudo conectar al servidor Woot, por favor inténtalo de nuevo más tarde"
       }
     },
+    "FILES": {
+      "TITLE": "Archivos",
+      "ADD": "Añadir archivo",
+      "HELP": "Archivos JPG, PNG, MP4 y PDF. Las imágenes y los videos se optimizan para WhatsApp.",
+      "SAVED_HINT": "Para cambiar la calidad de un archivo guardado, elimínelo y vuelva a añadirlo.",
+      "REMOVE": "Eliminar archivo",
+      "UPLOADING": "Subiendo... {PERCENT}%",
+      "UPLOAD_FAILED": "No pudimos subir este archivo. Elimínelo e inténtelo de nuevo.",
+      "UNSUPPORTED_TYPE": "Este tipo de archivo no es compatible. Use archivos JPG, PNG, MP4 (o videos MOV, WebM y 3GP) o PDF."
+    },
     "DELETE": {
       "BUTTON_TEXT": "Eliminar",
       "API": {

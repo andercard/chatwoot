@@ -48,6 +48,10 @@ import {
   isOptimizableImageMime,
 } from 'dashboard/helper/imageOptimizationPolicy';
 import { getVideoOptimizationPolicy } from 'dashboard/helper/videoOptimizationPolicy';
+import {
+  waitForMessageDelivery,
+  MESSAGE_DELIVERY_RESULTS,
+} from 'dashboard/helper/messageDelivery';
 import { getLongestSide } from 'shared/helpers/imageOptimizer';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import {
@@ -1031,15 +1035,36 @@ export default {
         this.hideEmojiPicker();
       }
     },
-    sendMessageAsMultipleMessages(message, copilotAcceptedMessage = '') {
+    async sendMessageAsMultipleMessages(message, copilotAcceptedMessage = '') {
       const messages = this.getMultipleMessagesPayload(message);
-      messages.forEach(messagePayload => {
-        this.sendMessage(
+      const lastIndex = messages.length - 1;
+      // Each message waits until the provider accepted the previous one, so they reach the customer in order
+      for (let index = 0; index < lastIndex; index += 1) {
+        const messagePayload = messages[index];
+        // eslint-disable-next-line no-await-in-loop
+        const savedMessage = await this.sendMessage(
           messagePayload,
           messagePayload.message || '',
+          copilotAcceptedMessage,
+          true
+        );
+        if (!savedMessage) return;
+
+        // eslint-disable-next-line no-await-in-loop
+        const result = await waitForMessageDelivery(this.$store, {
+          conversationId: messagePayload.conversationId,
+          messageId: savedMessage.id,
+        });
+        if (result === MESSAGE_DELIVERY_RESULTS.FAILED) return;
+      }
+      const lastPayload = messages[lastIndex];
+      if (lastPayload) {
+        this.sendMessage(
+          lastPayload,
+          lastPayload.message || '',
           copilotAcceptedMessage
         );
-      });
+      }
     },
     sendMessageAnalyticsData(
       isPrivate,
@@ -1111,16 +1136,18 @@ export default {
         this.confirmOnSendReply();
       }
     },
+    // With `waitForRequest` it resolves with the saved message once the request finished, and with nothing if it failed
     async sendMessage(
       messagePayload,
       editorMessage = '',
-      copilotAcceptedMessage = ''
+      copilotAcceptedMessage = '',
+      waitForRequest = false
     ) {
       try {
-        await this.$store.dispatch(
-          'createPendingMessageAndSend',
-          messagePayload
-        );
+        const action = waitForRequest
+          ? 'createPendingMessageAndWait'
+          : 'createPendingMessageAndSend';
+        const savedMessage = await this.$store.dispatch(action, messagePayload);
         emitter.emit(BUS_EVENTS.SCROLL_TO_MESSAGE);
         emitter.emit(BUS_EVENTS.MESSAGE_SENT);
         this.removeFromDraft();
@@ -1128,10 +1155,12 @@ export default {
           editorMessage,
           copilotAcceptedMessage,
         });
+        return savedMessage;
       } catch (error) {
         const errorMessage =
           error?.response?.data?.error || this.$t('CONVERSATION.MESSAGE_ERROR');
         useAlert(errorMessage);
+        return undefined;
       }
     },
     async onSendWhatsAppReply(messagePayload) {
@@ -1284,6 +1313,75 @@ export default {
         isPrivate,
       });
     },
+    // Saved HD images arrive as such; videos and images that fit the standard size never do
+    async getCannedFileHdState(file) {
+      const policy = getImageOptimizationPolicy({
+        inbox: this.inbox,
+        mime: file.type,
+        installationLimit: this.installationLimit,
+      });
+      if (!policy?.supportsHd) return false;
+
+      const longestSide = await getLongestSide(file).catch(() => null);
+      return longestSide > policy.standardMaxSide;
+    },
+    // Rails' proxy route streams the file through the app, so it works with any storage service without CORS
+    async downloadCannedFile(cannedFile) {
+      try {
+        const response = await fetch(
+          cannedFile.file_url.replace('/blobs/redirect/', '/blobs/proxy/')
+        );
+        if (!response.ok) throw new Error(response.status);
+
+        const blob = await response.blob();
+        const file = new File([blob], cannedFile.filename, {
+          type: cannedFile.content_type,
+        });
+        return {
+          id: `canned-${cannedFile.id}`,
+          cannedFileId: cannedFile.id,
+          file,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          isHd: await this.getCannedFileHdState(file),
+        };
+      } catch (error) {
+        useAlert(
+          this.$t('CONVERSATION.CANNED_FILE_DOWNLOAD_FAILED', {
+            name: cannedFile.filename,
+          })
+        );
+        return null;
+      }
+    },
+    // The files were optimized when the canned response was saved, so they skip the optimizer here
+    async onCannedResponseSelected({ files }) {
+      if (!files?.length) return;
+      if (!this.showFileUpload && !this.isOnPrivateNote) return;
+
+      const context = this.getComposerContext();
+      // Keeps Send disabled while the files are downloaded
+      this.uploadingFiles.push(context);
+      try {
+        // Files are loaded one by one to keep the order of the canned response
+        /* eslint-disable no-await-in-loop */
+        for (let index = 0; index < files.length; index += 1) {
+          const cannedFile = files[index];
+          const isStaged = this.attachedFiles.some(
+            attachment => attachment.cannedFileId === cannedFile.id
+          );
+          const file = isStaged
+            ? null
+            : await this.downloadCannedFile(cannedFile);
+          if (!this.isSameComposerContext(context)) return;
+          if (file) await this.onFileUpload(file, { skipPreparation: true });
+        }
+        /* eslint-enable no-await-in-loop */
+      } finally {
+        this.untrack('uploadingFiles', context);
+      }
+    },
     attachFile({ blob, file }) {
       if (!this.showFileUpload && !this.isOnPrivateNote) {
         return Promise.resolve();
@@ -1310,15 +1408,18 @@ export default {
             blobSignedId: blob ? blob.signed_id : undefined,
             isVoiceMessage: file?.isVoiceMessage || false,
             originalFile: file.originalFile || file,
+            cannedFileId: file.cannedFileId,
+            // A canned file is already optimized and its original is gone, so it can't be switched
             canToggleHd:
-              isOptimizableImageMime(originalMime) ||
-              !!getVideoOptimizationPolicy({
-                inbox: this.inbox,
-                mime: originalMime,
-                installationLimit: this.installationLimit,
-              }),
-            isHd: false,
-            sendAsHd: false,
+              !file.cannedFileId &&
+              (isOptimizableImageMime(originalMime) ||
+                !!getVideoOptimizationPolicy({
+                  inbox: this.inbox,
+                  mime: originalMime,
+                  installationLimit: this.installationLimit,
+                })),
+            isHd: !!file.isHd,
+            sendAsHd: !!file.isHd,
             isOptimizing: false,
           });
           resolve();
@@ -1715,6 +1816,7 @@ export default {
           @blur="onBlur"
           @toggle-user-mention="toggleUserMention"
           @toggle-canned-menu="toggleCannedMenu"
+          @canned-response-selected="onCannedResponseSelected"
           @toggle-variables-menu="toggleVariablesMenu"
           @toggle-macros-menu="toggleMacrosMenu"
           @execute-macro="onExecuteMacro"

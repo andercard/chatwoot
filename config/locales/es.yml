@@ -93,6 +93,9 @@ es:
       not_found: Assignment policy not found
     attachments:
       invalid: Invalid attachment
+    canned_responses:
+      unsupported_file_type: 'Solo se pueden adjuntar archivos JPEG, PNG, MP4 y PDF a una respuesta rápida'
+      file_too_large: 'El archivo supera el tamaño máximo de subida'
     upload:
       missing_input: 'No file or URL provided'
       invalid_url: 'Invalid URL provided'

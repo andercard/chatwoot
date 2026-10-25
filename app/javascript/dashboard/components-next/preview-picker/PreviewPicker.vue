@@ -222,6 +222,11 @@ defineExpose({ scrollSelectedIntoView });
                   "
                 />
               </span>
+              <slot
+                name="trailing"
+                :item="item"
+                :selected="index === selectedIndex"
+              />
             </li>
           </template>
         </ul>

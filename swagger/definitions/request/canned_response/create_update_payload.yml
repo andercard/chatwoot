@@ -8,3 +8,13 @@ properties:
     type: string
     description: Short Code for quick access of the canned response
     example: 'welcome'
+  attachments:
+    type: array
+    description: Signed IDs of uploaded files to attach (JPEG, PNG, MP4 or PDF). Upload them first with the upload endpoint
+    items:
+      type: string
+  remove_attachment_ids:
+    type: array
+    description: IDs of the attached files to remove
+    items:
+      type: integer

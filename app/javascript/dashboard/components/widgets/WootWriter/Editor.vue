@@ -109,6 +109,7 @@ const emit = defineEmits([
   'typingOff',
   'toggleUserMention',
   'toggleCannedMenu',
+  'cannedResponseSelected',
   'toggleVariablesMenu',
   'toggleToolsMenu',
   'toggleMacrosMenu',
@@ -975,6 +976,7 @@ useEmitter(BUS_EVENTS.INSERT_INTO_RICH_EDITOR, content => {
       @close="dismissCannedResponses"
       @remove-trigger="removeSuggestionTrigger"
       @replace="content => insertSpecialContent('cannedResponse', content)"
+      @selected="record => emit('cannedResponseSelected', record)"
     />
     <VariableList
       v-if="shouldShowVariables"
