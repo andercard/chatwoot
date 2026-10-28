@@ -20,6 +20,7 @@ import { isOnOnboardingView } from 'v3/helpers/RouteHelper';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useFontSize } from 'dashboard/composables/useFontSize';
 import {
+  hasPushPermissions,
   registerSubscription,
   verifyServiceWorkerExistence,
 } from './helper/pushHelper';
@@ -147,7 +148,9 @@ export default {
 
       verifyServiceWorkerExistence(registration =>
         registration.pushManager.getSubscription().then(subscription => {
-          if (subscription) {
+          // iOS can drop the local subscription while the permission stays
+          // granted; recreate it instead of waiting for a manual re-enable.
+          if (subscription || hasPushPermissions()) {
             registerSubscription();
           }
         })
