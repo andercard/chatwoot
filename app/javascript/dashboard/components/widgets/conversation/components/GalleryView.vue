@@ -183,12 +183,12 @@ onMounted(() => {
         @click="onClose"
       >
         <header
-          class="z-10 flex items-center justify-between w-full h-16 px-6 py-2 bg-n-background border-b border-n-weak"
+          class="z-10 flex items-center justify-between w-full h-16 px-3 md:px-6 py-2 bg-n-background border-b border-n-weak"
           @click.stop
         >
           <div
             v-if="senderDetails"
-            class="flex items-center min-w-[15rem] shrink-0"
+            class="flex items-center md:min-w-[15rem] shrink-0"
           >
             <Avatar
               v-if="senderDetails.avatar"
@@ -198,7 +198,7 @@ onMounted(() => {
               rounded-full
               class="flex-shrink-0"
             />
-            <div class="flex flex-col ms-2 overflow-hidden">
+            <div class="hidden md:flex flex-col ms-2 overflow-hidden">
               <h3 class="text-base leading-5 m-0 font-medium">
                 <span
                   class="overflow-hidden text-n-slate-12 whitespace-nowrap text-ellipsis"
@@ -215,7 +215,7 @@ onMounted(() => {
           </div>
 
           <div
-            class="flex-1 mx-2 px-2 truncate text-sm font-medium text-center text-n-slate-12"
+            class="flex-1 min-w-0 mx-2 px-2 truncate text-sm font-medium text-center text-n-slate-12"
           >
             <span v-dompurify-html="fileNameFromDataUrl" class="truncate" />
           </div>
