@@ -142,6 +142,7 @@ export default {
         v-if="configItem.type === 'frame' && configItem.url"
         :id="getFrameId(index)"
         :src="configItem.url"
+        allow="camera;microphone;fullscreen;display-capture;picture-in-picture;clipboard-write;"
         @load="() => sendContext(index)"
       />
     </div>
